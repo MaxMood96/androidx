@@ -23,7 +23,6 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.os.Build;
-import android.view.ViewConfiguration;
 
 import androidx.annotation.RestrictTo;
 import androidx.appcompat.R;
@@ -32,7 +31,6 @@ import androidx.appcompat.R;
  * Allows components to query for various configuration policy decisions about how the action bar
  * should lay out and behave on the current device.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class ActionBarPolicy {
@@ -75,11 +73,7 @@ public class ActionBarPolicy {
     }
 
     public boolean showsOverflowMenuButton() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            return true;
-        } else {
-            return !ViewConfiguration.get(mContext).hasPermanentMenuKey();
-        }
+        return true;
     }
 
     public int getEmbeddedMenuWidthLimit() {

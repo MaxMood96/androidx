@@ -30,14 +30,13 @@ import androidx.versionedparcelable.VersionedParcelize;
 import java.util.ArrayList;
 import java.util.List;
 
-/** @hide */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @VersionedParcelize
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public class UserStyleSchemaWireFormat implements VersionedParcelable, Parcelable {
+    /** List of user style categories comprising the style schema. */
     @ParcelField(1)
     @NonNull
-    /** List of user style categories comprising the style schema. */
     public List<UserStyleSettingWireFormat> mSchema = new ArrayList<UserStyleSettingWireFormat>();
 
     UserStyleSchemaWireFormat() {}

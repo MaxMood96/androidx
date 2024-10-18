@@ -31,7 +31,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.appcompat.content.res.AppCompatResources;
-import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -44,7 +43,6 @@ import java.util.List;
  *
  * Used by Settings.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class PreferenceGroupAdapter extends RecyclerView.Adapter<PreferenceViewHolder>
@@ -400,7 +398,7 @@ public class PreferenceGroupAdapter extends RecyclerView.Adapter<PreferenceViewH
 
         final View view = inflater.inflate(descriptor.mLayoutResId, parent, false);
         if (view.getBackground() == null) {
-            ViewCompat.setBackground(view, background);
+            view.setBackground(background);
         }
 
         final ViewGroup widgetFrame = view.findViewById(android.R.id.widget_frame);

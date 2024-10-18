@@ -16,121 +16,63 @@
 
 package androidx.compose.ui.focus
 
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusStateImpl.Active
-import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
-import androidx.compose.ui.focus.FocusStateImpl.Captured
-import androidx.compose.ui.focus.FocusStateImpl.Inactive
-import androidx.compose.ui.layout.BeyondBoundsLayout
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
-import androidx.compose.ui.modifier.ModifierLocalNode
-import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.Nodes
-import androidx.compose.ui.node.ObserverNode
-import androidx.compose.ui.node.observeReads
-import androidx.compose.ui.node.requireOwner
-import androidx.compose.ui.node.visitAncestors
-import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.node.DelegatableNode
 
 /**
- * This modifier node can be used to create a modifier that makes a component focusable.
- * Use a different instance of [FocusTargetModifierNode] for each focusable component.
+ * This modifier node can be delegated to in order to create a modifier that makes a component
+ * focusable.
  */
-@ExperimentalComposeUiApi
-class FocusTargetModifierNode : ObserverNode, ModifierLocalNode, Modifier.Node() {
+sealed interface FocusTargetModifierNode : DelegatableNode {
     /**
-     * The [FocusState] associated with this [FocusTargetModifierNode].
+     * The [FocusState] associated with this [FocusTargetModifierNode]. When you delegate to a
+     * [FocusTargetModifierNode], instead of implementing [FocusEventModifierNode], you can get the
+     * state by accessing this variable.
      */
     val focusState: FocusState
-        get() = focusStateImpl
-
-    internal var focusStateImpl = Inactive
-    internal val beyondBoundsLayoutParent: BeyondBoundsLayout?
-        get() = ModifierLocalBeyondBoundsLayout.current
-
-    override fun onObservedReadsChanged() {
-        val previousFocusState = focusState
-        invalidateFocus()
-        if (previousFocusState != focusState) refreshFocusEventNodes()
-    }
 
     /**
-     * Clears focus if this focus target has it.
+     * Request focus for this node.
+     *
+     * @return true if focus was successfully requested
      */
-    override fun onReset() {
-        when (focusState) {
-            // Clear focus from the current FocusTarget.
-            // This currently clears focus from the entire hierarchy, but we can change the
-            // implementation so that focus is sent to the immediate focus parent.
-            Active, Captured -> requireOwner().focusOwner.clearFocus(force = true)
-            ActiveParent -> {
-                scheduleInvalidationForFocusEvents()
-                // This node might be reused, so reset the state to Inactive.
-                focusStateImpl = Inactive
-            }
-            Inactive -> scheduleInvalidationForFocusEvents()
-        }
-    }
+    fun requestFocus(): Boolean
 
     /**
-     * Visits parent [FocusPropertiesModifierNode]s and runs
-     * [FocusPropertiesModifierNode.modifyFocusProperties] on each parent.
-     * This effectively collects an aggregated focus state.
+     * The [Focusability] for this node.
+     *
+     * Note that parent [FocusPropertiesModifierNode]s that set [FocusProperties.canFocus] take
+     * priority over this property.
+     *
+     * If the current focus state would be affected by a new focusability, focus will be invalidated
+     * as needed.
      */
-    @ExperimentalComposeUiApi
-    internal fun fetchFocusProperties(): FocusProperties {
-        val properties = FocusPropertiesImpl()
-        visitAncestors(Nodes.FocusProperties or Nodes.FocusTarget) {
-            // If we reach the previous default focus properties node, we have gone too far, as
-            //  this is applies to the parent focus modifier.
-            if (it.isKind(Nodes.FocusTarget)) return properties
-
-            // Parent can override any values set by this
-            check(it is FocusPropertiesModifierNode)
-            it.modifyFocusProperties(properties)
-        }
-        return properties
-    }
-
-    internal fun invalidateFocus() {
-        when (focusState) {
-            // Clear focus from the current FocusTarget.
-            // This currently clears focus from the entire hierarchy, but we can change the
-            // implementation so that focus is sent to the immediate focus parent.
-            Active, Captured -> {
-                lateinit var focusProperties: FocusProperties
-                observeReads {
-                    focusProperties = fetchFocusProperties()
-                }
-                if (!focusProperties.canFocus) {
-                    requireOwner().focusOwner.clearFocus(force = true)
-                }
-            }
-
-            ActiveParent, Inactive -> {}
-        }
-    }
-
-    internal fun scheduleInvalidationForFocusEvents() {
-        visitAncestors(Nodes.FocusEvent or Nodes.FocusTarget) {
-            if (it.isKind(Nodes.FocusTarget)) return@visitAncestors
-
-            check(it is FocusEventModifierNode)
-            requireOwner().focusOwner.scheduleInvalidation(it)
-        }
-    }
-
-    internal object FocusTargetModifierElement : ModifierNodeElement<FocusTargetModifierNode>() {
-        override fun create() = FocusTargetModifierNode()
-
-        override fun update(node: FocusTargetModifierNode) = node
-
-        override fun InspectorInfo.inspectableProperties() {
-            name = "focusTarget"
-        }
-
-        override fun hashCode() = "focusTarget".hashCode()
-        override fun equals(other: Any?) = other === this
-    }
+    var focusability: Focusability
 }
+
+/**
+ * Create a [FocusTargetModifierNode] that can be delegated to in order to create a modifier that
+ * makes a component focusable. Use a different instance of [FocusTargetModifierNode] for each
+ * focusable component.
+ */
+@Deprecated(
+    "Use the other overload with added parameters for focusability and onFocusChange",
+    level = DeprecationLevel.HIDDEN
+)
+fun FocusTargetModifierNode(): FocusTargetModifierNode = FocusTargetNode()
+
+/**
+ * Create a [FocusTargetModifierNode] that can be delegated to in order to create a modifier that
+ * makes a component focusable. Use a different instance of [FocusTargetModifierNode] for each
+ * focusable component.
+ *
+ * @param focusability the [Focusability] that configures focusability for this node
+ * @param onFocusChange a callback invoked when the [FocusTargetModifierNode.focusState] changes,
+ *   providing the previous state that it changed from, and the current focus state. Note that this
+ *   will be invoked if the node is losing focus due to being detached from the hierarchy, but
+ *   before the node is marked as detached (node.isAttached will still be true).
+ */
+fun FocusTargetModifierNode(
+    focusability: Focusability = Focusability.Always,
+    onFocusChange: ((previous: FocusState, current: FocusState) -> Unit)? = null
+): FocusTargetModifierNode =
+    FocusTargetNode(focusability = focusability, onFocusChange = onFocusChange)

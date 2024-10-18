@@ -32,6 +32,7 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.StringDef;
 import androidx.webkit.internal.WebViewFeatureInternal;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -49,7 +50,6 @@ public class WebViewFeature {
     private WebViewFeature() {}
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @StringDef(value = {
@@ -80,7 +80,7 @@ public class WebViewFeature {
             SAFE_BROWSING_RESPONSE_SHOW_INTERSTITIAL,
             WEB_MESSAGE_PORT_POST_MESSAGE,
             WEB_MESSAGE_PORT_CLOSE,
-            WEB_MESSAGE_GET_MESSAGE_PAYLOAD,
+            WEB_MESSAGE_ARRAY_BUFFER,
             WEB_MESSAGE_PORT_SET_MESSAGE_CALLBACK,
             CREATE_WEB_MESSAGE_CHANNEL,
             POST_WEB_MESSAGE,
@@ -91,7 +91,6 @@ public class WebViewFeature {
             WEB_VIEW_RENDERER_TERMINATE,
             WEB_VIEW_RENDERER_CLIENT_BASIC_USAGE,
             PROXY_OVERRIDE,
-            SUPPRESS_ERROR_PAGE,
             MULTI_PROCESS,
             FORCE_DARK,
             FORCE_DARK_STRATEGY,
@@ -103,17 +102,23 @@ public class WebViewFeature {
             ENTERPRISE_AUTHENTICATION_APP_LINK_POLICY,
             GET_COOKIE_INFO,
             REQUESTED_WITH_HEADER_ALLOW_LIST,
+            USER_AGENT_METADATA,
+            MULTI_PROFILE,
+            ATTRIBUTION_REGISTRATION_BEHAVIOR,
+            WEBVIEW_MEDIA_INTEGRITY_API_STATUS,
+            MUTE_AUDIO,
+            PROFILE_URL_PREFETCH,
     })
     @Retention(RetentionPolicy.SOURCE)
     @Target({ElementType.PARAMETER, ElementType.METHOD})
     public @interface WebViewSupportFeature {}
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @StringDef(value = {
             STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX,
+            STARTUP_FEATURE_SET_DIRECTORY_BASE_PATHS,
     })
     @Retention(RetentionPolicy.SOURCE)
     @Target({ElementType.PARAMETER, ElementType.METHOD})
@@ -350,12 +355,11 @@ public class WebViewFeature {
     /**
      * Feature for {@link #isFeatureSupported(String)}.
      * This feature covers
-     * {@link WebMessagePortCompat#postMessage(WebMessageCompat)} with ArrayBuffer type, and
-     * {@link WebViewCompat#postWebMessage(WebView, WebMessageCompat, Uri)} with ArrayBuffer type.
-     * @hide
+     * {@link WebMessagePortCompat#postMessage(WebMessageCompat)} with ArrayBuffer type,
+     * {@link WebViewCompat#postWebMessage(WebView, WebMessageCompat, Uri)} with ArrayBuffer type,
+     * and {@link JavaScriptReplyProxy#postMessage(byte[])}.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public static final String WEB_MESSAGE_GET_MESSAGE_PAYLOAD = "WEB_MESSAGE_GET_MESSAGE_PAYLOAD";
+    public static final String WEB_MESSAGE_ARRAY_BUFFER = "WEB_MESSAGE_ARRAY_BUFFER";
 
     /**
      * Feature for {@link #isFeatureSupported(String)}.
@@ -434,18 +438,6 @@ public class WebViewFeature {
 
     /**
      * Feature for {@link #isFeatureSupported(String)}.
-     * This feature covers
-     * {@link WebSettingsCompat#willSuppressErrorPage(WebSettings)} and
-     * {@link WebSettingsCompat#setWillSuppressErrorPage(WebSettings, boolean)}.
-     *
-     * TODO(cricke): unhide
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public static final String SUPPRESS_ERROR_PAGE = "SUPPRESS_ERROR_PAGE";
-
-    /**
-     * Feature for {@link #isFeatureSupported(String)}.
      * This feature covers {@link WebViewCompat#isMultiProcessEnabled()}
      */
     public static final String MULTI_PROCESS = "MULTI_PROCESS";
@@ -486,11 +478,7 @@ public class WebViewFeature {
      * Feature for {@link #isFeatureSupported(String)}.
      * This feature covers {@link WebViewCompat#addDocumentStartJavaScript(android.webkit.WebView,
      * String, Set)}.
-     *
-     * TODO(swestphal): unhide when ready.
-     * @hide
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final String DOCUMENT_START_SCRIPT = "DOCUMENT_START_SCRIPT";
 
     /**
@@ -526,10 +514,18 @@ public class WebViewFeature {
     /**
      * Feature for {@link #isStartupFeatureSupported(Context, String)}.
      * This feature covers
-     * {@link androidx.webkit.ProcessGlobalConfig#setDataDirectorySuffix(String)}.
+     * {@link androidx.webkit.ProcessGlobalConfig#setDataDirectorySuffix(Context, String)}.
      */
     public static final String STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX =
             "STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX";
+
+    /**
+     * Feature for {@link #isStartupFeatureSupported(Context, String)}.
+     * This feature covers
+     * {@link androidx.webkit.ProcessGlobalConfig#setDirectoryBasePaths(Context, File, File)}
+     */
+    public static final String STARTUP_FEATURE_SET_DIRECTORY_BASE_PATHS =
+            "STARTUP_FEATURE_SET_DIRECTORY_BASE_PATHS";
 
     /**
      * Feature for {@link #isFeatureSupported(String)}.
@@ -538,21 +534,102 @@ public class WebViewFeature {
      * {@link androidx.webkit.WebSettingsCompat#setRequestedWithHeaderAllowList(WebSettings, Set)},
      * {@link androidx.webkit.ServiceWorkerWebSettingsCompat#getRequestedWithHeaderAllowList(WebSettings)}, and
      * {@link androidx.webkit.ServiceWorkerWebSettingsCompat#setRequestedWithHeaderAllowList(WebSettings, Set)}.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final String REQUESTED_WITH_HEADER_ALLOW_LIST =
             "REQUESTED_WITH_HEADER_ALLOW_LIST";
 
     /**
-     * Return whether a feature is supported at run-time. On devices running Android version {@link
-     * android.os.Build.VERSION_CODES#LOLLIPOP} and higher, this will check whether a feature is
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#getUserAgentMetadata(WebSettings)}, and
+     * {@link androidx.webkit.WebSettingsCompat#setUserAgentMetadata(WebSettings, UserAgentMetadata)}.
+     */
+    public static final String USER_AGENT_METADATA = "USER_AGENT_METADATA";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link Profile#getName()}.
+     * {@link Profile#getWebStorage()}.
+     * {@link Profile#getCookieManager()}.
+     * {@link Profile#getGeolocationPermissions()}.
+     * {@link Profile#getServiceWorkerController()}.
+     * {@link ProfileStore#getProfile(String)}.
+     * {@link ProfileStore#getOrCreateProfile(String)}.
+     * {@link ProfileStore#getAllProfileNames()}.
+     * {@link ProfileStore#deleteProfile(String)}.
+     * {@link ProfileStore#getInstance()}.
+     */
+    public static final String MULTI_PROFILE = "MULTI_PROFILE";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setAttributionRegistrationBehavior(WebSettings, int)}
+     * {@link androidx.webkit.WebSettingsCompat#getAttributionRegistrationBehavior(WebSettings)}
+     */
+    public static final String ATTRIBUTION_REGISTRATION_BEHAVIOR =
+            "ATTRIBUTION_REGISTRATION_BEHAVIOR";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setWebViewMediaIntegrityApiStatus(WebSettings, WebViewMediaIntegrityApiStatusConfig)}
+     * {@link androidx.webkit.WebSettingsCompat#getWebViewMediaIntegrityApiStatus(WebSettings)}
+     */
+    public static final String WEBVIEW_MEDIA_INTEGRITY_API_STATUS =
+            "WEBVIEW_MEDIA_INTEGRITY_API_STATUS";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebViewCompat#isAudioMuted(WebView)}
+     * {@link androidx.webkit.WebViewCompat#setAudioMuted(WebView, boolean)}
+     */
+    public static final String MUTE_AUDIO = "MUTE_AUDIO";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setWebAuthenticationSupport(WebSettings, int)}
+     * {@link androidx.webkit.WebSettingsCompat#getWebAuthenticationSupport(WebSettings)}
+     */
+    public static final String WEB_AUTHENTICATION = "WEB_AUTHENTICATION";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setSpeculativeLoadingStatus(WebSettings, int)}
+     * {@link androidx.webkit.WebSettingsCompat#getSpeculativeLoadingStatus(WebSettings)}}
+     */
+    public static final String SPECULATIVE_LOADING =
+            "SPECULATIVE_LOADING_STATUS";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setBackForwardCacheEnabled(WebSettings, boolean)}
+     * {@link androidx.webkit.WebSettingsCompat#getBackForwardCacheEnabled(WebSettings)}
+     */
+    public static final String BACK_FORWARD_CACHE = "BACK_FORWARD_CACHE";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.Profile#prefetchUrlAsync(String, PrefetchParameters)}
+     * {@link androidx.webkit.Profile#clearPrefetchAsync(String)}
+     */
+    @Profile.ExperimentalUrlPrefetch
+    public static final String PROFILE_URL_PREFETCH = "PROFILE_URL_PREFETCH";
+
+    /**
+     * Return whether a feature is supported at run-time. This will check whether a feature is
      * supported, depending on the combination of the desired feature, the Android version of
-     * device, and the WebView APK on the device. If running on a device with a lower API level,
-     * this will always return {@code false}.
+     * device, and the WebView APK on the device.
      *
      * <p class="note"><b>Note:</b> This method is different from
-     * {@link #isStartupFeatureSupported(String, Context)} and this method only accepts
+     * {@link WebViewFeature#isStartupFeatureSupported(Context, String)} and this method only accepts
      * certain features. Please verify that the correct feature checking method is used for a
      * particular feature.
      *
@@ -561,20 +638,17 @@ public class WebViewFeature {
      * for a particular feature, any callback guarded by that feature will not be invoked.
      *
      * @param feature the feature to be checked
-     * @return whether the feature is supported given the current platform SDK and webview version
+     * @return whether the feature is supported given the current platform SDK and WebView version
      */
     public static boolean isFeatureSupported(@NonNull @WebViewSupportFeature String feature) {
         return WebViewFeatureInternal.isSupported(feature);
     }
 
     /**
-     * Return whether a startup feature is supported at run-time. On devices running Android
-     * version {@link
-     * android.os.Build.VERSION_CODES#LOLLIPOP} and higher, this will check whether a startup
+     * Return whether a startup feature is supported at run-time. This will check whether a startup
      * feature is
      * supported, depending on the combination of the desired feature, the Android version of
-     * device, and the WebView APK on the device. If running on a device with a lower API level,
-     * this will always return {@code false}.
+     * device, and the WebView APK on the device.
      *
      * <p class="note"><b>Note:</b> This method is different from
      * {@link #isFeatureSupported(String)} and this method only accepts startup features. Please
@@ -586,7 +660,7 @@ public class WebViewFeature {
      *
      * @param context a Context to access application assets This value cannot be null.
      * @param startupFeature the startup feature to be checked
-     * @return whether the feature is supported given the current platform SDK and webview version
+     * @return whether the feature is supported given the current platform SDK and WebView version
      */
     public static boolean isStartupFeatureSupported(@NonNull Context context,
             @NonNull @WebViewStartupFeature String startupFeature) {

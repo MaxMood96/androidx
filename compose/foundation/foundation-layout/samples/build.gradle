@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 
 plugins {
@@ -39,12 +48,14 @@ dependencies {
 }
 
 androidx {
-    name = "AndroidX Compose UI Core Layout Classes Samples"
+    name = "Compose UI Core Layout Classes Samples"
     type = LibraryType.SAMPLES
     inceptionYear = "2019"
     description = "Contains the sample code for the Androidx Compose UI Core Layout Classes"
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {
+    compileSdk 35
     namespace "androidx.compose.foundation.layout.samples"
 }

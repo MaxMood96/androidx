@@ -26,7 +26,6 @@ import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,20 +41,26 @@ import java.security.cert.CertificateException;
 /**
  * Wrapper for a master key used in the library.
  *
- * On Android M (API 23) and above, this is class references a key that's stored in the
+ * <p>On Android M (API 23) and above, this is class references a key that's stored in the
  * Android Keystore. On Android L (API 21, 22), there isn't a master key.
+ * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
  */
+@Deprecated
 public final class MasterKey {
     static final String KEYSTORE_PATH_URI = "android-keystore://";
 
     /**
      * The default master key alias.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public static final String DEFAULT_MASTER_KEY_ALIAS = "_androidx_security_master_key_";
 
     /**
      * The default and recommended size for the master key.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public static final int DEFAULT_AES_GCM_MASTER_KEY_SIZE = 256;
 
     private static final int DEFAULT_AUTHENTICATION_VALIDITY_DURATION_SECONDS = 5 * 60;
@@ -67,7 +72,9 @@ public final class MasterKey {
 
     /**
      * Algorithm/Cipher choices used for the master key.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public enum KeyScheme {
         AES256_GCM
     }
@@ -114,7 +121,7 @@ public final class MasterKey {
     /**
      * Gets whether user authentication is required to use this key.
      *
-     * This method always returns {@code false} on Android L (API 21 + 22).
+     * <p>This method always returns {@code false} on Android L (API 21 + 22).
      */
     public boolean isUserAuthenticationRequired() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
@@ -127,7 +134,7 @@ public final class MasterKey {
     /**
      * Gets the duration in seconds that the key is unlocked for following user authentication.
      *
-     * The value returned for this method is only meaningful on Android M+ (API 23) when
+     * <p>The value returned for this method is only meaningful on Android M+ (API 23) when
      * {@link #isUserAuthenticationRequired()} returns {@code true}.
      *
      * @return The duration the key is unlocked for in seconds.
@@ -166,7 +173,9 @@ public final class MasterKey {
 
     /**
      * Builder for generating a {@link MasterKey}.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public static final class Builder {
         @NonNull
         final String mKeyAlias;
@@ -204,9 +213,9 @@ public final class MasterKey {
 
         /**
          * Sets a {@link KeyScheme} to be used for the master key.
-         * This uses a default {@link KeyGenParameterSpec} associated with the provided
+         * <p>This uses a default {@link KeyGenParameterSpec} associated with the provided
          * {@code KeyScheme}.
-         * NOTE: Either this method OR {@link #setKeyGenParameterSpec} should be used to set
+         * <p>NOTE: Either this method OR {@link #setKeyGenParameterSpec} should be used to set
          * the parameters to use for building the master key. Calling either function after
          * the other will throw an {@link IllegalArgumentException}.
          *
@@ -236,7 +245,7 @@ public final class MasterKey {
          * require the user to authenticate before it's unlocked, probably using the
          * androidx.biometric library.
          *
-         * This method sets the validity duration of the key to
+         * <p>This method sets the validity duration of the key to
          * {@link #getDefaultAuthenticationValidityDurationSeconds()}.
          *
          * @param authenticationRequired Whether user authentication should be required to use
@@ -329,7 +338,6 @@ public final class MasterKey {
                 // This class is not instantiable.
             }
 
-            @DoNotInline
             static String getKeystoreAlias(KeyGenParameterSpec keyGenParameterSpec) {
                 return keyGenParameterSpec.getKeystoreAlias();
             }
@@ -387,7 +395,6 @@ public final class MasterKey {
                     // This class is not instantiable.
                 }
 
-                @DoNotInline
                 static void setIsStrongBoxBacked(KeyGenParameterSpec.Builder builder) {
                     builder.setIsStrongBoxBacked(true);
                 }
@@ -399,7 +406,6 @@ public final class MasterKey {
                     // This class is not instantiable.
                 }
 
-                @DoNotInline
                 static void setUserAuthenticationParameters(KeyGenParameterSpec.Builder builder,
                         int timeout,
                         int type) {
@@ -416,12 +422,10 @@ public final class MasterKey {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isUserAuthenticationRequired(KeyGenParameterSpec keyGenParameterSpec) {
             return keyGenParameterSpec.isUserAuthenticationRequired();
         }
 
-        @DoNotInline
         static int getUserAuthenticationValidityDurationSeconds(
                 KeyGenParameterSpec keyGenParameterSpec) {
             return keyGenParameterSpec.getUserAuthenticationValidityDurationSeconds();
@@ -434,7 +438,6 @@ public final class MasterKey {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isStrongBoxBacked(KeyGenParameterSpec keyGenParameterSpec) {
             return keyGenParameterSpec.isStrongBoxBacked();
         }

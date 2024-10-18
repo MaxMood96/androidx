@@ -18,7 +18,15 @@
 
 package androidx.health.connect.client.records
 
+import android.os.Build
+import android.os.ext.SdkExtensions
+import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
+
+@RequiresApi(Build.VERSION_CODES.R)
+internal fun isAtLeastSdkExtension13(): Boolean {
+    return SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13
+}
 
 internal fun <T : Comparable<T>> T.requireNotLess(other: T, name: String) {
     require(this >= other) { "$name must not be less than $other, currently $this." }
@@ -38,4 +46,9 @@ internal fun requireNonNegative(value: Double, name: String) {
 
 internal fun Map<String, Int>.reverse(): Map<Int, String> {
     return entries.associateBy({ it.value }, { it.key })
+}
+
+internal fun <T : Comparable<T>> T.requireInRange(min: T, max: T, name: String) {
+    requireNotLess(min, name)
+    requireNotMore(max, name)
 }

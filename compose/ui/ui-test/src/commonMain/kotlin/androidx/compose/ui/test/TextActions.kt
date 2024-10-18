@@ -16,19 +16,18 @@
 
 package androidx.compose.ui.test
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsActions.OnImeAction
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.CommitTextCommand
-import androidx.compose.ui.text.input.DeleteAllCommand
-import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.SetSelectionCommand
 
-/**
- * Clears the text in this node in similar way to IME.
- */
+/** Clears the text in this node in similar way to IME. */
 fun SemanticsNodeInteraction.performTextClearance() {
-    sendTextInputCommand(listOf(DeleteAllCommand()))
+    performTextReplacement("")
 }
 
 /**
@@ -37,7 +36,10 @@ fun SemanticsNodeInteraction.performTextClearance() {
  * @param text Text to send.
  */
 fun SemanticsNodeInteraction.performTextInput(text: String) {
-    sendTextInputCommand(listOf(CommitTextCommand(text, 1)))
+    @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
+    getNodeAndFocus()
+    performSemanticsAction(SemanticsActions.InsertTextAtCursor) { it(AnnotatedString(text)) }
 }
 
 /**
@@ -47,7 +49,12 @@ fun SemanticsNodeInteraction.performTextInput(text: String) {
  */
 @ExperimentalTestApi
 fun SemanticsNodeInteraction.performTextInputSelection(selection: TextRange) {
-    sendTextInputCommand(listOf(SetSelectionCommand(selection.min, selection.max)))
+    getNodeAndFocus(requireEditable = false)
+    performSemanticsAction(SemanticsActions.SetSelection) {
+        // Pass true as the last parameter since this range is relative to the text before any
+        // VisualTransformation is applied.
+        it(selection.min, selection.max, true)
+    }
 }
 
 /**
@@ -58,54 +65,67 @@ fun SemanticsNodeInteraction.performTextInputSelection(selection: TextRange) {
  * @param text Text to send.
  */
 fun SemanticsNodeInteraction.performTextReplacement(text: String) {
-    sendTextInputCommand(listOf(DeleteAllCommand(), CommitTextCommand(text, 1)))
+    getNodeAndFocus()
+    performSemanticsAction(SemanticsActions.SetText) { it(AnnotatedString(text)) }
 }
 
 /**
- * Sends to this node the IME action associated with it in similar way to IME.
+ * Sends to this node the IME action associated with it in a similar way to the IME.
  *
- * The node needs to define its IME action in semantics.
+ * The node needs to define its IME action in semantics via [SemanticsPropertyReceiver.onImeAction].
  *
  * @throws AssertionError if the node does not support input or does not define IME action.
- * @throws IllegalStateException if tne node did not establish input connection (e.g. is not
- * focused)
+ * @throws IllegalStateException if the node did is not an editor or would not be able to establish
+ *   an input connection (e.g. does not define [ImeAction][SemanticsProperties.ImeAction] or
+ *   [OnImeAction] or is not focused).
  */
 fun SemanticsNodeInteraction.performImeAction() {
     val errorOnFail = "Failed to perform IME action."
-    val node = fetchSemanticsNode(errorOnFail)
+    assert(hasPerformImeAction()) { errorOnFail }
+    assert(!hasImeAction(ImeAction.Default)) { errorOnFail }
+    @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
+    val node = getNodeAndFocus(errorOnFail, requireEditable = false)
 
-    assert(hasSetTextAction()) { errorOnFail }
-
-    val actionSpecified = node.config.getOrElse(SemanticsProperties.ImeAction) {
-        ImeAction.Default
+    wrapAssertionErrorsWithNodeInfo(selector, node) {
+        performSemanticsAction(OnImeAction) {
+            assertOnJvm(it()) {
+                buildGeneralErrorMessage(
+                    "Failed to perform IME action, handler returned false.",
+                    selector,
+                    node
+                )
+            }
+        }
     }
-    if (actionSpecified == ImeAction.Default) {
-        throw AssertionError(
-            buildGeneralErrorMessage(
-                "Failed to perform IME action as current node does not specify any.", selector, node
-            )
-        )
+}
+
+private fun SemanticsNodeInteraction.getNodeAndFocus(
+    errorOnFail: String = "Failed to perform text input.",
+    requireEditable: Boolean = true
+): SemanticsNode {
+    @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
+    val node = fetchSemanticsNode(errorOnFail)
+    assert(isEnabled()) { errorOnFail }
+    assert(hasRequestFocusAction()) { errorOnFail }
+    if (requireEditable) {
+        assert(hasSetTextAction()) { errorOnFail }
+        assert(hasInsertTextAtCursorAction()) { errorOnFail }
     }
 
     if (!isFocused().matches(node)) {
         // Get focus
-        performClick()
+        performSemanticsAction(SemanticsActions.RequestFocus)
     }
 
-    @OptIn(InternalTestApi::class)
-    testContext.testOwner.sendImeAction(node, actionSpecified)
+    return node
 }
 
-internal fun SemanticsNodeInteraction.sendTextInputCommand(command: List<EditCommand>) {
-    val errorOnFail = "Failed to perform text input."
-    val node = fetchSemanticsNode(errorOnFail)
-    assert(hasSetTextAction()) { errorOnFail }
+internal expect inline fun <R> wrapAssertionErrorsWithNodeInfo(
+    selector: SemanticsSelector,
+    node: SemanticsNode,
+    block: () -> R
+): R
 
-    if (!isFocused().matches(node)) {
-        // Get focus
-        performClick()
-    }
-
-    @OptIn(InternalTestApi::class)
-    testContext.testOwner.sendTextInputCommand(node, command)
-}
+internal expect inline fun assertOnJvm(value: Boolean, lazyMessage: () -> Any)

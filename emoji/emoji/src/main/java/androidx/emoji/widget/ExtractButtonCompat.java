@@ -31,7 +31,6 @@ import androidx.core.widget.TextViewCompat;
 /**
  * Support library implementation for ExtractButton. Used by {@link EmojiExtractViewHelper} while
  * inflating {@link EmojiExtractEditText} for keyboard use.
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class ExtractButtonCompat extends Button {
@@ -59,7 +58,7 @@ public class ExtractButtonCompat extends Button {
      */
     @Override
     public boolean hasWindowFocus() {
-        return isEnabled() && getVisibility() == VISIBLE ? true : false;
+        return isEnabled() && getVisibility() == VISIBLE;
     }
 
     /**

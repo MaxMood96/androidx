@@ -23,13 +23,13 @@ import org.chromium.support_lib_boundary.JsReplyProxyBoundaryInterface;
 import org.chromium.support_lib_boundary.util.BoundaryInterfaceReflectionUtil;
 
 import java.lang.reflect.InvocationHandler;
-import java.util.concurrent.Callable;
+import java.util.Objects;
 
 /**
  * Internal implementation of {@link androidx.webkit.JavaScriptReplyProxy}.
  */
 public class JavaScriptReplyProxyImpl extends JavaScriptReplyProxy {
-    private JsReplyProxyBoundaryInterface mBoundaryInterface;
+    private final JsReplyProxyBoundaryInterface mBoundaryInterface;
 
     public JavaScriptReplyProxyImpl(@NonNull JsReplyProxyBoundaryInterface boundaryInterface) {
         mBoundaryInterface = boundaryInterface;
@@ -45,12 +45,7 @@ public class JavaScriptReplyProxyImpl extends JavaScriptReplyProxy {
                 BoundaryInterfaceReflectionUtil.castToSuppLibClass(
                         JsReplyProxyBoundaryInterface.class, invocationHandler);
         return (JavaScriptReplyProxyImpl) boundaryInterface.getOrCreatePeer(
-                new Callable<Object>() {
-                    @Override
-                    public Object call() {
-                        return new JavaScriptReplyProxyImpl(boundaryInterface);
-                    }
-                });
+                () -> new JavaScriptReplyProxyImpl(boundaryInterface));
     }
 
     @Override
@@ -58,6 +53,19 @@ public class JavaScriptReplyProxyImpl extends JavaScriptReplyProxy {
         final ApiFeature.NoFramework feature = WebViewFeatureInternal.WEB_MESSAGE_LISTENER;
         if (feature.isSupportedByWebView()) {
             mBoundaryInterface.postMessage(message);
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    @Override
+    public void postMessage(@NonNull byte[] arrayBuffer) {
+        // WebView cannot handle null ArrayBuffer as WebMessage.
+        Objects.requireNonNull(arrayBuffer, "ArrayBuffer must be non-null");
+        final ApiFeature.NoFramework feature = WebViewFeatureInternal.WEB_MESSAGE_ARRAY_BUFFER;
+        if (feature.isSupportedByWebView()) {
+            mBoundaryInterface.postMessageWithPayload(BoundaryInterfaceReflectionUtil
+                    .createInvocationHandlerFor(new WebMessagePayloadAdapter(arrayBuffer)));
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }

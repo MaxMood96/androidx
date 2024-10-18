@@ -30,7 +30,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.JavaScriptReplyProxy;
 import androidx.webkit.WebMessageCompat;
@@ -45,7 +44,6 @@ import java.util.List;
 /**
  * An {@link Activity} to show how WebMessageListener deals with malicious websites.
  */
-@SuppressLint("RestrictedApi")
 public class WebMessageListenerMaliciousWebsiteActivity extends AppCompatActivity {
     private final Uri mMaliciousUrl = new Uri.Builder().scheme("https").authority(
             "malicious.com").appendPath("androidx_webkit").appendPath("example").appendPath(
@@ -59,12 +57,11 @@ public class WebMessageListenerMaliciousWebsiteActivity extends AppCompatActivit
         }
 
         @Override
-        @RequiresApi(21)
         public WebResourceResponse shouldInterceptRequest(WebView view,
                 WebResourceRequest request) {
             for (WebViewAssetLoader loader : mAssetLoaders) {
                 WebResourceResponse response = loader.shouldInterceptRequest(
-                        Api21Impl.getUrl(request));
+                        request.getUrl());
                 if (response != null) {
                     return response;
                 }

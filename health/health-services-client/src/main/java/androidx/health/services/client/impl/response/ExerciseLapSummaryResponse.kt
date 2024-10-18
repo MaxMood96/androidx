@@ -22,11 +22,7 @@ import androidx.health.services.client.data.ExerciseLapSummary
 import androidx.health.services.client.data.ProtoParcelable
 import androidx.health.services.client.proto.ResponsesProto
 
-/**
- * Response containing [ExerciseLapSummary] when it's updated.
- *
- * @hide
- */
+/** Response containing [ExerciseLapSummary] when it's updated. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class ExerciseLapSummaryResponse(public val exerciseLapSummary: ExerciseLapSummary) :
     ProtoParcelable<ResponsesProto.ExerciseLapSummaryResponse>() {

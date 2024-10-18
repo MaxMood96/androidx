@@ -21,7 +21,6 @@ import android.view.Surface;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.ForwardingImageProxy.OnImageCloseListener;
@@ -33,10 +32,8 @@ import java.util.concurrent.Executor;
  * An {@link ImageReaderProxy} that wraps another ImageReaderProxy to safely wait until all
  * produced {@link ImageProxy} are closed before closing the ImageReaderProxy.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class SafeCloseImageReaderProxy implements ImageReaderProxy {
     // Lock to synchronize acquired ImageProxys and close.
     private final Object mLock = new Object();
@@ -219,6 +216,17 @@ public class SafeCloseImageReaderProxy implements ImageReaderProxy {
     public void clearOnImageAvailableListener() {
         synchronized (mLock) {
             mImageReaderProxy.clearOnImageAvailableListener();
+        }
+    }
+
+    /**
+     * Returns the underlying {@link ImageReaderProxy} for testing.
+     */
+    @VisibleForTesting
+    @NonNull
+    public ImageReaderProxy getImageReaderProxy() {
+        synchronized (mLock) {
+            return mImageReaderProxy;
         }
     }
 }

@@ -19,6 +19,7 @@ package androidx.appsearch.localstorage.stats;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.app.AppSearchResult;
 import androidx.appsearch.app.RemoveByDocumentIdRequest;
 import androidx.appsearch.app.SearchSpec;
@@ -32,10 +33,11 @@ import java.lang.annotation.RetentionPolicy;
  * {@link androidx.appsearch.app.AppSearchSession#removeAsync(RemoveByDocumentIdRequest)} and
  * {@link androidx.appsearch.app.AppSearchSession#removeAsync(String, SearchSpec)}
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class RemoveStats {
+    /** Types of stats available for remove API. */
     @IntDef(value = {
             // It needs to be sync with DeleteType.Code in
             // external/icing/proto/icing/proto/logging.proto#DeleteStatsProto
@@ -148,6 +150,7 @@ public final class RemoveStats {
         }
 
         /** Sets the status code. */
+        @CanIgnoreReturnValue
         @NonNull
         public Builder setStatusCode(@AppSearchResult.ResultCode int statusCode) {
             mStatusCode = statusCode;
@@ -155,6 +158,7 @@ public final class RemoveStats {
         }
 
         /** Sets total latency in millis. */
+        @CanIgnoreReturnValue
         @NonNull
         public Builder setTotalLatencyMillis(int totalLatencyMillis) {
             mTotalLatencyMillis = totalLatencyMillis;
@@ -162,6 +166,7 @@ public final class RemoveStats {
         }
 
         /** Sets native latency in millis. */
+        @CanIgnoreReturnValue
         @NonNull
         public Builder setNativeLatencyMillis(int nativeLatencyMillis) {
             mNativeLatencyMillis = nativeLatencyMillis;
@@ -169,6 +174,7 @@ public final class RemoveStats {
         }
 
         /** Sets delete type for this call. */
+        @CanIgnoreReturnValue
         @NonNull
         public Builder setDeleteType(@DeleteType int nativeDeleteType) {
             mNativeDeleteType = nativeDeleteType;
@@ -176,6 +182,7 @@ public final class RemoveStats {
         }
 
         /** Sets how many documents get deleted for this call. */
+        @CanIgnoreReturnValue
         @NonNull
         public Builder setDeletedDocumentCount(int nativeNumDocumentsDeleted) {
             mNativeNumDocumentsDeleted = nativeNumDocumentsDeleted;

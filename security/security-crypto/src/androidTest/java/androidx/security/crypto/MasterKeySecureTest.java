@@ -23,7 +23,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 
-import androidx.security.crypto.MasterKey.KeyScheme;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
@@ -46,9 +45,9 @@ import java.security.KeyStore;
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.M)
+@SuppressWarnings("deprecation")
 public class MasterKeySecureTest {
     private static final String PREFS_FILE = "test_shared_prefs";
-    private static final int KEY_SIZE = 256;
 
     @Before
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -58,7 +57,7 @@ public class MasterKeySecureTest {
         KeyguardManager keyguardManager = context.getSystemService(KeyguardManager.class);
         Assume.assumeTrue(keyguardManager != null);
         // You need to enable screen lock to pass this assumption
-        Assume.assumeTrue(keyguardManager != null && keyguardManager.isDeviceSecure());
+        Assume.assumeTrue(keyguardManager.isDeviceSecure());
 
         // Delete all previous keys and shared preferences.
         String filePath = context.getFilesDir().getParent() + "/shared_prefs/"
@@ -95,7 +94,7 @@ public class MasterKeySecureTest {
     public void testCreateKeyWithAuthenicationRequired() throws GeneralSecurityException,
             IOException {
         MasterKey masterKey = new MasterKey.Builder(ApplicationProvider.getApplicationContext())
-                .setKeyScheme(KeyScheme.AES256_GCM)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .setUserAuthenticationRequired(true, 10)
                 .build();
         MasterKeyTest.assertKeyExists(masterKey.getKeyAlias());

@@ -23,6 +23,7 @@ import androidx.compose.testutils.benchmark.benchmarkFirstDraw
 import androidx.compose.testutils.benchmark.benchmarkFirstLayout
 import androidx.compose.testutils.benchmark.benchmarkFirstMeasure
 import androidx.compose.testutils.benchmark.benchmarkLayoutPerf
+import androidx.compose.testutils.benchmark.benchmarkReuseFor
 import androidx.compose.testutils.benchmark.toggleStateBenchmarkDraw
 import androidx.compose.testutils.benchmark.toggleStateBenchmarkLayout
 import androidx.compose.testutils.benchmark.toggleStateBenchmarkMeasure
@@ -35,8 +36,7 @@ import org.junit.runner.RunWith
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class ScrollerBenchmark {
-    @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule()
+    @get:Rule val benchmarkRule = ComposeBenchmarkRule()
 
     private val scrollerCaseFactory = { ScrollerTestCase() }
 
@@ -61,6 +61,11 @@ class ScrollerBenchmark {
     }
 
     @Test
+    fun reuse() {
+        benchmarkRule.benchmarkReuseFor { ScrollerTestCase().MeasuredContent() }
+    }
+
+    @Test
     fun changeScroll_measure() {
         benchmarkRule.toggleStateBenchmarkMeasure(
             scrollerCaseFactory,
@@ -70,18 +75,12 @@ class ScrollerBenchmark {
 
     @Test
     fun changeScroll_layout() {
-        benchmarkRule.toggleStateBenchmarkLayout(
-            scrollerCaseFactory,
-            toggleCausesRecompose = false
-        )
+        benchmarkRule.toggleStateBenchmarkLayout(scrollerCaseFactory, toggleCausesRecompose = false)
     }
 
     @Test
     fun changeScroll_draw() {
-        benchmarkRule.toggleStateBenchmarkDraw(
-            scrollerCaseFactory,
-            toggleCausesRecompose = false
-        )
+        benchmarkRule.toggleStateBenchmarkDraw(scrollerCaseFactory, toggleCausesRecompose = false)
     }
 
     @Test

@@ -16,147 +16,66 @@
 
 package androidx.camera.core.streamsharing
 
-import android.graphics.ImageFormat
-import android.graphics.Matrix
-import android.graphics.Rect
 import android.os.Build
-import android.util.Size
-import androidx.camera.core.CameraEffect.PREVIEW
+import android.view.Surface
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.UseCase
-import androidx.camera.core.impl.SessionConfig
-import androidx.camera.core.impl.SessionConfig.defaultEmptySessionConfig
-import androidx.camera.core.impl.StreamSpec
-import androidx.camera.core.processing.SurfaceEdge
+import androidx.camera.core.impl.utils.futures.Futures
 import androidx.camera.testing.fakes.FakeCamera
-import androidx.camera.testing.fakes.FakeDeferrableSurface
-import androidx.camera.testing.fakes.FakeUseCase
-import androidx.camera.testing.fakes.FakeUseCaseConfigFactory
+import androidx.camera.testing.fakes.FakeCameraInfoInternal
 import com.google.common.truth.Truth.assertThat
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
-/**
- * Unit tests for [VirtualCamera].
- */
+/** Unit tests for [VirtualCamera]. */
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class VirtualCameraTest {
 
-    companion object {
-        private const val CLOSED = true
-        private const val OPEN = false
-        private const val HAS_PROVIDER = true
-        private const val NO_PROVIDER = false
-        private val INPUT_SIZE = Size(800, 600)
-        private val SESSION_CONFIG_WITH_SURFACE = SessionConfig.Builder()
-            .addSurface(FakeDeferrableSurface(INPUT_SIZE, ImageFormat.PRIVATE)).build()
-    }
+    private val cameraInfo = FakeCameraInfoInternal(90, CameraSelector.LENS_FACING_BACK)
 
-    private val parentCamera = FakeCamera()
-    private val child1 = FakeUseCase()
-    private val child2 = FakeUseCase()
-    private val childrenEdges = mapOf(
-        Pair(child1 as UseCase, createSurfaceEdge()),
-        Pair(child2 as UseCase, createSurfaceEdge())
-    )
-    private val useCaseConfigFactory = FakeUseCaseConfigFactory()
-    private lateinit var virtualCamera: VirtualCamera
+    private val parentCamera = FakeCamera(null, cameraInfo)
 
-    @Before
-    fun setUp() {
-        virtualCamera = VirtualCamera(parentCamera, setOf(child1, child2), useCaseConfigFactory)
+    private val useCaseStateCallback =
+        object : UseCase.StateChangeCallback {
+
+            override fun onUseCaseActive(useCase: UseCase) {}
+
+            override fun onUseCaseInactive(useCase: UseCase) {}
+
+            override fun onUseCaseUpdated(useCase: UseCase) {}
+
+            override fun onUseCaseReset(useCase: UseCase) {}
+        }
+
+    private val streamSharingControl =
+        StreamSharing.Control { _, _ -> Futures.immediateFuture(null) }
+
+    private val virtualCamera =
+        VirtualCamera(parentCamera, useCaseStateCallback, streamSharingControl)
+
+    @Test
+    fun getCameraId_returnsVirtualCameraId() {
+        assertThat(virtualCamera.cameraInfoInternal.cameraId)
+            .startsWith("virtual-" + parentCamera.cameraInfoInternal.cameraId)
     }
 
     @Test
-    fun setUseCaseActiveAndInactive_surfaceConnectsAndDisconnects() {
-        // Arrange.
-        virtualCamera.bindChildren()
-        virtualCamera.setChildrenEdges(childrenEdges)
-        child1.updateSessionConfigForTesting(SESSION_CONFIG_WITH_SURFACE)
-        // Assert: edge open by default.
-        verifyEdge(child1, OPEN, NO_PROVIDER)
-        // Set UseCase to active, verify it has provider.
-        child1.notifyActiveForTesting()
-        verifyEdge(child1, OPEN, HAS_PROVIDER)
-        // Set UseCase to inactive, verify it's closed.
-        child1.notifyInactiveForTesting()
-        verifyEdge(child1, CLOSED, HAS_PROVIDER)
-        // Set UseCase to active, verify it becomes open again.
-        child1.notifyActiveForTesting()
-        verifyEdge(child1, OPEN, HAS_PROVIDER)
-    }
-
-    @Test
-    fun resetUseCase_edgeInvalidated() {
-        // Arrange: setup and get the old DeferrableSurface.
-        virtualCamera.bindChildren()
-        virtualCamera.setChildrenEdges(childrenEdges)
-        child1.updateSessionConfigForTesting(SESSION_CONFIG_WITH_SURFACE)
-        child1.notifyActiveForTesting()
-        val oldSurface = childrenEdges[child1]!!.deferrableSurfaceForTesting
-        // Act: notify reset.
-        child1.notifyResetForTesting()
-        // Assert: DeferrableSurface is recreated. The old one is closed.
-        assertThat(oldSurface.isClosed).isTrue()
-        assertThat(childrenEdges[child1]!!.deferrableSurfaceForTesting)
-            .isNotSameInstanceAs(oldSurface)
-        verifyEdge(child1, OPEN, HAS_PROVIDER)
-    }
-
-    @Test
-    fun updateUseCaseWithAndWithoutSurface_surfaceConnectsAndDisconnects() {
-        // Arrange
-        virtualCamera.bindChildren()
-        virtualCamera.setChildrenEdges(childrenEdges)
-        child1.notifyActiveForTesting()
-        verifyEdge(child1, OPEN, NO_PROVIDER)
-
-        // Act: set Surface and update
-        child1.updateSessionConfigForTesting(SESSION_CONFIG_WITH_SURFACE)
-        child1.notifyUpdatedForTesting()
-        // Assert: edge is connected.
-        verifyEdge(child1, OPEN, HAS_PROVIDER)
-        // Act: remove Surface and update.
-        child1.updateSessionConfigForTesting(defaultEmptySessionConfig())
-        child1.notifyUpdatedForTesting()
-        // Assert: edge is disconnected.
-        verifyEdge(child1, CLOSED, HAS_PROVIDER)
-        // Act: set Surface and update.
-        child1.updateSessionConfigForTesting(SESSION_CONFIG_WITH_SURFACE)
-        child1.notifyUpdatedForTesting()
-        // Assert: edge is connected again.
-        verifyEdge(child1, OPEN, HAS_PROVIDER)
-    }
-
-    @Test
-    fun virtualCameraInheritsParentProperties() {
+    fun getCameraState_returnsParentState() {
         assertThat(virtualCamera.cameraState).isEqualTo(parentCamera.cameraState)
-        assertThat(virtualCamera.cameraInfo).isEqualTo(parentCamera.cameraInfo)
-        assertThat(virtualCamera.cameraControl).isEqualTo(parentCamera.cameraControl)
     }
 
     @Test
-    fun updateChildrenSpec_updateAndNotifyChildren() {
-        // Act: update children with the map.
-        virtualCamera.setChildrenEdges(childrenEdges)
-        // Assert: surface size propagated to children
-        assertThat(child1.attachedStreamSpec!!.resolution).isEqualTo(INPUT_SIZE)
-        assertThat(child2.attachedStreamSpec!!.resolution).isEqualTo(INPUT_SIZE)
-    }
-
-    private fun createSurfaceEdge(): SurfaceEdge {
-        return SurfaceEdge(
-            PREVIEW, StreamSpec.builder(INPUT_SIZE).build(), Matrix(), true, Rect(), 0, false
-        )
-    }
-
-    private fun verifyEdge(child: UseCase, isClosed: Boolean, hasProvider: Boolean) {
-        assertThat(childrenEdges[child]!!.deferrableSurfaceForTesting.isClosed).isEqualTo(isClosed)
-        assertThat(childrenEdges[child]!!.hasProvider()).isEqualTo(hasProvider)
+    fun setRotationDegrees_offsetsParentRotationDegrees() {
+        assertThat(parentCamera.cameraInfoInternal.getSensorRotationDegrees(Surface.ROTATION_0))
+            .isEqualTo(90)
+        virtualCamera.setRotationDegrees(180)
+        assertThat(virtualCamera.cameraInfoInternal.getSensorRotationDegrees()).isEqualTo(270)
+        assertThat(virtualCamera.cameraInfoInternal.getSensorRotationDegrees(Surface.ROTATION_0))
+            .isEqualTo(270)
     }
 }

@@ -1,4 +1,11 @@
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -6,17 +13,18 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core:1.1.0")
     implementation(project(":appcompat:appcompat"))
     implementation(project(":asynclayoutinflater:asynclayoutinflater"))
 }
 
 androidx {
-    name = "AsyncLayoutInflater integration for AppCompat"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "AsyncLayoutInflater AppCompat"
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
-    description = "A thread-safe LayoutInflater Factory that provides compatibility between AsyncLayoutInflater and AppCompat."
+    description = "A thread-safe LayoutInflater Factory that provides compatibility between " +
+            "AsyncLayoutInflater and AppCompat."
 }
 
 android {

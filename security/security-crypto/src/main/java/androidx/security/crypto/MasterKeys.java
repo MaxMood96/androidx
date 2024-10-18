@@ -37,7 +37,7 @@ import javax.crypto.KeyGenerator;
  *
  * <p>The master keys are used to encrypt data encryption keys for encrypting files and preferences.
  *
- * @deprecated Use {@link MasterKey.Builder} to work with master keys.
+ * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
  */
 @Deprecated
 @RequiresApi(Build.VERSION_CODES.M)
@@ -50,11 +50,15 @@ public final class MasterKeys {
 
     private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
 
+    /**
+     * @deprecated Use {@link android.security.keystore.KeyGenParameterSpec.Builder} instead.
+     */
     @NonNull
+    @Deprecated
     public static final KeyGenParameterSpec AES256_GCM_SPEC =
             createAES256GCMKeyGenParameterSpec(MASTER_KEY_ALIAS);
 
-    private static Object sLock = new Object();
+    private static final Object sLock = new Object();
 
     /**
      * Provides a safe and easy to use KenGenParameterSpec with the settings.
@@ -82,14 +86,13 @@ public final class MasterKeys {
     /**
      * Creates or gets the master key provided
      *
-     * The encryption scheme is required fields to ensure that the type of
+     * <p>The encryption scheme is required fields to ensure that the type of
      * encryption used is clear to developers.
      *
      * @param keyGenParameterSpec The key encryption scheme
      * @return The key alias for the master key
      */
     @NonNull
-    @SuppressWarnings("deprecation")
     public static String getOrCreate(
             @NonNull KeyGenParameterSpec keyGenParameterSpec)
             throws GeneralSecurityException, IOException {

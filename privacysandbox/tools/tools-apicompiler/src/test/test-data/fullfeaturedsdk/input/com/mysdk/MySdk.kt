@@ -1,10 +1,12 @@
 package com.mysdk
 
+import android.os.Bundle
 import androidx.privacysandbox.tools.PrivacySandboxCallback
 import androidx.privacysandbox.tools.PrivacySandboxInterface
 import androidx.privacysandbox.tools.PrivacySandboxService
 import androidx.privacysandbox.tools.PrivacySandboxValue
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.activity.core.SdkActivityLauncher
 
 @PrivacySandboxService
 interface MySdk {
@@ -27,6 +29,14 @@ interface MySdk {
     suspend fun handleNullableValues(maybeRequest: Request?): Response?
 
     suspend fun handleNullableInterfaces(maybeCallback: MyCallback?): MyInterface?
+
+    suspend fun returnUiInterface(): MyUiInterface
+
+    fun acceptUiInterfaceParam(input: MyUiInterface)
+
+    fun acceptSdkActivityLauncherParam(activityLauncher: SdkActivityLauncher)
+
+    suspend fun returnSdkActivityLauncher(): SdkActivityLauncher
 }
 
 @PrivacySandboxInterface
@@ -48,6 +58,8 @@ interface MyUiInterface : SandboxedUiAdapter {
 @PrivacySandboxInterface
 interface MySecondInterface {
     suspend fun doIntStuff(x: List<Int>): List<Int>
+
+    suspend fun doBundleStuff(x: Bundle): Bundle
 
     suspend fun doCharStuff(x: List<Char>): List<Char>
 
@@ -71,17 +83,27 @@ data class Request(
     val query: String,
     val extraValues: List<InnerValue>,
     val maybeValue: InnerValue?,
-    val myInterface: MyInterface
+    val myInterface: MyInterface,
+    val myUiInterface: MyUiInterface,
+    val activityLauncher: SdkActivityLauncher,
+    val flag: RequestFlag,
 )
 
 @PrivacySandboxValue
 data class InnerValue(val numbers: List<Int>, val maybeNumber: Int?)
 
 @PrivacySandboxValue
+enum class RequestFlag {
+    SLOW,
+    FAST,
+}
+
+@PrivacySandboxValue
 data class Response(
     val response: String,
     val mySecondInterface: MySecondInterface,
-    val maybeOtherInterface: MySecondInterface
+    val maybeOtherInterface: MySecondInterface,
+    val myUiInterface: MyUiInterface,
 )
 
 @PrivacySandboxCallback
@@ -91,4 +113,8 @@ interface MyCallback {
     fun onClick(x: Int, y: Int)
 
     fun onCompleteInterface(myInterface: MyInterface)
+
+    fun onCompleteUiInterface(myUiInterface: MyUiInterface)
+
+    suspend fun returnAValueFromCallback(): Response
 }

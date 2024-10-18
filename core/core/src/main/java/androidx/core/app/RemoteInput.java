@@ -23,7 +23,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -55,7 +54,6 @@ public final class RemoteInput {
     /** Extra added to a clip data intent object identifying the {@link Source} of the results. */
     private static final String EXTRA_RESULTS_SOURCE = "android.remoteinput.resultsSource";
 
-    /** @hide */
     @IntDef({SOURCE_FREE_FORM_INPUT, SOURCE_CHOICE})
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @Retention(RetentionPolicy.SOURCE)
@@ -67,7 +65,6 @@ public final class RemoteInput {
     /** The user selected one of the choices from {@link #getChoices}. */
     public static final int SOURCE_CHOICE = 1;
 
-    /** @hide */
     @IntDef(value = {EDIT_CHOICES_BEFORE_SENDING_AUTO, EDIT_CHOICES_BEFORE_SENDING_DISABLED,
             EDIT_CHOICES_BEFORE_SENDING_ENABLED})
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -346,7 +343,7 @@ public final class RemoteInput {
             @NonNull Intent intent, @NonNull String remoteInputResultKey) {
         if (Build.VERSION.SDK_INT >= 26) {
             return Api26Impl.getDataResultsFromIntent(intent, remoteInputResultKey);
-        } else if (Build.VERSION.SDK_INT >= 16) {
+        } else {
             Intent clipDataIntent = getClipDataIntentFromIntent(intent);
             if (clipDataIntent == null) {
                 return null;
@@ -368,8 +365,6 @@ public final class RemoteInput {
                 }
             }
             return results.isEmpty() ? null : results;
-        } else {
-            return null;
         }
     }
 
@@ -387,14 +382,12 @@ public final class RemoteInput {
     public static Bundle getResultsFromIntent(@NonNull Intent intent) {
         if (Build.VERSION.SDK_INT >= 20) {
             return Api20Impl.getResultsFromIntent(intent);
-        } else if (Build.VERSION.SDK_INT >= 16) {
+        } else {
             Intent clipDataIntent = getClipDataIntentFromIntent(intent);
             if (clipDataIntent == null) {
                 return null;
             }
             return clipDataIntent.getExtras().getParcelable(RemoteInput.EXTRA_RESULTS_DATA);
-        } else {
-            return null;
         }
     }
 
@@ -444,7 +437,7 @@ public final class RemoteInput {
 
             // Now restore the results source.
             setResultsSource(intent, resultsSource);
-        } else if (Build.VERSION.SDK_INT >= 16) {
+        } else {
             Intent clipDataIntent = getClipDataIntentFromIntent(intent);
             if (clipDataIntent == null) {
                 clipDataIntent = new Intent();  // First time we've added a result.
@@ -461,8 +454,7 @@ public final class RemoteInput {
                 }
             }
             clipDataIntent.putExtra(RemoteInput.EXTRA_RESULTS_DATA, resultsBundle);
-            Api16Impl.setClipData(intent,
-                    ClipData.newIntent(RemoteInput.RESULTS_CLIP_LABEL, clipDataIntent));
+            intent.setClipData(ClipData.newIntent(RemoteInput.RESULTS_CLIP_LABEL, clipDataIntent));
         }
     }
 
@@ -478,7 +470,7 @@ public final class RemoteInput {
             @NonNull Intent intent, @NonNull Map<String, Uri> results) {
         if (Build.VERSION.SDK_INT >= 26) {
             Api26Impl.addDataResultToIntent(remoteInput, intent, results);
-        } else if (Build.VERSION.SDK_INT >= 16) {
+        } else {
             Intent clipDataIntent = getClipDataIntentFromIntent(intent);
             if (clipDataIntent == null) {
                 clipDataIntent = new Intent();  // First time we've added a result.
@@ -497,8 +489,7 @@ public final class RemoteInput {
                 resultsBundle.putString(remoteInput.getResultKey(), uri.toString());
                 clipDataIntent.putExtra(getExtraResultsKeyForData(mimeType), resultsBundle);
             }
-            Api16Impl.setClipData(intent,
-                    ClipData.newIntent(RemoteInput.RESULTS_CLIP_LABEL, clipDataIntent));
+            intent.setClipData(ClipData.newIntent(RemoteInput.RESULTS_CLIP_LABEL, clipDataIntent));
         }
     }
 
@@ -518,13 +509,13 @@ public final class RemoteInput {
     public static void setResultsSource(@NonNull Intent intent, @Source int source) {
         if (Build.VERSION.SDK_INT >= 28) {
             Api28Impl.setResultsSource(intent, source);
-        } else if (Build.VERSION.SDK_INT >= 16) {
+        } else {
             Intent clipDataIntent = getClipDataIntentFromIntent(intent);
             if (clipDataIntent == null) {
                 clipDataIntent = new Intent();  // First time we've added a result.
             }
             clipDataIntent.putExtra(EXTRA_RESULTS_SOURCE, source);
-            Api16Impl.setClipData(intent, ClipData.newIntent(RESULTS_CLIP_LABEL, clipDataIntent));
+            intent.setClipData(ClipData.newIntent(RESULTS_CLIP_LABEL, clipDataIntent));
         }
     }
 
@@ -543,14 +534,12 @@ public final class RemoteInput {
     public static int getResultsSource(@NonNull Intent intent) {
         if (Build.VERSION.SDK_INT >= 28) {
             return Api28Impl.getResultsSource(intent);
-        } else if (Build.VERSION.SDK_INT >= 16) {
+        } else {
             Intent clipDataIntent = getClipDataIntentFromIntent(intent);
             if (clipDataIntent == null) {
                 return SOURCE_FREE_FORM_INPUT;
             }
             return clipDataIntent.getExtras().getInt(EXTRA_RESULTS_SOURCE, SOURCE_FREE_FORM_INPUT);
-        } else {
-            return SOURCE_FREE_FORM_INPUT;
         }
     }
 
@@ -580,9 +569,8 @@ public final class RemoteInput {
         return Api20Impl.fromPlatform(src);
     }
 
-    @RequiresApi(16)
     private static Intent getClipDataIntentFromIntent(Intent intent) {
-        ClipData clipData = Api16Impl.getClipData(intent);
+        ClipData clipData = intent.getClipData();
         if (clipData == null) {
             return null;
         }
@@ -602,24 +590,20 @@ public final class RemoteInput {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Map<String, Uri> getDataResultsFromIntent(Intent intent,
                 String remoteInputResultKey) {
             return android.app.RemoteInput.getDataResultsFromIntent(intent, remoteInputResultKey);
         }
 
-        @DoNotInline
         static Set<String> getAllowedDataTypes(Object remoteInput) {
             return ((android.app.RemoteInput) remoteInput).getAllowedDataTypes();
         }
 
-        @DoNotInline
         static void addDataResultToIntent(RemoteInput remoteInput, Intent intent,
                 Map<String, Uri> results) {
             android.app.RemoteInput.addDataResultToIntent(fromCompat(remoteInput), intent, results);
         }
 
-        @DoNotInline
         static android.app.RemoteInput.Builder setAllowDataType(
                 android.app.RemoteInput.Builder builder, String mimeType, boolean doAllow) {
             return builder.setAllowDataType(mimeType, doAllow);
@@ -632,12 +616,10 @@ public final class RemoteInput {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Bundle getResultsFromIntent(Intent intent) {
             return android.app.RemoteInput.getResultsFromIntent(intent);
         }
 
-        @DoNotInline
         static void addResultsToIntent(Object remoteInputs, Intent intent, Bundle results) {
             android.app.RemoteInput.addResultsToIntent((android.app.RemoteInput[]) remoteInputs,
                     intent, results);
@@ -687,35 +669,16 @@ public final class RemoteInput {
         }
     }
 
-    @RequiresApi(16)
-    static class Api16Impl {
-        private Api16Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static ClipData getClipData(Intent intent) {
-            return intent.getClipData();
-        }
-
-        @DoNotInline
-        static void setClipData(Intent intent, ClipData clip) {
-            intent.setClipData(clip);
-        }
-    }
-
     @RequiresApi(29)
     static class Api29Impl {
         private Api29Impl() {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static int getEditChoicesBeforeSending(Object remoteInput) {
             return ((android.app.RemoteInput) remoteInput).getEditChoicesBeforeSending();
         }
 
-        @DoNotInline
         static android.app.RemoteInput.Builder setEditChoicesBeforeSending(
                 android.app.RemoteInput.Builder builder, int editChoicesBeforeSending) {
             return builder.setEditChoicesBeforeSending(editChoicesBeforeSending);
@@ -728,12 +691,10 @@ public final class RemoteInput {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setResultsSource(Intent intent, int source) {
             android.app.RemoteInput.setResultsSource(intent, source);
         }
 
-        @DoNotInline
         static int getResultsSource(Intent intent) {
             return android.app.RemoteInput.getResultsSource(intent);
         }

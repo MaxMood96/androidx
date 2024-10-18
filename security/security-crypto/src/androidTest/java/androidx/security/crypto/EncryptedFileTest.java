@@ -16,10 +16,7 @@
 
 package androidx.security.crypto;
 
-import static androidx.security.crypto.MasterKey.KEYSTORE_PATH_URI;
-
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -55,15 +52,14 @@ import java.util.ArrayList;
 
 @MediumTest
 @RunWith(AndroidJUnit4.class)
+@SuppressWarnings("deprecation")
 public class EncryptedFileTest {
     private static final String KEYSET_ALIAS = "__androidx_security_crypto_encrypted_file_keyset__";
     private static final String PREFS_FILE = "__androidx_security_crypto_encrypted_file_pref__";
     private static final String CUSTOM_PREF_NAME = "CUSTOMPREFNAME";
-    private static final String SECOND_MASTER_KEY_ALIAS = "_androidx_security_second_master_key_";
 
     private Context mContext;
     private MasterKey mMasterKey;
-    private MasterKey mSecondMasterKey;
 
     /**
      * Enum for all test files used in the test suite. Each file will be deleted if it exists
@@ -138,7 +134,7 @@ public class EncryptedFileTest {
                 .build();
 
         OutputStream outputStream = encryptedFile.openFileOutput();
-        outputStream.write(fileContent.getBytes("UTF-8"));
+        outputStream.write(fileContent.getBytes(UTF_8));
         outputStream.flush();
         outputStream.close();
 
@@ -169,7 +165,7 @@ public class EncryptedFileTest {
 
         Assert.assertEquals(
                 "Contents should be equal, data was encrypted.",
-                fileContent, new String(plainText, "UTF-8"));
+                fileContent, new String(plainText, UTF_8));
         inputStream.close();
 
 
@@ -212,7 +208,7 @@ public class EncryptedFileTest {
                 .build();
 
         OutputStream outputStream = encryptedFile.openFileOutput();
-        outputStream.write(fileContent.getBytes("UTF-8"));
+        outputStream.write(fileContent.getBytes(UTF_8));
         outputStream.flush();
         outputStream.close();
 
@@ -243,7 +239,7 @@ public class EncryptedFileTest {
 
         Assert.assertEquals(
                 "Contents should be equal, data was encrypted.",
-                fileContent, new String(plainText, "UTF-8"));
+                fileContent, new String(plainText, UTF_8));
         inputStream.close();
 
 
@@ -286,12 +282,7 @@ public class EncryptedFileTest {
                 EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB)
                 .build();
 
-        try {
-            FileInputStream stream = encryptedFile.openFileInput();
-            fail("Successfully opened file that should not exist");
-        } catch (FileNotFoundException fnf) {
-            // Pass
-        }
+        Assert.assertThrows(FileNotFoundException.class, encryptedFile::openFileInput);
     }
 
     @Test
@@ -309,7 +300,7 @@ public class EncryptedFileTest {
                 .build();
 
         OutputStream outputStream = encryptedFile.openFileOutput();
-        outputStream.write(fileContent.getBytes("UTF-8"));
+        outputStream.write(fileContent.getBytes(UTF_8));
         outputStream.flush();
         outputStream.close();
 
@@ -340,7 +331,7 @@ public class EncryptedFileTest {
 
         Assert.assertEquals(
                 "Contents should be equal, data was encrypted.",
-                fileContent, new String(plainText, "UTF-8"));
+                fileContent, new String(plainText, UTF_8));
         inputStream.close();
 
         SharedPreferences sharedPreferences = mContext.getSharedPreferences(CUSTOM_PREF_NAME,
@@ -372,7 +363,7 @@ public class EncryptedFileTest {
                 .withSharedPref(mContext,
                         KEYSET_ALIAS,
                         PREFS_FILE)
-                .withMasterKeyUri(KEYSTORE_PATH_URI + mMasterKey.getKeyAlias())
+                .withMasterKeyUri(MasterKey.KEYSTORE_PATH_URI + mMasterKey.getKeyAlias())
                 .build().getKeysetHandle();
 
         StreamingAead streamingAead = com.google.crypto.tink.streamingaead.StreamingAeadFactory
@@ -396,7 +387,7 @@ public class EncryptedFileTest {
 
         Assert.assertEquals(
                 "Contents should be equal, data was encrypted.",
-                fileContent, new String(plainText, "UTF-8"));
+                fileContent, new String(plainText, UTF_8));
         inputStream.close();
     }
 

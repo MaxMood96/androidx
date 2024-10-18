@@ -18,8 +18,9 @@ package androidx.camera.view;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
-import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.Camera;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraInfoUnavailableException;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.UseCase;
@@ -64,11 +65,15 @@ interface ProcessCameraProviderWrapper {
             @NonNull UseCaseGroup useCaseGroup);
 
     /**
-     * Wrapper method for {@link ProcessCameraProvider#shutdown()}.
-     *
-     * @hide
+     * Wrapper method for {@link ProcessCameraProvider#shutdownAsync()}.
      */
     @NonNull
-    @RestrictTo(RestrictTo.Scope.TESTS)
-    ListenableFuture<Void> shutdown();
+    @VisibleForTesting
+    ListenableFuture<Void> shutdownAsync();
+
+    /**
+     * Wrapper method for {@link ProcessCameraProvider#getCameraInfo(CameraSelector)}.
+     */
+    @NonNull
+    CameraInfo getCameraInfo(CameraSelector cameraSelector);
 }

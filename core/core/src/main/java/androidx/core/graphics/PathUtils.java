@@ -19,7 +19,6 @@ package androidx.core.graphics;
 import android.graphics.Path;
 import android.graphics.PointF;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -36,6 +35,8 @@ public final class PathUtils {
      *
      * <em>Note:</em> This method requires API 26 or newer.
      *
+     * @param path path to flatten.
+     *
      * @see #flatten(Path, float)
      */
     @RequiresApi(26)
@@ -49,6 +50,7 @@ public final class PathUtils {
      *
      * <em>Note:</em> This method requires API 26 or newer.
      *
+     * @param path path to flatten.
      * @param error The acceptable error for a line on the Path. Typically this would be
      *              0.5 so that the error is less than half a pixel.
      *
@@ -89,7 +91,6 @@ public final class PathUtils {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static float[] approximate(Path path, float acceptableError) {
             return path.approximate(acceptableError);
         }

@@ -19,7 +19,6 @@ package androidx.security.identity;
 import android.icu.util.Calendar;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -249,6 +248,7 @@ class HardwareIdentityCredential extends IdentityCredential {
         return builder.build();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void setAvailableAuthenticationKeys(int keyCount, int maxUsesPerKey) {
         mCredential.setAvailableAuthenticationKeys(keyCount, maxUsesPerKey);
@@ -271,6 +271,7 @@ class HardwareIdentityCredential extends IdentityCredential {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public @NonNull
     int[] getAuthenticationDataUsageCount() {
@@ -280,14 +281,12 @@ class HardwareIdentityCredential extends IdentityCredential {
     @RequiresApi(Build.VERSION_CODES.S)
     private static class ApiImplS {
         @SuppressWarnings("deprecation")
-        @DoNotInline
         static void callSetAllowUsingExpiredKeys(
                 @NonNull android.security.identity.IdentityCredential credential,
                 boolean allowUsingExpiredKeys) {
             credential.setAllowUsingExpiredKeys(allowUsingExpiredKeys);
         }
 
-        @DoNotInline
         static void callStoreStaticAuthenticationData(
                 @NonNull android.security.identity.IdentityCredential credential,
                 @NonNull X509Certificate authenticationKey,
@@ -299,21 +298,18 @@ class HardwareIdentityCredential extends IdentityCredential {
                     staticAuthData);
         }
 
-        @DoNotInline
         static @NonNull byte[] callProveOwnership(
                 @NonNull android.security.identity.IdentityCredential credential,
                 @NonNull byte[] challenge) {
             return credential.proveOwnership(challenge);
         }
 
-        @DoNotInline
         static @NonNull byte[] callDelete(
                 @NonNull android.security.identity.IdentityCredential credential,
                 @NonNull byte[] challenge) {
             return credential.delete(challenge);
         }
 
-        @DoNotInline
         static @NonNull byte[] callUpdate(
                 @NonNull android.security.identity.IdentityCredential credential,
                 @NonNull android.security.identity.PersonalizationData personalizationData) {

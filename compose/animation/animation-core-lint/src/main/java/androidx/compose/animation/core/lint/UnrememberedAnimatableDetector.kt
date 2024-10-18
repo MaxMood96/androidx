@@ -32,9 +32,9 @@ import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
 import com.intellij.psi.impl.source.PsiClassReferenceType
+import java.util.EnumSet
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.util.isConstructorCall
-import java.util.EnumSet
 
 /**
  * [Detector] that checks `Animatable` calls to make sure that if they are called inside a
@@ -43,49 +43,53 @@ import java.util.EnumSet
 class UnrememberedAnimatableDetector : Detector(), SourceCodeScanner {
     override fun getApplicableUastTypes() = listOf(UCallExpression::class.java)
 
-    override fun createUastHandler(context: JavaContext) = object : UElementHandler() {
-        override fun visitCallExpression(node: UCallExpression) {
-            val method = node.resolve() ?: return
+    override fun createUastHandler(context: JavaContext) =
+        object : UElementHandler() {
+            override fun visitCallExpression(node: UCallExpression) {
+                val method = node.resolve() ?: return
 
-            // Match calls to constructor, and top level 'factory' functions named Animatable
-            // that return Animatable (this is needed as we have Animatable() factory functions
-            // in separate modules for different types, and developers could create their own as
-            // well).
-            if (node.isConstructorCall()) {
-                if (!method.isInPackageName(Names.AnimationCore.PackageName)) return
-                if (method.containingClass?.name != Animatable.shortName) return
-            } else {
-                if (node.methodName != Animatable.shortName) return
-                val returnType = method.returnType as? PsiClassReferenceType ?: return
-                // Raw type since we want to ignore generic typing
-                if (!returnType.rawType().equalsToText(Animatable.javaFqn)) return
-            }
+                // Match calls to constructor, and top level 'factory' functions named Animatable
+                // that return Animatable (this is needed as we have Animatable() factory functions
+                // in separate modules for different types, and developers could create their own as
+                // well).
+                if (node.isConstructorCall()) {
+                    if (!method.isInPackageName(Names.AnimationCore.PackageName)) return
+                    if (method.containingClass?.name != Animatable.shortName) return
+                } else {
+                    if (node.methodName != Animatable.shortName) return
+                    val returnType = method.returnType as? PsiClassReferenceType ?: return
+                    // Raw type since we want to ignore generic typing
+                    if (!returnType.rawType().equalsToText(Animatable.javaFqn)) return
+                }
 
-            if (node.isNotRemembered()) {
-                context.report(
-                    UnrememberedAnimatable,
-                    node,
-                    context.getNameLocation(node),
-                    "Creating an Animatable during composition without using `remember`"
-                )
+                if (node.isNotRemembered()) {
+                    context.report(
+                        UnrememberedAnimatable,
+                        node,
+                        context.getNameLocation(node),
+                        "Creating an Animatable during composition without using `remember`"
+                    )
+                }
             }
         }
-    }
 
     companion object {
-        val UnrememberedAnimatable = Issue.create(
-            "UnrememberedAnimatable",
-            "Creating an Animatable during composition without using `remember`",
-            "Animatable instances created during composition need to be `remember`ed, " +
-                "otherwise they will be recreated during recomposition, and lose their state. " +
-                "Either hoist the Animatable to an object that is not created during composition," +
-                " or wrap the Animatable in a call to `remember`.",
-            Category.CORRECTNESS, 3, Severity.ERROR,
-            Implementation(
-                UnrememberedAnimatableDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+        val UnrememberedAnimatable =
+            Issue.create(
+                "UnrememberedAnimatable",
+                "Creating an Animatable during composition without using `remember`",
+                "Animatable instances created during composition need to be `remember`ed, " +
+                    "otherwise they will be recreated during recomposition, and lose their state. " +
+                    "Either hoist the Animatable to an object that is not created during composition," +
+                    " or wrap the Animatable in a call to `remember`.",
+                Category.CORRECTNESS,
+                3,
+                Severity.ERROR,
+                Implementation(
+                    UnrememberedAnimatableDetector::class.java,
+                    EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+                )
             )
-        )
     }
 }
 

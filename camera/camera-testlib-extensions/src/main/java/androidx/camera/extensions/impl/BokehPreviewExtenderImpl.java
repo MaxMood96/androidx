@@ -19,6 +19,7 @@ import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.SessionConfiguration;
 import android.os.Build;
 import android.util.Pair;
 import android.util.Size;
@@ -26,19 +27,17 @@ import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import java.util.List;
 
 /**
- * Implementation for bokeh preview use case.
+ * Implementation for bokeh preview use case that implements a RequestUpdateProcessorImpl.
  *
- * <p>This class should be implemented by OEM and deployed to the target devices. 3P developers
- * don't need to implement this, unless this is used for related testing usage.
+ * <p>This is only for testing camera-extensions and should not be used as a sample OEM
+ * implementation.
  *
  * @since 1.0
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class BokehPreviewExtenderImpl implements PreviewExtenderImpl {
     private static final int DEFAULT_STAGE_ID = 0;
     private static final int SESSION_STAGE_ID = 101;
@@ -186,4 +185,16 @@ public final class BokehPreviewExtenderImpl implements PreviewExtenderImpl {
 
         return captureStage;
     }
+
+    @Override
+    public int onSessionType() {
+        return SessionConfiguration.SESSION_REGULAR;
+    }
+
+    /**
+     * This method is used to check if test lib is running. If OEM implementation exists, invoking
+     * this method will throw {@link NoSuchMethodError}. This can be used to determine if OEM
+     * implementation is used or not.
+     */
+    public static void checkTestlibRunning() {}
 }

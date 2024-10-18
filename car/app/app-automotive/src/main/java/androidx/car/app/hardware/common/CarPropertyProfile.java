@@ -48,7 +48,6 @@ import java.util.Set;
  *
  * @param <T> is the value type of response.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 @AutoValue
@@ -62,19 +61,19 @@ public abstract class CarPropertyProfile<T> {
             FACE,
             FLOOR,
             DEFROST,
-            /**
+            /*
              * FACE_FLOOR = FACE | FLOOR
              */
             FACE_FLOOR,
-            /**
+            /*
              * FLOOR_DEFROST = FLOOR | DEFROST
              */
             FLOOR_DEFROST,
-            /**
+            /*
              * FACE_DEFROST = FACE | DEFROST | FLOOR
              */
             FACE_DEFROST,
-            /**
+            /*
              * FACE_FLOOR_DEFROST = FACE | FLOOR | DEFROST
              */
             FACE_FLOOR_DEFROST

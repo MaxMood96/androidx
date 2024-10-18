@@ -17,25 +17,28 @@
 package androidx.camera.core.imagecapture;
 
 import static androidx.camera.core.CaptureBundles.singleDefaultCaptureBundle;
+import static androidx.camera.core.impl.ImageCaptureConfig.OPTION_BUFFER_FORMAT;
+import static androidx.camera.core.impl.ImageInputConfig.OPTION_INPUT_FORMAT;
 import static androidx.camera.core.impl.utils.Threads.checkMainThread;
 import static androidx.camera.core.impl.utils.TransformUtils.hasCropping;
+import static androidx.camera.core.internal.utils.ImageUtil.isJpegFormats;
+import static androidx.camera.core.internal.utils.ImageUtil.isRawFormats;
 
 import static java.util.Objects.requireNonNull;
 
 import android.graphics.ImageFormat;
+import android.hardware.camera2.CameraCharacteristics;
 import android.media.ImageReader;
-import android.os.Build;
 import android.util.Size;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraEffect;
 import androidx.camera.core.ForwardingImageProxy;
 import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureException;
+import androidx.camera.core.MetadataImageReader;
 import androidx.camera.core.impl.CaptureBundle;
 import androidx.camera.core.impl.CaptureConfig;
 import androidx.camera.core.impl.CaptureStage;
@@ -57,11 +60,12 @@ import java.util.List;
  * <p>This class is responsible for building the entire pipeline, from creating camera request to
  * post-processing the output.
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class ImagePipeline {
 
     static final byte JPEG_QUALITY_MAX_QUALITY = 100;
     static final byte JPEG_QUALITY_MIN_LATENCY = 95;
+
+    private static int sNextRequestId = 0;
 
     static final ExifRotationAvailability EXIF_ROTATION_AVAILABILITY =
             new ExifRotationAvailability();
@@ -75,8 +79,6 @@ public class ImagePipeline {
     @NonNull
     private final CaptureNode mCaptureNode;
     @NonNull
-    private final SingleBundlingNode mBundlingNode;
-    @NonNull
     private final ProcessingNode mProcessingNode;
     @NonNull
     private final CaptureNode.In mPipelineIn;
@@ -87,30 +89,62 @@ public class ImagePipeline {
     @VisibleForTesting
     public ImagePipeline(
             @NonNull ImageCaptureConfig useCaseConfig,
-            @NonNull Size cameraSurfaceSize) {
-        this(useCaseConfig, cameraSurfaceSize, /*cameraEffect=*/ null);
+            @NonNull Size cameraSurfaceSize,
+            @NonNull CameraCharacteristics cameraCharacteristics) {
+        this(useCaseConfig, cameraSurfaceSize, cameraCharacteristics, /*cameraEffect=*/ null,
+                /*isVirtualCamera=*/ false, /* postviewSize */ null, ImageFormat.YUV_420_888);
     }
 
     @MainThread
     public ImagePipeline(
             @NonNull ImageCaptureConfig useCaseConfig,
             @NonNull Size cameraSurfaceSize,
-            @Nullable CameraEffect cameraEffect) {
+            @NonNull CameraCharacteristics cameraCharacteristics,
+            @Nullable CameraEffect cameraEffect,
+            boolean isVirtualCamera) {
+        this(useCaseConfig, cameraSurfaceSize, cameraCharacteristics, cameraEffect, isVirtualCamera,
+                null, ImageFormat.YUV_420_888);
+    }
+
+    @MainThread
+    public ImagePipeline(
+            @NonNull ImageCaptureConfig useCaseConfig,
+            @NonNull Size cameraSurfaceSize,
+            @Nullable CameraCharacteristics cameraCharacteristics,
+            @Nullable CameraEffect cameraEffect,
+            boolean isVirtualCamera,
+            @Nullable Size postviewSize,
+            int postviewImageFormat) {
         checkMainThread();
         mUseCaseConfig = useCaseConfig;
         mCaptureConfig = CaptureConfig.Builder.createFrom(useCaseConfig).build();
 
         // Create nodes
         mCaptureNode = new CaptureNode();
-        mBundlingNode = new SingleBundlingNode();
         mProcessingNode = new ProcessingNode(
                 requireNonNull(mUseCaseConfig.getIoExecutor(CameraXExecutors.ioExecutor())),
+                cameraCharacteristics,
                 cameraEffect != null ? new InternalImageProcessor(cameraEffect) : null);
 
+        // Pass down [RAW_SENSOR, JPEG] to the pipeline if simultaneous capture is enabled.
+        List<Integer> outputFormats = new ArrayList<>();
+        if (mUseCaseConfig.getSecondaryInputFormat() != ImageFormat.UNKNOWN) {
+            outputFormats.add(ImageFormat.RAW_SENSOR);
+            outputFormats.add(ImageFormat.JPEG);
+        } else {
+            outputFormats.add(getOutputFormat());
+        }
+
         // Connect nodes
-        mPipelineIn = CaptureNode.In.of(cameraSurfaceSize, mUseCaseConfig.getInputFormat());
-        CaptureNode.Out captureOut = mCaptureNode.transform(mPipelineIn);
-        ProcessingNode.In processingIn = mBundlingNode.transform(captureOut);
+        mPipelineIn = CaptureNode.In.of(
+                cameraSurfaceSize,
+                mUseCaseConfig.getInputFormat(),
+                outputFormats,
+                isVirtualCamera,
+                mUseCaseConfig.getImageReaderProxyProvider(),
+                postviewSize,
+                postviewImageFormat);
+        ProcessingNode.In processingIn = mCaptureNode.transform(mPipelineIn);
         mProcessingNode.transform(processingIn);
     }
 
@@ -118,9 +152,19 @@ public class ImagePipeline {
      * Creates a {@link SessionConfig.Builder} for configuring camera.
      */
     @NonNull
-    public SessionConfig.Builder createSessionConfigBuilder() {
-        SessionConfig.Builder builder = SessionConfig.Builder.createFrom(mUseCaseConfig);
+    public SessionConfig.Builder createSessionConfigBuilder(@NonNull Size resolution) {
+        SessionConfig.Builder builder = SessionConfig.Builder.createFrom(mUseCaseConfig,
+                resolution);
         builder.addNonRepeatingSurface(mPipelineIn.getSurface());
+        if (mPipelineIn.getOutputFormats().size() > 1
+                && mPipelineIn.getSecondarySurface() != null) {
+            builder.addNonRepeatingSurface(mPipelineIn.getSecondarySurface());
+        }
+
+        // Postview surface is generated when initializing CaptureNode.
+        if (mPipelineIn.getPostviewSurface() != null) {
+            builder.setPostviewSurface(mPipelineIn.getPostviewSurface());
+        }
         return builder;
     }
 
@@ -134,7 +178,6 @@ public class ImagePipeline {
     public void close() {
         checkMainThread();
         mCaptureNode.release();
-        mBundlingNode.release();
         mProcessingNode.release();
     }
 
@@ -180,12 +223,17 @@ public class ImagePipeline {
             @NonNull ListenableFuture<Void> captureFuture) {
         checkMainThread();
         CaptureBundle captureBundle = createCaptureBundle();
+        // sNextRequestId is not thread-safe. Changed it to use AtomicInteger if thread safety is
+        // needed in the future.
+        int requestId = sNextRequestId++;
         return new Pair<>(
                 createCameraRequest(
+                        requestId,
                         captureBundle,
                         takePictureRequest,
                         takePictureCallback),
                 createProcessingRequest(
+                        requestId,
                         captureBundle,
                         takePictureRequest,
                         takePictureCallback,
@@ -199,12 +247,31 @@ public class ImagePipeline {
     }
 
     @MainThread
-    void notifyCaptureError(@NonNull ImageCaptureException e) {
+    void notifyCaptureError(@NonNull TakePictureManager.CaptureError error) {
         checkMainThread();
-        mPipelineIn.getErrorEdge().accept(e);
+        mPipelineIn.getErrorEdge().accept(error);
     }
 
     // ===== private methods =====
+
+    private int getOutputFormat() {
+        Integer bufferFormat = mUseCaseConfig.retrieveOption(OPTION_BUFFER_FORMAT, null);
+        // Return the buffer format if it is set.
+        if (bufferFormat != null) {
+            return bufferFormat;
+        }
+
+        Integer inputFormat = mUseCaseConfig.retrieveOption(OPTION_INPUT_FORMAT, null);
+        if (inputFormat != null && inputFormat == ImageFormat.JPEG_R) {
+            return ImageFormat.JPEG_R;
+        }
+        if (inputFormat != null && inputFormat == ImageFormat.RAW_SENSOR) {
+            return ImageFormat.RAW_SENSOR;
+        }
+
+        // By default, use JPEG format.
+        return ImageFormat.JPEG;
+    }
 
     @NonNull
     private CaptureBundle createCaptureBundle() {
@@ -213,22 +280,31 @@ public class ImagePipeline {
 
     @NonNull
     private ProcessingRequest createProcessingRequest(
+            int requestId,
             @NonNull CaptureBundle captureBundle,
             @NonNull TakePictureRequest takePictureRequest,
             @NonNull TakePictureCallback takePictureCallback,
             @NonNull ListenableFuture<Void> captureFuture) {
         return new ProcessingRequest(
                 captureBundle,
-                takePictureRequest.getOutputFileOptions(),
-                takePictureRequest.getCropRect(),
-                takePictureRequest.getRotationDegrees(),
-                takePictureRequest.getJpegQuality(),
-                takePictureRequest.getSensorToBufferTransform(),
+                takePictureRequest,
                 takePictureCallback,
-                captureFuture);
+                captureFuture,
+                requestId);
+    }
+
+    private boolean shouldEnablePostview() {
+        return mPipelineIn.getPostviewSurface() != null;
+    }
+
+    @VisibleForTesting
+    @Nullable
+    public Size getPostviewSize() {
+        return mPipelineIn.getPostviewSize();
     }
 
     private CameraRequest createCameraRequest(
+            int requestId,
             @NonNull CaptureBundle captureBundle,
             @NonNull TakePictureRequest takePictureRequest,
             @NonNull TakePictureCallback takePictureCallback) {
@@ -243,10 +319,16 @@ public class ImagePipeline {
             builder.addAllCameraCaptureCallbacks(
                     takePictureRequest.getSessionConfigCameraCaptureCallbacks());
             builder.addSurface(mPipelineIn.getSurface());
+            if (mPipelineIn.getOutputFormats().size() > 1
+                    && mPipelineIn.getSecondarySurface() != null) {
+                builder.addSurface(mPipelineIn.getSecondarySurface());
+            }
+            builder.setPostviewEnabled(shouldEnablePostview());
 
-            // Only sets the JPEG rotation and quality for JPEG format. Some devices do not
+            // Sets the JPEG rotation and quality for JPEG and RAW formats. Some devices do not
             // handle these configs for non-JPEG images. See b/204375890.
-            if (mPipelineIn.getFormat() == ImageFormat.JPEG) {
+            if (isJpegFormats(mPipelineIn.getInputFormat())
+                    || isRawFormats(mPipelineIn.getInputFormat())) {
                 if (EXIF_ROTATION_AVAILABILITY.isRotationOptionSupported()) {
                     builder.addImplementationOption(CaptureConfig.OPTION_ROTATION,
                             takePictureRequest.getRotationDegrees());
@@ -261,7 +343,12 @@ public class ImagePipeline {
 
             // Use CaptureBundle object as the key for TagBundle
             builder.addTag(tagBundleKey, captureStage.getId());
+            builder.setId(requestId);
             builder.addCameraCaptureCallback(mPipelineIn.getCameraCaptureCallback());
+            if (mPipelineIn.getOutputFormats().size() > 1
+                    && mPipelineIn.getSecondaryCameraCaptureCallback() != null) {
+                builder.addCameraCaptureCallback(mPipelineIn.getSecondaryCameraCaptureCallback());
+            }
             captureConfigs.add(builder.build());
         }
 
@@ -304,5 +391,15 @@ public class ImagePipeline {
     @VisibleForTesting
     ProcessingNode getProcessingNode() {
         return mProcessingNode;
+    }
+
+
+    /**
+     * Returns true if the image reader is a {@link MetadataImageReader}.
+     */
+    @VisibleForTesting
+    public boolean expectsMetadata() {
+        return mCaptureNode.getSafeCloseImageReaderProxy().getImageReaderProxy()
+                instanceof MetadataImageReader;
     }
 }

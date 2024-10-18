@@ -86,12 +86,13 @@ import org.junit.After
 import org.junit.Assert.fail
 import org.junit.Assume
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito
-import org.mockito.MockitoAnnotations
+import org.mockito.junit.MockitoJUnit
 
 private const val BITMAP_WIDTH = 400
 private const val BITMAP_HEIGHT = 400
@@ -131,6 +132,8 @@ public class ComplicationTapActivity : Activity() {
 @MediumTest
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 public class WatchFaceServiceImageTest {
+
+    @get:Rule val mocks = MockitoJUnit.rule()
 
     @Mock private lateinit var surfaceHolder: SurfaceHolder
 
@@ -193,11 +196,9 @@ public class WatchFaceServiceImageTest {
     private lateinit var engineWrapper: WatchFaceService.EngineWrapper
     private lateinit var interactiveWatchFaceInstance: IInteractiveWatchFace
 
-    @Suppress("DEPRECATION") // b/251211092
     @Before
     public fun setUp() {
         Assume.assumeTrue("This test suite assumes API 27", Build.VERSION.SDK_INT >= 27)
-        MockitoAnnotations.initMocks(this)
 
         pretendBinderThread.start()
         pretendBinderHandler = Handler(pretendBinderThread.looper)
@@ -214,6 +215,7 @@ public class WatchFaceServiceImageTest {
         }
         assertThat(latch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
         pretendBinderThread.quitSafely()
+        InteractiveInstanceManager.setParameterlessEngine(null)
     }
 
     private fun initCanvasWatchFace(onInvalidateCountDownLatch: CountDownLatch? = null) {
@@ -313,19 +315,6 @@ public class WatchFaceServiceImageTest {
         )
     }
 
-    private fun setAmbient(ambient: Boolean) {
-        val interactiveWatchFaceInstance =
-            InteractiveInstanceManager.getAndRetainInstance(
-                interactiveWatchFaceInstance.instanceId
-            )!!
-
-        try {
-            interactiveWatchFaceInstance.setWatchUiState(WatchUiState(ambient, 0))
-        } finally {
-            interactiveWatchFaceInstance.release()
-        }
-    }
-
     @FlakyTest(bugId = 259980310)
     @Test
     public fun testActiveScreenshot() {
@@ -347,7 +336,7 @@ public class WatchFaceServiceImageTest {
         sendComplications()
 
         handler.post {
-            setAmbient(true)
+            engineWrapper.setWatchUiState(WatchUiState(true, 0), fromSysUi = true)
             engineWrapper.draw(engineWrapper.getWatchFaceImplOrNull())
         }
 
@@ -390,6 +379,7 @@ public class WatchFaceServiceImageTest {
 
     @SuppressLint("NewApi")
     @Test
+    @Ignore("b/274981990")
     public fun testCommandTakeOpenGLScreenShot() {
         val latch = CountDownLatch(1)
 
@@ -426,7 +416,7 @@ public class WatchFaceServiceImageTest {
     public fun testSetGreenStyle() {
         handler.post {
             initCanvasWatchFace()
-            assertThat(engineWrapper.mutableWatchState.watchFaceInstanceId.value)
+            assertThat(engineWrapper.watchFaceDetails!!.mutableWatchState.watchFaceInstanceId.value)
                 .isEqualTo(INTERACTIVE_INSTANCE_ID)
         }
         assertThat(initLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
@@ -441,7 +431,8 @@ public class WatchFaceServiceImageTest {
         sendComplications()
 
         handler.post {
-            assertThat(engineWrapper.mutableWatchState.watchFaceInstanceId.value).isEqualTo(newId)
+            assertThat(engineWrapper.watchFaceDetails!!.mutableWatchState.watchFaceInstanceId.value)
+                .isEqualTo(newId)
             engineWrapper.draw(engineWrapper.getWatchFaceImplOrNull())
         }
 
@@ -475,7 +466,8 @@ public class WatchFaceServiceImageTest {
         // Latch that countsDown when the complication below has been delivered.
         val complicationReceivedLatch = CountDownLatch(2)
         CoroutineScope(handler.asCoroutineDispatcher()).launch {
-            engineWrapper.deferredWatchFaceImpl
+            engineWrapper.watchFaceDetails!!
+                .deferredWatchFaceImpl
                 .await()
                 .complicationSlotsManager[EXAMPLE_CANVAS_WATCHFACE_LEFT_COMPLICATION_ID]!!
                 .complicationData
@@ -486,7 +478,8 @@ public class WatchFaceServiceImageTest {
                 }
         }
         CoroutineScope(handler.asCoroutineDispatcher()).launch {
-            engineWrapper.deferredWatchFaceImpl
+            engineWrapper.watchFaceDetails!!
+                .deferredWatchFaceImpl
                 .await()
                 .complicationSlotsManager[EXAMPLE_CANVAS_WATCHFACE_RIGHT_COMPLICATION_ID]!!
                 .complicationData
@@ -842,7 +835,7 @@ public class WatchFaceServiceImageTest {
         val engineWrapper = service.onCreateEngine() as WatchFaceService.EngineWrapper
 
         // Make sure init has completed before trying to draw.
-        runBlocking { engineWrapper.deferredWatchFaceImpl.await() }
+        runBlocking { engineWrapper.watchFaceDetails!!.deferredWatchFaceImpl.await() }
 
         handler.post { engineWrapper.draw(engineWrapper.getWatchFaceImplOrNull()) }
 

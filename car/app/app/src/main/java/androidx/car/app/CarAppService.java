@@ -144,6 +144,18 @@ public abstract class CarAppService extends Service {
     @ExperimentalCarApi
     public static final String CATEGORY_MESSAGING_APP = "androidx.car.app.category.MESSAGING";
 
+    /**
+     * Used in the app manifest to declare that this app supports calling.
+     */
+    @ExperimentalCarApi
+    public static final String CATEGORY_CALLING_APP = "androidx.car.app.category.CALLING";
+
+    /**
+     * Used to declare that this app is a weather app in the manifest.
+     */
+    @ExperimentalCarApi
+    public static final String CATEGORY_WEATHER_APP = "androidx.car.app.category.WEATHER";
+
     private static final String AUTO_DRIVE = "AUTO_DRIVE";
 
     @NonNull
@@ -208,6 +220,9 @@ public abstract class CarAppService extends Service {
             synchronized (mBinders) {
                 CarAppBinder binder = mBinders.remove(sessionInfo);
                 if (binder != null) {
+                    // We call onDestroyLifecycle() instead of destroy() here because Service
+                    // caches the binder returned by onBind() for a given Intent meaning this
+                    // binder might be reused on a future onBind() call.
                     binder.onDestroyLifecycle();
                 }
             }
@@ -303,7 +318,7 @@ public abstract class CarAppService extends Service {
     public final void dump(@NonNull FileDescriptor fd, @NonNull PrintWriter writer,
             @Nullable String[] args) {
         super.dump(fd, writer, args);
-
+        if (args == null) return;
         for (String arg : args) {
             if (AUTO_DRIVE.equals(arg)) {
                 runOnMain(() -> {

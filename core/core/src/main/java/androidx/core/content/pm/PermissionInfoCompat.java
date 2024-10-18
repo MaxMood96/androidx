@@ -20,7 +20,6 @@ import android.annotation.SuppressLint;
 import android.content.pm.PermissionInfo;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -36,7 +35,6 @@ public final class PermissionInfoCompat {
     private PermissionInfoCompat() {
     }
 
-    /** @hide */
     @IntDef(value = {
             PermissionInfo.PROTECTION_NORMAL,
             PermissionInfo.PROTECTION_DANGEROUS,
@@ -47,7 +45,6 @@ public final class PermissionInfoCompat {
     @Retention(RetentionPolicy.SOURCE)
     public @interface Protection {}
 
-    /** @hide */
     @SuppressLint("UniqueConstants") // because _SYSTEM and _PRIVILEGED are aliases.
     @IntDef(flag = true, value = {
             PermissionInfo.PROTECTION_FLAG_PRIVILEGED,
@@ -100,12 +97,10 @@ public final class PermissionInfoCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static int getProtection(PermissionInfo permissionInfo) {
             return permissionInfo.getProtection();
         }
 
-        @DoNotInline
         static int getProtectionFlags(PermissionInfo permissionInfo) {
             return permissionInfo.getProtectionFlags();
         }

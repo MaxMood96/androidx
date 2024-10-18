@@ -32,7 +32,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class DefaultTaskExecutor extends TaskExecutor {
@@ -83,7 +82,7 @@ public class DefaultTaskExecutor extends TaskExecutor {
     private static Handler createAsync(@NonNull Looper looper) {
         if (Build.VERSION.SDK_INT >= 28) {
             return Api28Impl.createAsync(looper);
-        } else if (Build.VERSION.SDK_INT >= 17) {
+        } else {
             try {
                 // This constructor was added as private in JB MR1:
                 // https://android.googlesource.com/platform/frameworks/base/+/refs/heads/jb-mr1-release/core/java/android/os/Handler.java

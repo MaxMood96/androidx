@@ -18,7 +18,11 @@ package androidx.appsearch.localstorage.converter;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import androidx.appsearch.app.EmbeddingVector;
 import androidx.appsearch.app.GenericDocument;
+import androidx.appsearch.localstorage.AppSearchConfigImpl;
+import androidx.appsearch.localstorage.LocalStorageIcingOptionsConfig;
+import androidx.appsearch.localstorage.UnlimitedLimitConfig;
 
 import com.google.android.icing.proto.DocumentProto;
 import com.google.android.icing.proto.PropertyConfigProto;
@@ -30,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +46,10 @@ public class GenericDocumentToProtoConverterTest {
     private static final byte[] BYTE_ARRAY_2 = new byte[]{(byte) 4, (byte) 5, (byte) 6, (byte) 7};
     private static final String SCHEMA_TYPE_1 = "sDocumentPropertiesSchemaType1";
     private static final String SCHEMA_TYPE_2 = "sDocumentPropertiesSchemaType2";
+    private static final EmbeddingVector sEmbedding1 = new EmbeddingVector(
+            new float[]{1.1f, 2.2f, 3.3f}, "my_model_v1");
+    private static final EmbeddingVector sEmbedding2 = new EmbeddingVector(
+            new float[]{4.4f, 5.5f, 6.6f, 7.7f}, "my_model_v2");
     private static final GenericDocument DOCUMENT_PROPERTIES_1 =
             new GenericDocument.Builder<GenericDocument.Builder<?>>(
                     "namespace", "sDocumentProperties1", SCHEMA_TYPE_1)
@@ -63,7 +72,7 @@ public class GenericDocumentToProtoConverterTest {
                     SCHEMA_PROTO_2);
 
     @Test
-    public void testDocumentProtoConvert() {
+    public void testDocumentProtoConvert() throws Exception {
         GenericDocument document =
                 new GenericDocument.Builder<GenericDocument.Builder<?>>("namespace", "id1",
                         SCHEMA_TYPE_1)
@@ -115,7 +124,8 @@ public class GenericDocumentToProtoConverterTest {
 
         GenericDocument convertedGenericDocument =
                 GenericDocumentToProtoConverter.toGenericDocument(documentProto, PREFIX,
-                        SCHEMA_MAP);
+                        SCHEMA_MAP, new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                                new LocalStorageIcingOptionsConfig()));
         DocumentProto convertedDocumentProto =
                 GenericDocumentToProtoConverter.toDocumentProto(document);
 
@@ -124,7 +134,7 @@ public class GenericDocumentToProtoConverterTest {
     }
 
     @Test
-    public void testConvertDocument_whenPropertyHasEmptyList() {
+    public void testConvertDocument_whenPropertyHasEmptyList() throws Exception {
         // Build original GenericDocument
         GenericDocument document =
                 new GenericDocument.Builder<GenericDocument.Builder<?>>("namespace", "id1",
@@ -212,7 +222,8 @@ public class GenericDocumentToProtoConverterTest {
         // Convert to the other type and check if they are matched.
         GenericDocument convertedGenericDocument =
                 GenericDocumentToProtoConverter.toGenericDocument(documentProto, PREFIX,
-                        schemaMap);
+                        schemaMap, new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                                new LocalStorageIcingOptionsConfig()));
         DocumentProto convertedDocumentProto =
                 GenericDocumentToProtoConverter.toDocumentProto(document);
         assertThat(convertedDocumentProto).isEqualTo(documentProto);
@@ -220,7 +231,7 @@ public class GenericDocumentToProtoConverterTest {
     }
 
     @Test
-    public void testConvertDocument_whenNestedDocumentPropertyHasEmptyList() {
+    public void testConvertDocument_whenNestedDocumentPropertyHasEmptyList() throws Exception {
         // Build original nested document in type 1 and outer document in type2
         GenericDocument nestedDocument =
                 new GenericDocument.Builder<GenericDocument.Builder<?>>("namespace", "id1",
@@ -340,10 +351,143 @@ public class GenericDocumentToProtoConverterTest {
         // Convert to the other type and check if they are matched.
         GenericDocument convertedGenericDocument =
                 GenericDocumentToProtoConverter.toGenericDocument(outerDocumentProto, PREFIX,
-                        schemaMap);
+                        schemaMap, new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                                new LocalStorageIcingOptionsConfig()));
         DocumentProto convertedDocumentProto =
                 GenericDocumentToProtoConverter.toDocumentProto(outerDocument);
         assertThat(convertedDocumentProto).isEqualTo(outerDocumentProto);
         assertThat(convertedGenericDocument).isEqualTo(outerDocument);
+    }
+    // @exportToFramework:startStrip()
+    // TODO(b/274157614): setParentTypes is hidden
+    @Test
+    public void testConvertDocument_withParentTypes() throws Exception {
+        // Create a type with a parent type.
+        SchemaTypeConfigProto schemaProto1 = SchemaTypeConfigProto.newBuilder()
+                .setSchemaType(PREFIX + SCHEMA_TYPE_1)
+                .addParentTypes(PREFIX + SCHEMA_TYPE_2)
+                .build();
+        Map<String, SchemaTypeConfigProto> schemaMap =
+                ImmutableMap.of(PREFIX + SCHEMA_TYPE_1, schemaProto1, PREFIX + SCHEMA_TYPE_2,
+                        SCHEMA_PROTO_2);
+
+        // Create a document proto for the above type.
+        DocumentProto.Builder documentProtoBuilder = DocumentProto.newBuilder()
+                .setUri("id1")
+                .setSchema(SCHEMA_TYPE_1)
+                .setCreationTimestampMs(5L)
+                .setScore(1)
+                .setTtlMs(1L)
+                .setNamespace("namespace");
+        HashMap<String, PropertyProto.Builder> propertyProtoMap = new HashMap<>();
+        propertyProtoMap.put("longKey1",
+                PropertyProto.newBuilder().setName("longKey1").addInt64Values(1L));
+        propertyProtoMap.put("doubleKey1",
+                PropertyProto.newBuilder().setName("doubleKey1").addDoubleValues(1.0));
+        for (Map.Entry<String, PropertyProto.Builder> entry : propertyProtoMap.entrySet()) {
+            documentProtoBuilder.addProperties(entry.getValue());
+        }
+        DocumentProto documentProto = documentProtoBuilder.build();
+
+        // Check if the parent types list is properly wrapped, either as a property or a meta field.
+        GenericDocument expectedDocWithParentAsMetaField =
+                new GenericDocument.Builder<GenericDocument.Builder<?>>("namespace", "id1",
+                        SCHEMA_TYPE_1)
+                        .setParentTypes(Collections.singletonList(SCHEMA_TYPE_2))
+                        .setCreationTimestampMillis(5L)
+                        .setScore(1)
+                        .setTtlMillis(1L)
+                        .setPropertyLong("longKey1", 1L)
+                        .setPropertyDouble("doubleKey1", 1.0)
+                        .build();
+        GenericDocument expectedDocWithParentAsSyntheticProperty =
+                new GenericDocument.Builder<GenericDocument.Builder<?>>("namespace", "id1",
+                        SCHEMA_TYPE_1)
+                        .setPropertyString(
+                                GenericDocument.PARENT_TYPES_SYNTHETIC_PROPERTY, SCHEMA_TYPE_2)
+                        .setCreationTimestampMillis(5L)
+                        .setScore(1)
+                        .setTtlMillis(1L)
+                        .setPropertyLong("longKey1", 1L)
+                        .setPropertyDouble("doubleKey1", 1.0)
+                        .build();
+
+        GenericDocument actualDocWithParentAsMetaField =
+                GenericDocumentToProtoConverter.toGenericDocument(documentProto, PREFIX,
+                        schemaMap, new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                                new LocalStorageIcingOptionsConfig(),
+                                /* storeParentInfoAsSyntheticProperty= */ false,
+                                /* shouldRetrieveParentInfo= */ true));
+        GenericDocument actualDocWithParentAsSyntheticProperty =
+                GenericDocumentToProtoConverter.toGenericDocument(documentProto, PREFIX,
+                        schemaMap, new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                                new LocalStorageIcingOptionsConfig(),
+                                /* storeParentInfoAsSyntheticProperty= */ true,
+                                /* shouldRetrieveParentInfo= */ true));
+
+        assertThat(actualDocWithParentAsMetaField).isEqualTo(expectedDocWithParentAsMetaField);
+        assertThat(actualDocWithParentAsMetaField).isNotEqualTo(
+                expectedDocWithParentAsSyntheticProperty);
+
+        assertThat(actualDocWithParentAsSyntheticProperty).isEqualTo(
+                expectedDocWithParentAsSyntheticProperty);
+        assertThat(actualDocWithParentAsSyntheticProperty).isNotEqualTo(
+                expectedDocWithParentAsMetaField);
+    }
+    // @exportToFramework:endStrip()
+
+    @Test
+    public void testDocumentProtoConvert_EmbeddingProperty() throws Exception {
+        GenericDocument document =
+                new GenericDocument.Builder<GenericDocument.Builder<?>>("namespace", "id1",
+                        SCHEMA_TYPE_1)
+                        .setCreationTimestampMillis(5L)
+                        .setScore(1)
+                        .setTtlMillis(1L)
+                        .setPropertyLong("longKey1", 1L)
+                        .setPropertyDocument("documentKey1", DOCUMENT_PROPERTIES_1)
+                        .setPropertyEmbedding("embeddingKey1", sEmbedding1, sEmbedding2)
+                        .build();
+
+        // Create the Document proto. Need to sort the property order by key.
+        DocumentProto.Builder documentProtoBuilder = DocumentProto.newBuilder()
+                .setUri("id1")
+                .setSchema(SCHEMA_TYPE_1)
+                .setCreationTimestampMs(5L)
+                .setScore(1)
+                .setTtlMs(1L)
+                .setNamespace("namespace");
+        HashMap<String, PropertyProto.Builder> propertyProtoMap = new HashMap<>();
+        propertyProtoMap.put("longKey1",
+                PropertyProto.newBuilder().setName("longKey1").addInt64Values(1L));
+        propertyProtoMap.put("documentKey1",
+                PropertyProto.newBuilder().setName("documentKey1").addDocumentValues(
+                        GenericDocumentToProtoConverter.toDocumentProto(DOCUMENT_PROPERTIES_1)));
+        propertyProtoMap.put("embeddingKey1",
+                PropertyProto.newBuilder().setName("embeddingKey1")
+                        .addVectorValues(PropertyProto.VectorProto.newBuilder()
+                                .addAllValues(Arrays.asList(1.1f, 2.2f, 3.3f))
+                                .setModelSignature("my_model_v1")
+                        )
+                        .addVectorValues(PropertyProto.VectorProto.newBuilder()
+                                .addAllValues(Arrays.asList(4.4f, 5.5f, 6.6f, 7.7f))
+                                .setModelSignature("my_model_v2")
+                        ));
+        List<String> sortedKey = new ArrayList<>(propertyProtoMap.keySet());
+        Collections.sort(sortedKey);
+        for (String key : sortedKey) {
+            documentProtoBuilder.addProperties(propertyProtoMap.get(key));
+        }
+        DocumentProto documentProto = documentProtoBuilder.build();
+
+        GenericDocument convertedGenericDocument =
+                GenericDocumentToProtoConverter.toGenericDocument(documentProto, PREFIX,
+                        SCHEMA_MAP, new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                                new LocalStorageIcingOptionsConfig()));
+        DocumentProto convertedDocumentProto =
+                GenericDocumentToProtoConverter.toDocumentProto(document);
+
+        assertThat(convertedDocumentProto).isEqualTo(documentProto);
+        assertThat(convertedGenericDocument).isEqualTo(document);
     }
 }

@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -23,11 +30,6 @@ plugins {
 }
 
 dependencies {
-    // Atomic group
-    constraints {
-        implementation(project(":preference:preference"))
-    }
-
     api(project(":preference:preference"))
     api("androidx.core:core-ktx:1.1.0") {
         because "Mirror preference dependency graph for -ktx artifacts"
@@ -43,20 +45,16 @@ dependencies {
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.multidex)
     androidTestImplementation(project(":internal-testutils-truth"))
 }
 
 androidx {
-    name = "Android Preferences KTX"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "Preferences KTX"
+    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2018"
     description = "Kotlin extensions for preferences"
 }
 
 android {
     namespace "androidx.preference.ktx"
-    defaultConfig {
-        multiDexEnabled true
-    }
 }

@@ -30,11 +30,10 @@ import java.util.List;
 /**
  * Holds tracing configuration information and predefined settings
  * for {@link TracingController}.
- *
+ * <p>
  * This class is functionally equivalent to {@link android.webkit.TracingConfig}.
  */
 public class TracingConfig {
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef(flag = true, value = {CATEGORIES_NONE, CATEGORIES_ALL, CATEGORIES_ANDROID_WEBVIEW,
             CATEGORIES_WEB_DEVELOPER, CATEGORIES_INPUT_LATENCY, CATEGORIES_RENDERING,
@@ -96,7 +95,6 @@ public class TracingConfig {
     public static final int CATEGORIES_FRAME_VIEWER =
             android.webkit.TracingConfig.CATEGORIES_FRAME_VIEWER;
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef({RECORD_UNTIL_FULL, RECORD_CONTINUOUSLY})
     @Retention(RetentionPolicy.SOURCE)
@@ -104,7 +102,7 @@ public class TracingConfig {
 
     /**
      * Record trace events until the internal tracing buffer is full.
-     *
+     * <p>
      * Typically the buffer memory usage is larger than {@link #RECORD_CONTINUOUSLY}.
      * Depending on the implementation typically allows up to 256k events to be stored.
      */
@@ -112,18 +110,17 @@ public class TracingConfig {
 
     /**
      * Record trace events continuously using an internal ring buffer. Default tracing mode.
-     *
+     * <p>
      * Overwrites old events if they exceed buffer capacity. Uses less memory than the
      * {@link #RECORD_UNTIL_FULL} mode. Depending on the implementation typically allows
      * up to 64k events to be stored.
      */
     public static final int RECORD_CONTINUOUSLY = android.webkit.TracingConfig.RECORD_CONTINUOUSLY;
 
-    private @PredefinedCategories int mPredefinedCategories;
+    private final @PredefinedCategories int mPredefinedCategories;
     private final List<String> mCustomIncludedCategories = new ArrayList<>();
-    private @TracingMode int mTracingMode;
+    private final @TracingMode int mTracingMode;
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public TracingConfig(@PredefinedCategories int predefinedCategories,
                          @NonNull List<String> customIncludedCategories,
@@ -171,24 +168,24 @@ public class TracingConfig {
      *   // Create a configuration with default options: {@link #CATEGORIES_NONE},
      *   // {@link #RECORD_CONTINUOUSLY}.
      *   <code>new TracingConfig.Builder().build()</code>
-     *
+     * <p>
      *   // Record trace events from the "web developer" predefined category sets.
      *   // Uses a ring buffer (the default {@link #RECORD_CONTINUOUSLY} mode) for
      *   // internal storage during tracing.
      *   <code>new TracingConfig.Builder().addCategories(CATEGORIES_WEB_DEVELOPER).build()</code>
-     *
+     * <p>
      *   // Record trace events from the "rendering" and "input latency" predefined
      *   // category sets.
      *   <code>new TracingConfig.Builder().addCategories(CATEGORIES_RENDERING,
      *                                     CATEGORIES_INPUT_LATENCY).build()</code>
-     *
+     * <p>
      *   // Record only the trace events from the "browser" category.
      *   <code>new TracingConfig.Builder().addCategories("browser").build()</code>
-     *
+     * <p>
      *   // Record only the trace events matching the "blink*" and "renderer*" patterns
      *   // (e.g. "blink.animations", "renderer_host" and "renderer.scheduler" categories).
      *   <code>new TracingConfig.Builder().addCategories("blink*","renderer*").build()</code>
-     *
+     * <p>
      *   // Record events from the "web developer" predefined category set and events from
      *   // the "disabled-by-default-v8.gc" category to understand where garbage collection
      *   // is being triggered. Uses a limited size buffer for internal storage during tracing.
@@ -221,7 +218,7 @@ public class TracingConfig {
 
         /**
          * Adds predefined sets of categories to be included in the trace output.
-         *
+         * <p>
          * A predefined category set can be one of
          * {@link TracingConfig#CATEGORIES_NONE},
          * {@link TracingConfig#CATEGORIES_ALL},
@@ -245,7 +242,7 @@ public class TracingConfig {
 
         /**
          * Adds custom categories to be included in trace output.
-         *
+         * <p>
          * Note that the categories are defined by the currently-in-use version of WebView. They
          * live in chromium code and are not part of the Android API.
          * See <a href="https://www.chromium.org/developers/how-tos/trace-event-profiling-tool">
@@ -263,7 +260,7 @@ public class TracingConfig {
 
         /**
          * Adds custom categories to be included in trace output.
-         *
+         * <p>
          * Same as {@link #addCategories(String...)} but allows to pass a Collection as a parameter.
          *
          * @param categories A list of category patterns.

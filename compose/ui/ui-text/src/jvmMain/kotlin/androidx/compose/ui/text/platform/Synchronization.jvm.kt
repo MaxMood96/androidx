@@ -16,10 +16,11 @@
 
 package androidx.compose.ui.text.platform
 
-internal actual class SynchronizedObject
+@PublishedApi internal actual class SynchronizedObject
 
 internal actual fun createSynchronizedObject() = SynchronizedObject()
 
+@PublishedApi
 internal actual inline fun <R> synchronized(lock: SynchronizedObject, block: () -> R): R {
     return kotlin.synchronized(lock, block)
 }

@@ -26,20 +26,20 @@ import android.view.inputmethod.InputConnection;
 import android.widget.TextView;
 
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.core.widget.TextViewCompat;
 import androidx.emoji2.text.EmojiCompat;
 import androidx.emoji2.text.EmojiSpan;
 import androidx.emoji2.viewsintegration.EmojiEditTextHelper;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * ExtractEditText widget enhanced with emoji capability by using {@link EmojiEditTextHelper}.
  * When used on devices running API 18 or below, this widget acts as a {@link ExtractEditText} and
  * does not provide any emoji compatibility feature.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class EmojiExtractEditText extends ExtractEditText {
@@ -85,9 +85,8 @@ public class EmojiExtractEditText extends ExtractEditText {
         super.setKeyListener(keyListener);
     }
 
-    @Nullable
     @Override
-    public InputConnection onCreateInputConnection(@NonNull EditorInfo outAttrs) {
+    public @Nullable InputConnection onCreateInputConnection(@NonNull EditorInfo outAttrs) {
         final InputConnection inputConnection = super.onCreateInputConnection(outAttrs);
         return getEmojiEditTextHelper().onCreateInputConnection(inputConnection, outAttrs);
     }
@@ -152,7 +151,7 @@ public class EmojiExtractEditText extends ExtractEditText {
      */
     @Override
     public void setCustomSelectionActionModeCallback(
-            @NonNull ActionMode.Callback actionModeCallback
+            ActionMode.@NonNull Callback actionModeCallback
     ) {
         super.setCustomSelectionActionModeCallback(TextViewCompat
                 .wrapCustomSelectionActionModeCallback(this, actionModeCallback));

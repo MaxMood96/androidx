@@ -24,7 +24,6 @@ import android.app.RemoteAction;
 import android.graphics.drawable.Icon;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
@@ -43,7 +42,6 @@ import androidx.versionedparcelable.VersionedParcelize;
 @VersionedParcelize(jetifyAs = "android.support.v4.app.RemoteActionCompat")
 public final class RemoteActionCompat implements VersionedParcelable {
     /**
-     * @hide
      */
     @SuppressWarnings("NotNullFieldNotInitialized") // VersionedParceleble inits this field.
     @NonNull
@@ -51,7 +49,6 @@ public final class RemoteActionCompat implements VersionedParcelable {
     @ParcelField(1)
     public IconCompat mIcon;
     /**
-     * @hide
      */
     @SuppressWarnings("NotNullFieldNotInitialized") // VersionedParceleble inits this field.
     @NonNull
@@ -59,7 +56,6 @@ public final class RemoteActionCompat implements VersionedParcelable {
     @ParcelField(2)
     public CharSequence mTitle;
     /**
-     * @hide
      */
     @SuppressWarnings("NotNullFieldNotInitialized") // VersionedParceleble inits this field.
     @NonNull
@@ -67,7 +63,6 @@ public final class RemoteActionCompat implements VersionedParcelable {
     @ParcelField(3)
     public CharSequence mContentDescription;
     /**
-     * @hide
      */
     @SuppressWarnings("NotNullFieldNotInitialized") // VersionedParceleble inits this field.
     @NonNull
@@ -75,13 +70,11 @@ public final class RemoteActionCompat implements VersionedParcelable {
     @ParcelField(4)
     public PendingIntent mActionIntent;
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP)
     @ParcelField(5)
     public boolean mEnabled;
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP)
     @ParcelField(6)
@@ -99,7 +92,6 @@ public final class RemoteActionCompat implements VersionedParcelable {
 
     /**
      * Used for VersionedParcelable.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP)
     public RemoteActionCompat() {}
@@ -217,12 +209,10 @@ public final class RemoteActionCompat implements VersionedParcelable {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean shouldShowIcon(RemoteAction remoteAction) {
             return remoteAction.shouldShowIcon();
         }
 
-        @DoNotInline
         static void setShouldShowIcon(RemoteAction remoteAction, boolean shouldShowIcon) {
             remoteAction.setShouldShowIcon(shouldShowIcon);
         }
@@ -234,38 +224,31 @@ public final class RemoteActionCompat implements VersionedParcelable {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static CharSequence getContentDescription(RemoteAction remoteAction) {
             return remoteAction.getContentDescription();
         }
 
-        @DoNotInline
         static PendingIntent getActionIntent(RemoteAction remoteAction) {
             return remoteAction.getActionIntent();
         }
 
-        @DoNotInline
         static CharSequence getTitle(RemoteAction remoteAction) {
             return remoteAction.getTitle();
         }
 
-        @DoNotInline
         static Icon getIcon(RemoteAction remoteAction) {
             return remoteAction.getIcon();
         }
 
-        @DoNotInline
         static boolean isEnabled(RemoteAction remoteAction) {
             return remoteAction.isEnabled();
         }
 
-        @DoNotInline
         static RemoteAction createRemoteAction(Icon icon, CharSequence title,
                 CharSequence contentDescription, PendingIntent intent) {
             return new RemoteAction(icon, title, contentDescription, intent);
         }
 
-        @DoNotInline
         static void setEnabled(RemoteAction remoteAction, boolean enabled) {
             remoteAction.setEnabled(enabled);
         }

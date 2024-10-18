@@ -16,6 +16,8 @@
 package androidx.health.connect.client.permission
 
 import androidx.annotation.RestrictTo
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalBodyTemperatureRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
@@ -42,13 +44,14 @@ import androidx.health.connect.client.records.MenstruationPeriodRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.OvulationTestRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
+import androidx.health.connect.client.records.PlannedExerciseSessionRecord
 import androidx.health.connect.client.records.PowerRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SexualActivityRecord
+import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.SleepSessionRecord
-import androidx.health.connect.client.records.SleepStageRecord
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsCadenceRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -129,137 +132,176 @@ internal constructor(
             return WRITE_PERMISSION_PREFIX + RECORD_TYPE_TO_PERMISSION.getOrDefault(recordType, "")
         }
 
+        internal const val PERMISSION_PREFIX = "android.permission.health."
+
+        /**
+         * A permission to write exercise routes.
+         *
+         * This permission must be granted to successfully insert a route as a field of the
+         * corresponding [androidx.health.connect.client.records.ExerciseSessionRecord]. An attempt
+         * to insert/update a session with a set route without the permission granted will result in
+         * a failed call and the session insertion/update will be rejected.
+         *
+         * If the permission is not granted the previously written route will not be deleted if the
+         * session gets updated with no route set.
+         *
+         * @sample androidx.health.connect.client.samples.InsertExerciseRoute
+         */
+        const val PERMISSION_WRITE_EXERCISE_ROUTE = PERMISSION_PREFIX + "WRITE_EXERCISE_ROUTE"
+
+        /**
+         * A permission to read data in background.
+         *
+         * An attempt to read data in background without this permission may result in an error.
+         *
+         * This feature is dependent on the version of HealthConnect installed on the device. To
+         * check if it's available call [HealthConnectFeatures.getFeatureStatus] and pass
+         * [HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND] as an argument.
+         *
+         * @sample androidx.health.connect.client.samples.RequestBackgroundReadPermission
+         * @sample androidx.health.connect.client.samples.ReadRecordsInBackground
+         */
+        const val PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND =
+            PERMISSION_PREFIX + "READ_HEALTH_DATA_IN_BACKGROUND"
+
+        /**
+         * A permission that allows to read the entire history of health data (of any type).
+         *
+         * An attempt to read data older than 30 days without this permission will result in an
+         * error. This applies for the following api methods: [HealthConnectClient.readRecord],
+         * [HealthConnectClient.readRecords], [HealthConnectClient.aggregate],
+         * [HealthConnectClient.aggregateGroupByPeriod],
+         * [HealthConnectClient.aggregateGroupByDuration] and [HealthConnectClient.getChanges].
+         *
+         * This feature is dependent on the version of HealthConnect installed on the device. To
+         * check if it's available call [HealthConnectFeatures.getFeatureStatus] and pass
+         * [HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY] as an argument.
+         *
+         * @sample androidx.health.connect.client.samples.RequestHistoryReadPermission
+         */
+        const val PERMISSION_READ_HEALTH_DATA_HISTORY =
+            PERMISSION_PREFIX + "READ_HEALTH_DATA_HISTORY"
+
         // Read permissions for ACTIVITY.
         internal const val READ_ACTIVE_CALORIES_BURNED =
-            "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
-        internal const val READ_DISTANCE = "android.permission.health.READ_DISTANCE"
-        internal const val READ_ELEVATION_GAINED = "android.permission.health.READ_ELEVATION_GAINED"
-        internal const val READ_EXERCISE = "android.permission.health.READ_EXERCISE"
-        internal const val READ_FLOORS_CLIMBED = "android.permission.health.READ_FLOORS_CLIMBED"
-        internal const val READ_STEPS = "android.permission.health.READ_STEPS"
+            PERMISSION_PREFIX + "READ_ACTIVE_CALORIES_BURNED"
+        internal const val READ_DISTANCE = PERMISSION_PREFIX + "READ_DISTANCE"
+        internal const val READ_ELEVATION_GAINED = PERMISSION_PREFIX + "READ_ELEVATION_GAINED"
+        internal const val READ_EXERCISE = PERMISSION_PREFIX + "READ_EXERCISE"
+        internal const val READ_FLOORS_CLIMBED = PERMISSION_PREFIX + "READ_FLOORS_CLIMBED"
+        internal const val READ_STEPS = PERMISSION_PREFIX + "READ_STEPS"
         internal const val READ_TOTAL_CALORIES_BURNED =
-            "android.permission.health.READ_TOTAL_CALORIES_BURNED"
-        internal const val READ_VO2_MAX = "android.permission.health.READ_VO2_MAX"
-        internal const val READ_WHEELCHAIR_PUSHES =
-            "android.permission.health.READ_WHEELCHAIR_PUSHES"
-        internal const val READ_POWER = "android.permission.health.READ_POWER"
-        internal const val READ_SPEED = "android.permission.health.READ_SPEED"
+            PERMISSION_PREFIX + "READ_TOTAL_CALORIES_BURNED"
+        internal const val READ_VO2_MAX = PERMISSION_PREFIX + "READ_VO2_MAX"
+        internal const val READ_WHEELCHAIR_PUSHES = PERMISSION_PREFIX + "READ_WHEELCHAIR_PUSHES"
+        internal const val READ_PLANNED_EXERCISE = PERMISSION_PREFIX + "READ_PLANNED_EXERCISE"
+        internal const val READ_POWER = PERMISSION_PREFIX + "READ_POWER"
+        internal const val READ_SPEED = PERMISSION_PREFIX + "READ_SPEED"
 
         // Read permissions for BODY_MEASUREMENTS.
         internal const val READ_BASAL_METABOLIC_RATE =
-            "android.permission.health.READ_BASAL_METABOLIC_RATE"
-        internal const val READ_BODY_FAT = "android.permission.health.READ_BODY_FAT"
-        internal const val READ_BODY_WATER_MASS = "android.permission.health.READ_BODY_WATER_MASS"
-        internal const val READ_BONE_MASS = "android.permission.health.READ_BONE_MASS"
-        internal const val READ_HEIGHT = "android.permission.health.READ_HEIGHT"
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
-        internal const val READ_HIP_CIRCUMFERENCE =
-            "android.permission.health.READ_HIP_CIRCUMFERENCE"
-        internal const val READ_LEAN_BODY_MASS = "android.permission.health.READ_LEAN_BODY_MASS"
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
-        internal const val READ_WAIST_CIRCUMFERENCE =
-            "android.permission.health.READ_WAIST_CIRCUMFERENCE"
-        internal const val READ_WEIGHT = "android.permission.health.READ_WEIGHT"
+            PERMISSION_PREFIX + "READ_BASAL_METABOLIC_RATE"
+        internal const val READ_BODY_FAT = PERMISSION_PREFIX + "READ_BODY_FAT"
+        internal const val READ_BODY_WATER_MASS = PERMISSION_PREFIX + "READ_BODY_WATER_MASS"
+        internal const val READ_BONE_MASS = PERMISSION_PREFIX + "READ_BONE_MASS"
+        internal const val READ_HEIGHT = PERMISSION_PREFIX + "READ_HEIGHT"
+
+        internal const val READ_LEAN_BODY_MASS = PERMISSION_PREFIX + "READ_LEAN_BODY_MASS"
+
+        internal const val READ_WEIGHT = PERMISSION_PREFIX + "READ_WEIGHT"
 
         // Read permissions for CYCLE_TRACKING.
-        internal const val READ_CERVICAL_MUCUS = "android.permission.health.READ_CERVICAL_MUCUS"
+        internal const val READ_CERVICAL_MUCUS = PERMISSION_PREFIX + "READ_CERVICAL_MUCUS"
+
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         internal const val READ_INTERMENSTRUAL_BLEEDING =
-            "android.permission.health.READ_INTERMENSTRUAL_BLEEDING"
-        internal const val READ_MENSTRUATION = "android.permission.health.READ_MENSTRUATION"
-        internal const val READ_OVULATION_TEST = "android.permission.health.READ_OVULATION_TEST"
-        internal const val READ_SEXUAL_ACTIVITY = "android.permission.health.READ_SEXUAL_ACTIVITY"
+            PERMISSION_PREFIX + "READ_INTERMENSTRUAL_BLEEDING"
+        internal const val READ_MENSTRUATION = PERMISSION_PREFIX + "READ_MENSTRUATION"
+        internal const val READ_OVULATION_TEST = PERMISSION_PREFIX + "READ_OVULATION_TEST"
+        internal const val READ_SEXUAL_ACTIVITY = PERMISSION_PREFIX + "READ_SEXUAL_ACTIVITY"
 
         // Read permissions for NUTRITION.
-        internal const val READ_HYDRATION = "android.permission.health.READ_HYDRATION"
-        internal const val READ_NUTRITION = "android.permission.health.READ_NUTRITION"
+        internal const val READ_HYDRATION = PERMISSION_PREFIX + "READ_HYDRATION"
+        internal const val READ_NUTRITION = PERMISSION_PREFIX + "READ_NUTRITION"
 
         // Read permissions for SLEEP.
-        internal const val READ_SLEEP = "android.permission.health.READ_SLEEP"
+        internal const val READ_SLEEP = PERMISSION_PREFIX + "READ_SLEEP"
 
         // Read permissions for VITALS.
         internal const val READ_BASAL_BODY_TEMPERATURE =
-            "android.permission.health.READ_BASAL_BODY_TEMPERATURE"
-        internal const val READ_BLOOD_GLUCOSE = "android.permission.health.READ_BLOOD_GLUCOSE"
-        internal const val READ_BLOOD_PRESSURE = "android.permission.health.READ_BLOOD_PRESSURE"
-        internal const val READ_BODY_TEMPERATURE = "android.permission.health.READ_BODY_TEMPERATURE"
-        internal const val READ_HEART_RATE = "android.permission.health.READ_HEART_RATE"
+            PERMISSION_PREFIX + "READ_BASAL_BODY_TEMPERATURE"
+        internal const val READ_BLOOD_GLUCOSE = PERMISSION_PREFIX + "READ_BLOOD_GLUCOSE"
+        internal const val READ_BLOOD_PRESSURE = PERMISSION_PREFIX + "READ_BLOOD_PRESSURE"
+        internal const val READ_BODY_TEMPERATURE = PERMISSION_PREFIX + "READ_BODY_TEMPERATURE"
+        internal const val READ_HEART_RATE = PERMISSION_PREFIX + "READ_HEART_RATE"
         internal const val READ_HEART_RATE_VARIABILITY =
-            "android.permission.health.READ_HEART_RATE_VARIABILITY"
-        internal const val READ_OXYGEN_SATURATION =
-            "android.permission.health.READ_OXYGEN_SATURATION"
-        internal const val READ_RESPIRATORY_RATE = "android.permission.health.READ_RESPIRATORY_RATE"
-        internal const val READ_RESTING_HEART_RATE =
-            "android.permission.health.READ_RESTING_HEART_RATE"
+            PERMISSION_PREFIX + "READ_HEART_RATE_VARIABILITY"
+        internal const val READ_OXYGEN_SATURATION = PERMISSION_PREFIX + "READ_OXYGEN_SATURATION"
+        internal const val READ_RESPIRATORY_RATE = PERMISSION_PREFIX + "READ_RESPIRATORY_RATE"
+        internal const val READ_RESTING_HEART_RATE = PERMISSION_PREFIX + "READ_RESTING_HEART_RATE"
+        internal const val READ_SKIN_TEMPERATURE = PERMISSION_PREFIX + "READ_SKIN_TEMPERATURE"
 
         // Write permissions for ACTIVITY.
         internal const val WRITE_ACTIVE_CALORIES_BURNED =
-            "android.permission.health.WRITE_ACTIVE_CALORIES_BURNED"
-        internal const val WRITE_DISTANCE = "android.permission.health.WRITE_DISTANCE"
-        internal const val WRITE_ELEVATION_GAINED =
-            "android.permission.health.WRITE_ELEVATION_GAINED"
-        internal const val WRITE_EXERCISE = "android.permission.health.WRITE_EXERCISE"
-        internal const val WRITE_FLOORS_CLIMBED = "android.permission.health.WRITE_FLOORS_CLIMBED"
-        internal const val WRITE_STEPS = "android.permission.health.WRITE_STEPS"
+            PERMISSION_PREFIX + "WRITE_ACTIVE_CALORIES_BURNED"
+        internal const val WRITE_DISTANCE = PERMISSION_PREFIX + "WRITE_DISTANCE"
+        internal const val WRITE_ELEVATION_GAINED = PERMISSION_PREFIX + "WRITE_ELEVATION_GAINED"
+        internal const val WRITE_EXERCISE = PERMISSION_PREFIX + "WRITE_EXERCISE"
+        internal const val WRITE_FLOORS_CLIMBED = PERMISSION_PREFIX + "WRITE_FLOORS_CLIMBED"
+        internal const val WRITE_STEPS = PERMISSION_PREFIX + "WRITE_STEPS"
         internal const val WRITE_TOTAL_CALORIES_BURNED =
-            "android.permission.health.WRITE_TOTAL_CALORIES_BURNED"
-        internal const val WRITE_VO2_MAX = "android.permission.health.WRITE_VO2_MAX"
-        internal const val WRITE_WHEELCHAIR_PUSHES =
-            "android.permission.health.WRITE_WHEELCHAIR_PUSHES"
-        internal const val WRITE_POWER = "android.permission.health.WRITE_POWER"
-        internal const val WRITE_SPEED = "android.permission.health.WRITE_SPEED"
+            PERMISSION_PREFIX + "WRITE_TOTAL_CALORIES_BURNED"
+        internal const val WRITE_VO2_MAX = PERMISSION_PREFIX + "WRITE_VO2_MAX"
+        internal const val WRITE_WHEELCHAIR_PUSHES = PERMISSION_PREFIX + "WRITE_WHEELCHAIR_PUSHES"
+        internal const val WRITE_PLANNED_EXERCISE = PERMISSION_PREFIX + "WRITE_PLANNED_EXERCISE"
+        internal const val WRITE_POWER = PERMISSION_PREFIX + "WRITE_POWER"
+        internal const val WRITE_SPEED = PERMISSION_PREFIX + "WRITE_SPEED"
 
         // Write permissions for BODY_MEASUREMENTS.
         internal const val WRITE_BASAL_METABOLIC_RATE =
-            "android.permission.health.WRITE_BASAL_METABOLIC_RATE"
-        internal const val WRITE_BODY_FAT = "android.permission.health.WRITE_BODY_FAT"
-        internal const val WRITE_BODY_WATER_MASS = "android.permission.health.WRITE_BODY_WATER_MASS"
-        internal const val WRITE_BONE_MASS = "android.permission.health.WRITE_BONE_MASS"
-        internal const val WRITE_HEIGHT = "android.permission.health.WRITE_HEIGHT"
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
-        internal const val WRITE_HIP_CIRCUMFERENCE =
-            "android.permission.health.WRITE_HIP_CIRCUMFERENCE"
-        internal const val WRITE_LEAN_BODY_MASS = "android.permission.health.WRITE_LEAN_BODY_MASS"
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
-        internal const val WRITE_WAIST_CIRCUMFERENCE =
-            "android.permission.health.WRITE_WAIST_CIRCUMFERENCE"
-        internal const val WRITE_WEIGHT = "android.permission.health.WRITE_WEIGHT"
+            PERMISSION_PREFIX + "WRITE_BASAL_METABOLIC_RATE"
+        internal const val WRITE_BODY_FAT = PERMISSION_PREFIX + "WRITE_BODY_FAT"
+        internal const val WRITE_BODY_WATER_MASS = PERMISSION_PREFIX + "WRITE_BODY_WATER_MASS"
+        internal const val WRITE_BONE_MASS = PERMISSION_PREFIX + "WRITE_BONE_MASS"
+        internal const val WRITE_HEIGHT = PERMISSION_PREFIX + "WRITE_HEIGHT"
+
+        internal const val WRITE_LEAN_BODY_MASS = PERMISSION_PREFIX + "WRITE_LEAN_BODY_MASS"
+
+        internal const val WRITE_WEIGHT = PERMISSION_PREFIX + "WRITE_WEIGHT"
 
         // Write permissions for CYCLE_TRACKING.
-        internal const val WRITE_CERVICAL_MUCUS = "android.permission.health.WRITE_CERVICAL_MUCUS"
+        internal const val WRITE_CERVICAL_MUCUS = PERMISSION_PREFIX + "WRITE_CERVICAL_MUCUS"
+
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         internal const val WRITE_INTERMENSTRUAL_BLEEDING =
-            "android.permission.health.WRITE_INTERMENSTRUAL_BLEEDING"
-        internal const val WRITE_MENSTRUATION = "android.permission.health.WRITE_MENSTRUATION"
-        internal const val WRITE_OVULATION_TEST = "android.permission.health.WRITE_OVULATION_TEST"
-        internal const val WRITE_SEXUAL_ACTIVITY = "android.permission.health.WRITE_SEXUAL_ACTIVITY"
+            PERMISSION_PREFIX + "WRITE_INTERMENSTRUAL_BLEEDING"
+        internal const val WRITE_MENSTRUATION = PERMISSION_PREFIX + "WRITE_MENSTRUATION"
+        internal const val WRITE_OVULATION_TEST = PERMISSION_PREFIX + "WRITE_OVULATION_TEST"
+        internal const val WRITE_SEXUAL_ACTIVITY = PERMISSION_PREFIX + "WRITE_SEXUAL_ACTIVITY"
 
         // Write permissions for NUTRITION.
-        internal const val WRITE_HYDRATION = "android.permission.health.WRITE_HYDRATION"
-        internal const val WRITE_NUTRITION = "android.permission.health.WRITE_NUTRITION"
+        internal const val WRITE_HYDRATION = PERMISSION_PREFIX + "WRITE_HYDRATION"
+        internal const val WRITE_NUTRITION = PERMISSION_PREFIX + "WRITE_NUTRITION"
 
         // Write permissions for SLEEP.
-        internal const val WRITE_SLEEP = "android.permission.health.WRITE_SLEEP"
+        internal const val WRITE_SLEEP = PERMISSION_PREFIX + "WRITE_SLEEP"
 
         // Write permissions for VITALS.
         internal const val WRITE_BASAL_BODY_TEMPERATURE =
-            "android.permission.health.WRITE_BASAL_BODY_TEMPERATURE"
-        internal const val WRITE_BLOOD_GLUCOSE = "android.permission.health.WRITE_BLOOD_GLUCOSE"
-        internal const val WRITE_BLOOD_PRESSURE = "android.permission.health.WRITE_BLOOD_PRESSURE"
-        internal const val WRITE_BODY_TEMPERATURE =
-            "android.permission.health.WRITE_BODY_TEMPERATURE"
-        internal const val WRITE_HEART_RATE = "android.permission.health.WRITE_HEART_RATE"
+            PERMISSION_PREFIX + "WRITE_BASAL_BODY_TEMPERATURE"
+        internal const val WRITE_BLOOD_GLUCOSE = PERMISSION_PREFIX + "WRITE_BLOOD_GLUCOSE"
+        internal const val WRITE_BLOOD_PRESSURE = PERMISSION_PREFIX + "WRITE_BLOOD_PRESSURE"
+        internal const val WRITE_BODY_TEMPERATURE = PERMISSION_PREFIX + "WRITE_BODY_TEMPERATURE"
+        internal const val WRITE_HEART_RATE = PERMISSION_PREFIX + "WRITE_HEART_RATE"
         internal const val WRITE_HEART_RATE_VARIABILITY =
-            "android.permission.health.WRITE_HEART_RATE_VARIABILITY"
-        internal const val WRITE_OXYGEN_SATURATION =
-            "android.permission.health.WRITE_OXYGEN_SATURATION"
-        internal const val WRITE_RESPIRATORY_RATE =
-            "android.permission.health.WRITE_RESPIRATORY_RATE"
-        internal const val WRITE_RESTING_HEART_RATE =
-            "android.permission.health.WRITE_RESTING_HEART_RATE"
+            PERMISSION_PREFIX + "WRITE_HEART_RATE_VARIABILITY"
+        internal const val WRITE_OXYGEN_SATURATION = PERMISSION_PREFIX + "WRITE_OXYGEN_SATURATION"
+        internal const val WRITE_RESPIRATORY_RATE = PERMISSION_PREFIX + "WRITE_RESPIRATORY_RATE"
+        internal const val WRITE_RESTING_HEART_RATE = PERMISSION_PREFIX + "WRITE_RESTING_HEART_RATE"
+        internal const val WRITE_SKIN_TEMPERATURE = PERMISSION_PREFIX + "WRITE_SKIN_TEMPERATURE"
 
-        internal const val READ_PERMISSION_PREFIX = "android.permission.health.READ_"
-        internal const val WRITE_PERMISSION_PREFIX = "android.permission.health.WRITE_"
+        internal const val READ_PERMISSION_PREFIX = PERMISSION_PREFIX + "READ_"
+        internal const val WRITE_PERMISSION_PREFIX = PERMISSION_PREFIX + "WRITE_"
 
         internal val RECORD_TYPE_TO_PERMISSION =
             mapOf<KClass<out Record>, String>(
@@ -308,6 +350,8 @@ internal constructor(
                     READ_OVULATION_TEST.substringAfter(READ_PERMISSION_PREFIX),
                 OxygenSaturationRecord::class to
                     READ_OXYGEN_SATURATION.substringAfter(READ_PERMISSION_PREFIX),
+                PlannedExerciseSessionRecord::class to
+                    READ_PLANNED_EXERCISE.substringAfter(READ_PERMISSION_PREFIX),
                 PowerRecord::class to READ_POWER.substringAfter(READ_PERMISSION_PREFIX),
                 RespiratoryRateRecord::class to
                     READ_RESPIRATORY_RATE.substringAfter(READ_PERMISSION_PREFIX),
@@ -316,8 +360,9 @@ internal constructor(
                 SexualActivityRecord::class to
                     READ_SEXUAL_ACTIVITY.substringAfter(READ_PERMISSION_PREFIX),
                 SleepSessionRecord::class to READ_SLEEP.substringAfter(READ_PERMISSION_PREFIX),
-                SleepStageRecord::class to READ_SLEEP.substringAfter(READ_PERMISSION_PREFIX),
                 SpeedRecord::class to READ_SPEED.substringAfter(READ_PERMISSION_PREFIX),
+                SkinTemperatureRecord::class to
+                    READ_SKIN_TEMPERATURE.substringAfter(READ_PERMISSION_PREFIX),
                 StepsCadenceRecord::class to READ_STEPS.substringAfter(READ_PERMISSION_PREFIX),
                 StepsRecord::class to READ_STEPS.substringAfter(READ_PERMISSION_PREFIX),
                 TotalCaloriesBurnedRecord::class to
@@ -327,6 +372,23 @@ internal constructor(
                 WheelchairPushesRecord::class to
                     READ_WHEELCHAIR_PUSHES.substringAfter(READ_PERMISSION_PREFIX),
             )
+
+        /**
+         * Exposes all write and read permissions.
+         *
+         * @return A list of permissions as Strings
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        @JvmField
+        public val ALL_PERMISSIONS: List<String> = buildList {
+            addAll(
+                RECORD_TYPE_TO_PERMISSION.flatMap {
+                    listOf(WRITE_PERMISSION_PREFIX + it.value, READ_PERMISSION_PREFIX + it.value)
+                }
+            )
+            add(PERMISSION_WRITE_EXERCISE_ROUTE)
+            add(PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND)
+        }
     }
 
     override fun equals(other: Any?): Boolean {

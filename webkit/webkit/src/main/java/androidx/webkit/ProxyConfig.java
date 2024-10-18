@@ -58,7 +58,6 @@ public final class ProxyConfig {
      * Matches all schemes.
      */
     public static final String MATCH_ALL_SCHEMES = "*";
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @StringDef({MATCH_HTTP, MATCH_HTTPS, MATCH_ALL_SCHEMES})
     @Retention(RetentionPolicy.SOURCE)
@@ -67,12 +66,11 @@ public final class ProxyConfig {
     private static final String BYPASS_RULE_SIMPLE_NAMES = "<local>";
     private static final String BYPASS_RULE_REMOVE_IMPLICIT = "<-loopback>";
 
-    private List<ProxyRule> mProxyRules;
-    private List<String> mBypassRules;
-    private boolean mReverseBypass;
+    private final List<ProxyRule> mProxyRules;
+    private final List<String> mBypassRules;
+    private final boolean mReverseBypass;
 
     /**
-     * @hide Internal use only
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public ProxyConfig(@NonNull List<ProxyRule> proxyRules, @NonNull List<String> bypassRules,
@@ -126,11 +124,10 @@ public final class ProxyConfig {
      * Class that holds a scheme filter and a proxy URL.
      */
     public static final class ProxyRule {
-        private String mSchemeFilter;
-        private String mUrl;
+        private final String mSchemeFilter;
+        private final String mUrl;
 
         /**
-         * @hide Internal use only
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         public ProxyRule(@NonNull String schemeFilter, @NonNull String url) {
@@ -139,7 +136,6 @@ public final class ProxyConfig {
         }
 
         /**
-         * @hide Internal use only
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         public ProxyRule(@NonNull String url) {
@@ -177,8 +173,8 @@ public final class ProxyConfig {
      * connections to be made directly.
      */
     public static final class Builder {
-        private List<ProxyRule> mProxyRules;
-        private List<String> mBypassRules;
+        private final List<ProxyRule> mProxyRules;
+        private final List<String> mBypassRules;
         private boolean mReverseBypass = false;
 
         /**

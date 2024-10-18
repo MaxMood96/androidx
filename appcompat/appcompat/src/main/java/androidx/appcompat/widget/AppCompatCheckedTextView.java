@@ -33,7 +33,6 @@ import android.widget.TextView;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.appcompat.R;
 import androidx.appcompat.content.res.AppCompatResources;
@@ -118,7 +117,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
     /**
      * This should be accessed from {@link androidx.core.widget.CheckedTextViewCompat}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -131,7 +129,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
     /**
      * This should be accessed from {@link androidx.core.widget.CheckedTextViewCompat}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Nullable
@@ -145,7 +142,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
     /**
      * This should be accessed from {@link androidx.core.widget.CheckedTextViewCompat}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -158,7 +154,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
     /**
      * This should be accessed from {@link androidx.core.widget.CheckedTextViewCompat}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Nullable
@@ -172,7 +167,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
     /**
      * This should be accessed via
      * {@link ViewCompat#setBackgroundTintList(View, ColorStateList)}
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -186,7 +180,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintList(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -200,7 +193,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
      * This should be accessed via
      * {@link ViewCompat#setBackgroundTintMode(View, PorterDuff.Mode)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -214,7 +206,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintMode(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -325,7 +316,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
         }
     }
 
-    @RequiresApi(17)
     @Override
     public void setCompoundDrawablesRelative(@Nullable Drawable start, @Nullable Drawable top,
             @Nullable Drawable end, @Nullable Drawable bottom) {
@@ -343,7 +333,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTint
      * @see #setSupportCompoundDrawablesTintList(ColorStateList)
      *
-     * @hide
      */
     @Nullable
     @Override
@@ -367,7 +356,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTint
      * @see #getSupportCompoundDrawablesTintList()
      *
-     * @hide
      */
     @Override
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -386,7 +374,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTintMode
      * @see #setSupportCompoundDrawablesTintMode(PorterDuff.Mode)
      *
-     * @hide
      */
     @Nullable
     @Override
@@ -407,7 +394,6 @@ public class AppCompatCheckedTextView extends CheckedTextView implements Tintabl
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTintMode
      * @see #setSupportCompoundDrawablesTintList(ColorStateList)
      *
-     * @hide
      */
     @Override
     @RestrictTo(LIBRARY_GROUP_PREFIX)

@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
-import androidx.build.SdkResourceGenerator
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.*
 
 plugins {
     id("AndroidXPlugin")
@@ -25,15 +31,13 @@ plugins {
 
 dependencies {
     api(gradleApi())
-    implementation(libs.kotlinGradlePluginz)
+    implementation(libs.kotlinGradlePlugin)
     implementation(libs.gson)
     implementation(libs.apacheCommonsMath)
     testImplementation(gradleTestKit())
     testImplementation(libs.junit)
     testImplementation(libs.truth)
 }
-
-SdkResourceGenerator.generateForHostTest(project)
 
 gradlePlugin {
     plugins {
@@ -45,12 +49,9 @@ gradlePlugin {
 }
 
 androidx {
-    name = "AndroidX Benchmarks - Darwin Gradle Plugin"
+    name = "Benchmarks - Darwin Gradle Plugin"
+    publish = Publish.SNAPSHOT_ONLY
     type = LibraryType.GRADLE_PLUGIN
     inceptionYear = "2022"
     description = "AndroidX Benchmarks - Darwin Gradle Plugin"
-}
-
-validatePlugins {
-    enableStricterValidation = true
 }

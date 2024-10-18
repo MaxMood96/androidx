@@ -27,12 +27,13 @@ import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.car.app.annotations.CarProtocol;
+import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.model.CarText;
 import androidx.car.app.model.InputCallback;
 import androidx.car.app.model.InputCallbackDelegate;
 import androidx.car.app.model.InputCallbackDelegateImpl;
-import androidx.car.app.annotations.KeepFields;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -45,12 +46,12 @@ import java.util.Objects;
  * <p>For example, this can be used to request a username, a password or an activation code.
  */
 @RequiresCarApi(2)
+@CarProtocol
 @KeepFields
 public final class InputSignInMethod implements SignInTemplate.SignInMethod {
     /**
      * The type of input represented by the {@link InputSignInMethod} instance.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @IntDef(
@@ -75,7 +76,6 @@ public final class InputSignInMethod implements SignInTemplate.SignInMethod {
     /**
      * The type of keyboard to be displayed while the user is interacting with this input.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @IntDef(

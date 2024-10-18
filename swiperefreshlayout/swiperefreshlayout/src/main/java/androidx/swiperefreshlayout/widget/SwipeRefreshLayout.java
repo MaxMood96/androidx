@@ -51,7 +51,6 @@ import androidx.core.view.NestedScrollingParent2;
 import androidx.core.view.NestedScrollingParent3;
 import androidx.core.view.NestedScrollingParentHelper;
 import androidx.core.view.ViewCompat;
-import androidx.core.widget.ListViewCompat;
 
 /**
  * The SwipeRefreshLayout should be used whenever the user can refresh the
@@ -752,7 +751,7 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
             return mChildScrollUpCallback.canChildScrollUp(this, mTarget);
         }
         if (mTarget instanceof ListView) {
-            return ListViewCompat.canScrollList((ListView) mTarget, -1);
+            return ((ListView) mTarget).canScrollList(-1);
         }
         return mTarget.canScrollVertically(-1);
     }
@@ -963,9 +962,9 @@ public class SwipeRefreshLayout extends ViewGroup implements NestedScrollingPare
     // NestedScrollingParent 1
 
     @Override
-    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
+    public boolean onStartNestedScroll(View child, View target, int axes) {
         return isEnabled() && !mReturningToStart && !mRefreshing
-                && (nestedScrollAxes & ViewCompat.SCROLL_AXIS_VERTICAL) != 0;
+                && (axes & ViewCompat.SCROLL_AXIS_VERTICAL) != 0;
     }
 
     @Override

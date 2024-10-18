@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.text.method.KeyListener;
 import android.util.AttributeSet;
 import android.view.inputmethod.EditorInfo;
@@ -33,7 +32,6 @@ import android.widget.TextView;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.appcompat.R;
 import androidx.appcompat.content.res.AppCompatResources;
@@ -169,7 +167,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#setBackgroundTintList(android.view.View, ColorStateList)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -183,7 +180,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintList(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -197,7 +193,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#setBackgroundTintMode(android.view.View, PorterDuff.Mode)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -211,7 +206,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintMode(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -277,7 +271,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     public void setCompoundDrawablesRelative(@Nullable Drawable start, @Nullable Drawable top,
             @Nullable Drawable end, @Nullable Drawable bottom) {
@@ -295,7 +288,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTint
      * @see #setSupportCompoundDrawablesTintList(ColorStateList)
      *
-     * @hide
      */
     @Nullable
     @Override
@@ -319,7 +311,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTint
      * @see #getSupportCompoundDrawablesTintList()
      *
-     * @hide
      */
     @Override
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -338,7 +329,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTintMode
      * @see #setSupportCompoundDrawablesTintMode(PorterDuff.Mode)
      *
-     * @hide
      */
     @Nullable
     @Override
@@ -359,7 +349,6 @@ public class AppCompatMultiAutoCompleteTextView extends MultiAutoCompleteTextVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTintMode
      * @see #setSupportCompoundDrawablesTintList(ColorStateList)
      *
-     * @hide
      */
     @Override
     @RestrictTo(LIBRARY_GROUP_PREFIX)

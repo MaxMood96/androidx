@@ -20,7 +20,6 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.animation.Animator;
 import android.animation.TimeInterpolator;
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
@@ -35,7 +34,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.core.content.res.TypedArrayUtils;
-import androidx.core.view.ViewCompat;
 
 import org.xmlpull.v1.XmlPullParser;
 
@@ -59,7 +57,6 @@ public class Slide extends Visibility {
     private CalculateSlide mSlideCalculator = sCalculateBottom;
     private int mSlideEdge = Gravity.BOTTOM;
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({Gravity.LEFT, Gravity.TOP, Gravity.RIGHT, Gravity.BOTTOM, Gravity.START, Gravity.END})
@@ -101,8 +98,8 @@ public class Slide extends Visibility {
     private static final CalculateSlide sCalculateStart = new CalculateSlideHorizontal() {
         @Override
         public float getGoneX(ViewGroup sceneRoot, View view) {
-            final boolean isRtl = ViewCompat.getLayoutDirection(sceneRoot)
-                    == ViewCompat.LAYOUT_DIRECTION_RTL;
+            final boolean isRtl = sceneRoot.getLayoutDirection()
+                    == View.LAYOUT_DIRECTION_RTL;
             final float x;
             if (isRtl) {
                 x = view.getTranslationX() + sceneRoot.getWidth();
@@ -130,8 +127,8 @@ public class Slide extends Visibility {
     private static final CalculateSlide sCalculateEnd = new CalculateSlideHorizontal() {
         @Override
         public float getGoneX(ViewGroup sceneRoot, View view) {
-            final boolean isRtl = ViewCompat.getLayoutDirection(sceneRoot)
-                    == ViewCompat.LAYOUT_DIRECTION_RTL;
+            final boolean isRtl = sceneRoot.getLayoutDirection()
+                    == View.LAYOUT_DIRECTION_RTL;
             final float x;
             if (isRtl) {
                 x = view.getTranslationX() - sceneRoot.getWidth();
@@ -164,8 +161,6 @@ public class Slide extends Visibility {
         setSlideEdge(slideEdge);
     }
 
-    @SuppressLint("RestrictedApi") // remove once core lib would be released with the new
-    // LIBRARY_GROUP_PREFIX restriction. tracking in b/127286008
     public Slide(@NonNull Context context, @NonNull AttributeSet attrs) {
         super(context, attrs);
         TypedArray a = context.obtainStyledAttributes(attrs, Styleable.SLIDE);
@@ -193,6 +188,11 @@ public class Slide extends Visibility {
     public void captureEndValues(@NonNull TransitionValues transitionValues) {
         super.captureEndValues(transitionValues);
         captureValues(transitionValues);
+    }
+
+    @Override
+    public boolean isSeekingSupported() {
+        return true;
     }
 
     /**

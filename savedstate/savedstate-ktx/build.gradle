@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -23,11 +30,6 @@ plugins {
 }
 
 dependencies {
-    // Atomic group
-    constraints {
-        implementation(project(":savedstate:savedstate"))
-    }
-
     api(project(":savedstate:savedstate"))
     api(libs.kotlinStdlib)
 
@@ -39,7 +41,7 @@ dependencies {
 
 androidx {
     name = "SavedState Kotlin Extensions"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2020"
     description = "Kotlin extensions for 'savedstate' artifact"
 }

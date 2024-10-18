@@ -20,6 +20,8 @@ import android.annotation.SuppressLint;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appsearch.checker.initialization.qual.UnderInitialization;
+import androidx.appsearch.checker.nullness.qual.RequiresNonNull;
 import androidx.core.util.ObjectsCompat;
 import androidx.core.util.Preconditions;
 
@@ -30,14 +32,15 @@ import java.util.List;
 /**
  * Represents a property path returned from searching the AppSearch Database.
  *
- * <p> When searching the AppSearch Database, you will get back {@link SearchResult.MatchInfo}
- * objects that contain a property path signifying the location of a match within the database.
- * This is a string that may look something like "foo.bar[0]". {@link PropertyPath} parses this
- * string and breaks it up into a List of {@link PathSegment}s. These may represent either a
- * property or a property and a 0-based index into the property. For instance, "foo.bar[1]" would
- * be parsed into a {@link PathSegment} with a property name of foo and a {@link PathSegment}
- * with a property name of bar and an index of 1. This allows for easier manipulation of the
- * property path.
+ * <p> One of the use cases for this class is when searching the AppSearch Database for the snippet
+ * matching use case. In this case you will get back {@link SearchResult.MatchInfo} objects that
+ * contain a property path signifying the location of  a match within the database. This is a
+ * string that may look something like "foo.bar[0]". {@link PropertyPath} parses this string and
+ * breaks it up into a List of {@link PathSegment}s. These may represent either a property or a
+ * property and a 0-based index into the property. For instance, "foo.bar[1]" would be parsed
+ * into a {@link PathSegment} with a property name of foo and a {@link PathSegment} with a
+ * property name of bar and an index of 1. This allows for easier manipulation of the property
+ * path.
  *
  * <p> This class won't perform any retrievals, it will only parse the path string. As such, it
  * may not necessarily refer to a valid path in the database.
@@ -72,7 +75,9 @@ public class PropertyPath implements Iterable<PropertyPath.PathSegment> {
         }
     }
 
-    private void recursivePathScan(String path) throws IllegalArgumentException {
+    @RequiresNonNull("mPathList")
+    private void recursivePathScan(@UnderInitialization PropertyPath this, String path)
+            throws IllegalArgumentException {
         // Determine whether the path is just a raw property name with no control characters
         int controlPos = -1;
         boolean controlIsIndex = false;
@@ -85,6 +90,9 @@ public class PropertyPath implements Iterable<PropertyPath.PathSegment> {
                 controlPos = i;
                 controlIsIndex = c == '[';
                 break;
+            }
+            if (!Character.isLetterOrDigit(c)) {
+                throw new IllegalArgumentException("Malformed path (non alphanumeric character)");
             }
         }
 
@@ -127,7 +135,9 @@ public class PropertyPath implements Iterable<PropertyPath.PathSegment> {
      * @return the rest of the path after the end brackets, or null if there is nothing after them
      */
     @Nullable
-    private String consumePropertyWithIndex(@NonNull String path, int controlPos) {
+    @RequiresNonNull("mPathList")
+    private String consumePropertyWithIndex(
+            @UnderInitialization PropertyPath this, @NonNull String path, int controlPos) {
         Preconditions.checkNotNull(path);
         String propertyName = path.substring(0, controlPos);
         int endBracketIdx = path.indexOf(']', controlPos);
@@ -209,17 +219,23 @@ public class PropertyPath implements Iterable<PropertyPath.PathSegment> {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null) return false;
-        if (!(o instanceof PropertyPath)) return false;
+    public boolean equals(@Nullable Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null) {
+            return false;
+        }
+        if (!(o instanceof PropertyPath)) {
+            return false;
+        }
         PropertyPath that = (PropertyPath) o;
         return ObjectsCompat.equals(mPathList, that.mPathList);
     }
 
     @Override
     public int hashCode() {
-        return ObjectsCompat.hash(mPathList);
+        return ObjectsCompat.hashCode(mPathList);
     }
 
     /**
@@ -291,9 +307,7 @@ public class PropertyPath implements Iterable<PropertyPath.PathSegment> {
             mPropertyIndex = propertyIndex;
         }
 
-        /**
-         * @return the property name
-         */
+        /** Returns the name of the property. */
         @NonNull
         public String getPropertyName() {
             return mPropertyName;
@@ -312,17 +326,22 @@ public class PropertyPath implements Iterable<PropertyPath.PathSegment> {
         @NonNull
         public String toString() {
             if (mPropertyIndex != NON_REPEATED_CARDINALITY) {
-                return new StringBuilder(mPropertyName)
-                        .append("[").append(mPropertyIndex).append("]").toString();
+                return mPropertyName + "[" + mPropertyIndex + "]";
             }
             return mPropertyName;
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null) return false;
-            if (!(o instanceof PathSegment)) return false;
+        public boolean equals(@Nullable Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null) {
+                return false;
+            }
+            if (!(o instanceof PathSegment)) {
+                return false;
+            }
             PathSegment that = (PathSegment) o;
             return mPropertyIndex == that.mPropertyIndex
                     && mPropertyName.equals(that.mPropertyName);

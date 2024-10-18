@@ -22,7 +22,6 @@ import static androidx.camera.video.VideoRecordEvent.Finalize.VideoRecordError;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.util.Consumer;
 import androidx.core.util.Preconditions;
@@ -91,7 +90,6 @@ import java.util.concurrent.Executor;
  * {@link #getRecordingStats} can be used to get the recording state such as total recorded bytes
  * and total duration when the event is triggered.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public abstract class VideoRecordEvent {
 
     private final OutputOptions mOutputOptions;
@@ -134,7 +132,6 @@ public abstract class VideoRecordEvent {
      * {@link PendingRecording#start(Executor, Consumer)}, a {@code Start} event will be the
      * first event.
      */
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     public static final class Start extends VideoRecordEvent {
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -230,7 +227,6 @@ public abstract class VideoRecordEvent {
      * <p>If there's no error that prevents the file to be generated, the file can be accessed
      * safely after receiving the finalize event.
      */
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     public static final class Finalize extends VideoRecordEvent {
         /**
          * The recording succeeded with no error.
@@ -332,18 +328,29 @@ public abstract class VideoRecordEvent {
         public static final int ERROR_DURATION_LIMIT_REACHED = 9;
 
         /**
+         * The recording was stopped because the {@link Recording} object was garbage collected.
+         *
+         * <p>The {@link Recording} object returned by
+         * {@link PendingRecording#start(Executor, Consumer)} must be referenced until the
+         * recording is no longer needed. If it is not, the active recording will be stopped and
+         * this error will be produced. Once {@link Recording#stop()} or
+         * {@link Recording#close()} has been invoked, the recording object no longer needs to be
+         * referenced.
+         */
+        public static final int ERROR_RECORDING_GARBAGE_COLLECTED = 10;
+
+        /**
          * Describes the error that occurred during a video recording.
          *
          * <p>This is the error code returning from {@link Finalize#getError()}.
          *
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         @Retention(RetentionPolicy.SOURCE)
         @IntDef(value = {ERROR_NONE, ERROR_UNKNOWN, ERROR_FILE_SIZE_LIMIT_REACHED,
                 ERROR_INSUFFICIENT_STORAGE, ERROR_INVALID_OUTPUT_OPTIONS, ERROR_ENCODING_FAILED,
                 ERROR_RECORDER_ERROR, ERROR_NO_VALID_DATA, ERROR_SOURCE_INACTIVE,
-                ERROR_DURATION_LIMIT_REACHED})
+                ERROR_DURATION_LIMIT_REACHED, ERROR_RECORDING_GARBAGE_COLLECTED})
         public @interface VideoRecordError {
         }
 
@@ -375,8 +382,8 @@ public abstract class VideoRecordEvent {
         /**
          * Indicates whether an error occurred.
          *
-         * <p>Returns {@code true} if {@link #getError()} returns {@link #ERROR_NONE}, otherwise
-         * {@code false}.
+         * <p>Returns {@code false} if {@link #getError()} returns {@link #ERROR_NONE}, otherwise
+         * {@code true}.
          */
         public boolean hasError() {
             return mError != ERROR_NONE;
@@ -399,7 +406,11 @@ public abstract class VideoRecordEvent {
         /**
          * Gets the error cause.
          *
-         * <p>Returns {@code null} if {@link #hasError()} returns {@code false}.
+         * <p>Returns the error cause if any, otherwise returns {@code null}.
+         * <p>Note that not all error types include an error cause. For some error types, the
+         * file may still be generated successfully with no error cause. For example,
+         * {@link #ERROR_FILE_SIZE_LIMIT_REACHED}, {@link #ERROR_DURATION_LIMIT_REACHED} and
+         * {@link #ERROR_SOURCE_INACTIVE}.
          */
         @Nullable
         public Throwable getCause() {
@@ -418,6 +429,8 @@ public abstract class VideoRecordEvent {
                 case ERROR_RECORDER_ERROR: return "ERROR_RECORDER_ERROR";
                 case ERROR_NO_VALID_DATA: return "ERROR_NO_VALID_DATA";
                 case ERROR_SOURCE_INACTIVE: return "ERROR_SOURCE_INACTIVE";
+                case ERROR_DURATION_LIMIT_REACHED: return "ERROR_DURATION_LIMIT_REACHED";
+                case ERROR_RECORDING_GARBAGE_COLLECTED: return "ERROR_RECORDING_GARBAGE_COLLECTED";
             }
 
             // Should never reach here, but just in case...
@@ -434,7 +447,6 @@ public abstract class VideoRecordEvent {
     /**
      * The status report of the recording in progress.
      */
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     public static final class Status extends VideoRecordEvent {
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -454,7 +466,6 @@ public abstract class VideoRecordEvent {
      *
      * <p>A {@code Pause} event will be triggered after calling {@link Recording#pause()}.
      */
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     public static final class Pause extends VideoRecordEvent {
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -474,7 +485,6 @@ public abstract class VideoRecordEvent {
      *
      * <p>A {@code Resume} event will be triggered after calling {@link Recording#resume()}.
      */
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     public static final class Resume extends VideoRecordEvent {
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */

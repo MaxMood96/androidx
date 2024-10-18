@@ -31,10 +31,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class WorkManagerInitializationTest {
     private val executor = SynchronousExecutor()
-    private val configuration = Configuration.Builder()
-        .setExecutor(executor)
-        .setTaskExecutor(executor)
-        .build()
+    private val configuration =
+        Configuration.Builder().setExecutor(executor).setTaskExecutor(executor).build()
     private val taskExecutor = InstantWorkTaskExecutor()
 
     @Test(expected = IllegalStateException::class)
@@ -42,7 +40,7 @@ class WorkManagerInitializationTest {
     @SdkSuppress(minSdkVersion = 24)
     fun directBootTest() {
         val context = DeviceProtectedStoreContext(true)
-        WorkManagerImpl(context, configuration, taskExecutor, true)
+        TestWorkManagerImpl(context, configuration, taskExecutor)
     }
 
     @Test
@@ -50,14 +48,13 @@ class WorkManagerInitializationTest {
     @SdkSuppress(minSdkVersion = 24)
     fun credentialBackedStorageTest() {
         val context = DeviceProtectedStoreContext(false)
-        val workManager = WorkManagerImpl(context, configuration, taskExecutor, true)
+        val workManager = TestWorkManagerImpl(context, configuration, taskExecutor)
         assertNotNull(workManager)
     }
 }
 
-private class DeviceProtectedStoreContext(
-    val deviceProtectedStorage: Boolean
-) : ContextWrapper(ApplicationProvider.getApplicationContext()) {
+private class DeviceProtectedStoreContext(val deviceProtectedStorage: Boolean) :
+    ContextWrapper(ApplicationProvider.getApplicationContext()) {
     override fun isDeviceProtectedStorage() = deviceProtectedStorage
 
     override fun getApplicationContext() = this

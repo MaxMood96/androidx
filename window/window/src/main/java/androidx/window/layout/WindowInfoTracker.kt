@@ -23,15 +23,17 @@ import android.util.Log
 import androidx.annotation.RestrictTo
 import androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP
 import androidx.annotation.UiContext
+import androidx.window.RequiresWindowSdkExtension
+import androidx.window.WindowSdkExtensions
 import androidx.window.core.ConsumerAdapter
-import androidx.window.core.ExperimentalWindowApi
 import androidx.window.layout.adapter.WindowBackend
-import androidx.window.layout.adapter.extensions.ExtensionWindowLayoutInfoBackend
+import androidx.window.layout.adapter.extensions.ExtensionWindowBackend
 import androidx.window.layout.adapter.sidecar.SidecarWindowBackend
 import kotlinx.coroutines.flow.Flow
 
 /**
  * An interface to provide all the relevant info about a [android.view.Window].
+ *
  * @see WindowInfoTracker.getOrCreate to get an instance.
  */
 interface WindowInfoTracker {
@@ -45,29 +47,31 @@ interface WindowInfoTracker {
      * windows to receive [WindowLayoutInfo] updates. A [WindowLayoutInfo] value should be published
      * when [DisplayFeature] have changed, but the behavior is ultimately decided by the hardware
      * implementation. It is recommended to test the following scenarios:
+     * * Values are emitted immediately after subscribing to this function.
+     * * There is a long delay between subscribing and receiving the first value.
+     * * Never receiving a value after subscription.
      *
-     *  * Values are emitted immediately after subscribing to this function.
-     *  * There is a long delay between subscribing and receiving the first value.
-     *  * Never receiving a value after subscription.
+     * A derived class may throw NotImplementedError if this method is not overridden. Obtaining a
+     * [WindowInfoTracker] through [WindowInfoTracker.getOrCreate] guarantees having a default
+     * implementation for this method.
      *
-     * A derived class may throw NotImplementedError if this method is not overridden.
-     * Obtaining a [WindowInfoTracker] through [WindowInfoTracker.getOrCreate] guarantees having a
-     * default implementation for this method.
+     * If the passed [context] is not an [Activity] and [WindowSdkExtensions.extensionVersion] is
+     * less than 2, the flow will return empty [WindowLayoutInfo] list flow.
      *
      * @param context a [UiContext] such as an [Activity], an [InputMethodService], or an instance
-     * created via [Context.createWindowContext] that listens to configuration changes.
+     *   created via [Context.createWindowContext] that listens to configuration changes.
+     * @throws NotImplementedError when [Context] is not an [UiContext] or this method has no
+     *   supporting implementation.
      * @see WindowLayoutInfo
      * @see DisplayFeature
-     *
-     * @throws NotImplementedError when [Context] is not an [UiContext] or this method has no
-     * supporting implementation.
      */
-    @ExperimentalWindowApi
     fun windowLayoutInfo(@UiContext context: Context): Flow<WindowLayoutInfo> {
-        val windowLayoutInfoFlow: Flow<WindowLayoutInfo>? = windowLayoutInfo((context as Activity))
+        val windowLayoutInfoFlow: Flow<WindowLayoutInfo>? =
+            (context as? Activity)?.let { activity -> windowLayoutInfo(activity) }
         return windowLayoutInfoFlow
             ?: throw NotImplementedError(
-                message = "Must override windowLayoutInfo(context) and provide an implementation.")
+                message = "Must override windowLayoutInfo(context) and provide an implementation."
+            )
     }
 
     /**
@@ -79,10 +83,9 @@ interface WindowInfoTracker {
      *
      * It is recommended to test the following scenarios since behaviors may differ between hardware
      * implementations:
-     *
-     *  * Values are emitted immediately after subscribing to this function.
-     *  * There is a long delay between subscribing and receiving the first value.
-     *  * Never receiving a value after subscription.
+     * * Values are emitted immediately after subscribing to this function.
+     * * There is a long delay between subscribing and receiving the first value.
+     * * Never receiving a value after subscription.
      *
      * Since the information is associated to the [Activity] you should not retain the [Flow] across
      * [Activity] recreations. Doing so can result in unpredictable behavior such as a memory leak
@@ -94,6 +97,23 @@ interface WindowInfoTracker {
      */
     fun windowLayoutInfo(activity: Activity): Flow<WindowLayoutInfo>
 
+    /**
+     * Returns the [List] of [SupportedPosture] values. This value will not change during runtime.
+     * These values are for determining if the device supports the given [SupportedPosture] but does
+     * not mean the device is in the given [SupportedPosture]. Use [windowLayoutInfo] to determine
+     * the current state of the [DisplayFeature]'s on the device.
+     *
+     * @throws UnsupportedOperationException if [WindowSdkExtensions.extensionVersion] is less
+     *   than 6.
+     * @throws NotImplementedError if a derived test class does not override this method.
+     * @see windowLayoutInfo
+     */
+    @RequiresWindowSdkExtension(version = 6)
+    val supportedPostures: List<SupportedPosture>
+        get() {
+            throw NotImplementedError("Method was not implemented.")
+        }
+
     companion object {
 
         private val DEBUG = false
@@ -103,11 +123,12 @@ interface WindowInfoTracker {
         internal val extensionBackend: WindowBackend? by lazy {
             try {
                 val loader = WindowInfoTracker::class.java.classLoader
-                val provider = loader?.let {
-                    SafeWindowLayoutComponentProvider(loader, ConsumerAdapter(loader))
-                }
+                val provider =
+                    loader?.let {
+                        SafeWindowLayoutComponentProvider(loader, ConsumerAdapter(loader))
+                    }
                 provider?.windowLayoutComponent?.let { component ->
-                    ExtensionWindowLayoutInfoBackend(component, ConsumerAdapter(loader))
+                    ExtensionWindowBackend.newInstance(component, ConsumerAdapter(loader))
                 }
             } catch (t: Throwable) {
                 if (DEBUG) {
@@ -120,9 +141,10 @@ interface WindowInfoTracker {
         private var decorator: WindowInfoTrackerDecorator = EmptyDecorator
 
         /**
-         * Provide an instance of [WindowInfoTracker] that is associated to the given [Context].
-         * The instance created should be safe to retain globally. The actual data is provided by
+         * Provide an instance of [WindowInfoTracker] that is associated to the given [Context]. The
+         * instance created should be safe to retain globally. The actual data is provided by
          * [WindowInfoTracker.windowLayoutInfo] and requires an [Activity].
+         *
          * @param context Any valid [Context].
          * @see WindowInfoTracker.windowLayoutInfo
          */
@@ -130,7 +152,12 @@ interface WindowInfoTracker {
         @JvmStatic
         fun getOrCreate(context: Context): WindowInfoTracker {
             val backend = extensionBackend ?: SidecarWindowBackend.getInstance(context)
-            val repo = WindowInfoTrackerImpl(WindowMetricsCalculatorCompat, backend)
+            val repo =
+                WindowInfoTrackerImpl(
+                    WindowMetricsCalculatorCompat(),
+                    backend,
+                    WindowSdkExtensions.getInstance()
+                )
             return decorator.decorate(repo)
         }
 
@@ -150,11 +177,8 @@ interface WindowInfoTracker {
 
 @RestrictTo(LIBRARY_GROUP)
 interface WindowInfoTrackerDecorator {
-    /**
-     * Returns an instance of [WindowInfoTracker] associated to the [Activity]
-     */
-    @RestrictTo(LIBRARY_GROUP)
-    fun decorate(tracker: WindowInfoTracker): WindowInfoTracker
+    /** Returns an instance of [WindowInfoTracker] associated to the [Activity] */
+    @RestrictTo(LIBRARY_GROUP) fun decorate(tracker: WindowInfoTracker): WindowInfoTracker
 }
 
 private object EmptyDecorator : WindowInfoTrackerDecorator {

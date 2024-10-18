@@ -25,14 +25,28 @@ import com.squareup.kotlinpoet.FileSpec
 import java.io.OutputStream
 import java.nio.file.Path
 
-/**
- * Code generation interface for XProcessing.
- */
+/** Code generation interface for XProcessing. */
 interface XFiler {
 
     fun write(javaFile: JavaFile, mode: Mode = Mode.Isolating)
 
     fun write(fileSpec: FileSpec, mode: Mode = Mode.Isolating)
+
+    /**
+     * Writes a source file that will be part of the output artifact (e.g. jar).
+     *
+     * Only source files should be written via this function, if the extension is not `.java` or
+     * `.kt` this function will throw an exception.
+     *
+     * @return the output stream to write the resource file.
+     */
+    fun writeSource(
+        packageName: String,
+        fileNameWithoutExtension: String,
+        extension: String,
+        originatingElements: List<XElement>,
+        mode: Mode = Mode.Isolating
+    ): OutputStream
 
     /**
      * Writes a resource file that will be part of the output artifact (e.g. jar).
@@ -49,14 +63,14 @@ interface XFiler {
     ): OutputStream
 
     /**
-     * Specifies whether a file represents aggregating or isolating inputs for incremental
-     * build purposes. This does not apply in Javac processing because aggregating vs isolating
-     * is set on the processor level. For more on KSP's definitions of isolating vs aggregating
-     * see the documentation at
-     * https://github.com/google/ksp/blob/master/docs/incremental.md
+     * Specifies whether a file represents aggregating or isolating inputs for incremental build
+     * purposes. This does not apply in Javac processing because aggregating vs isolating is set on
+     * the processor level. For more on KSP's definitions of isolating vs aggregating see the
+     * documentation at https://github.com/google/ksp/blob/master/docs/incremental.md
      */
     enum class Mode {
-        Aggregating, Isolating
+        Aggregating,
+        Isolating
     }
 }
 

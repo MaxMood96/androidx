@@ -17,9 +17,9 @@
 package androidx.camera.extensions.internal.sessionprocessor;
 
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.SessionConfiguration;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 
 import java.util.List;
 import java.util.Map;
@@ -27,7 +27,6 @@ import java.util.Map;
 /**
  * A config representing a {@link android.hardware.camera2.params.SessionConfiguration}
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 interface Camera2SessionConfig {
     /**
      * Returns all the {@link Camera2OutputConfig}s that will be used to create
@@ -47,4 +46,11 @@ interface Camera2SessionConfig {
      * {@link android.hardware.camera2.params.SessionConfiguration#setSessionParameters}.
      */
     int getSessionTemplateId();
+
+    /**
+     * Gets the session type
+     */
+    default int getSessionType() {
+        return SessionConfiguration.SESSION_REGULAR;
+    }
 }

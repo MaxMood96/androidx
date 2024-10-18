@@ -25,16 +25,17 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import kotlin.random.Random
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
-import kotlin.random.Random
 
 /**
- * This is an implementation of a classic web perf benchmark "dbmonster". This can provide insight into apps with
- * lots of updating parts at once. It may also be good tests for the Text and Layout stacks of compose UI.
+ * This is an implementation of a classic web perf benchmark "dbmonster". This can provide insight
+ * into apps with lots of updating parts at once. It may also be good tests for the Text and Layout
+ * stacks of compose UI.
  *
  * See: http://mathieuancelin.github.io/js-repaint-perfs/
  */
@@ -54,7 +55,8 @@ class DbMonsterBenchmark : ComposeBenchmarkBase() {
 
     /**
      * @param count - the number of databases (2x this will be number of rows)
-     * @param mutate - the number of databases to mutate/update on each frame (2x count will be 100%)
+     * @param mutate - the number of databases to mutate/update on each frame (2x count will be
+     *   100%)
      */
     private fun dbMonsterBenchmark(count: Int, mutate: Int) = runBlockingTestWithFrameClock {
         val random = Random(0)
@@ -70,9 +72,7 @@ class DbMonsterBenchmark : ComposeBenchmarkBase() {
                     }
                 }
             }
-            update {
-                list.update(mutate)
-            }
+            update { list.update(mutate) }
         }
     }
 }

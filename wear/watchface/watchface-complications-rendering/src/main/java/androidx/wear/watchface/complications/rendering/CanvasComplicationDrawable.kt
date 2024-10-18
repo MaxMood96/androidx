@@ -16,7 +16,6 @@
 
 package androidx.wear.watchface.complications.rendering
 
-import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Rect
@@ -81,7 +80,6 @@ constructor(
         object : Drawable.Callback {
             override fun unscheduleDrawable(who: Drawable, what: Runnable) {}
 
-            @SuppressLint("SyntheticAccessor")
             override fun invalidateDrawable(who: Drawable) {
                 invalidateCallback.onInvalidate()
             }
@@ -127,8 +125,7 @@ constructor(
                 val startTime = it.tapTime.toEpochMilli()
                 val endTime = it.tapTime.toEpochMilli() + COMPLICATION_HIGHLIGHT_DURATION_MS
                 zonedDateTime.toInstant().toEpochMilli() in startTime until endTime
-            }
-                ?: false
+            } ?: false
         drawable.draw(canvas)
     }
 

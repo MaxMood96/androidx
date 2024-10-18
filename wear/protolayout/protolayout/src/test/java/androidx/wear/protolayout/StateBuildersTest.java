@@ -18,37 +18,68 @@ package androidx.wear.protolayout;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import androidx.wear.protolayout.expression.StateEntryBuilders;
+import static org.junit.Assert.assertThrows;
+
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.wear.protolayout.StateBuilders.State;
+import androidx.wear.protolayout.expression.AppDataKey;
+import androidx.wear.protolayout.expression.DynamicDataBuilders.DynamicDataValue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(AndroidJUnit4.class)
 public class StateBuildersTest {
     @Test
     public void emptyState() {
         StateBuilders.State state = new StateBuilders.State.Builder().build();
 
-        assertThat(state.getIdToValueMapping()).isEmpty();
+        assertThat(state.getKeyToValueMapping()).isEmpty();
     }
 
     @Test
     public void additionalState() {
-        StateEntryBuilders.StateEntryValue boolValue =
-                StateEntryBuilders.StateEntryValue.fromBool(true);
-        StateEntryBuilders.StateEntryValue stringValue =
-                StateEntryBuilders.StateEntryValue.fromString("string");
-        StateBuilders.State state = new StateBuilders.State.Builder()
-                .addIdToValueMapping("boolValue", boolValue)
-                .addIdToValueMapping("stringValue", stringValue)
-                .build();
-
-        assertThat(state.getIdToValueMapping()).hasSize(2);
-        assertThat(state.getIdToValueMapping().get("boolValue").toStateEntryValueProto()).isEqualTo(
-                boolValue.toStateEntryValueProto());
+        StateBuilders.State state =
+                new StateBuilders.State.Builder()
+                        .addKeyToValueMapping(
+                                new AppDataKey<>("boolValue"), DynamicDataValue.fromBool(true))
+                        .addKeyToValueMapping(
+                                new AppDataKey<>("stringValue"),
+                                DynamicDataValue.fromString("string"))
+                        .build();
+        assertThat(state.getKeyToValueMapping()).hasSize(2);
         assertThat(
-                state.getIdToValueMapping().get("stringValue").toStateEntryValueProto()).isEqualTo(
-                stringValue.toStateEntryValueProto());
+                        state.getKeyToValueMapping()
+                                .get(new AppDataKey<>("boolValue"))
+                                .toDynamicDataValueProto())
+                .isEqualTo(DynamicDataValue.fromBool(true).toDynamicDataValueProto());
+        assertThat(
+                        state.getKeyToValueMapping()
+                                .get(new AppDataKey<>("stringValue"))
+                                .toDynamicDataValueProto())
+                .isEqualTo(DynamicDataValue.fromString("string").toDynamicDataValueProto());
+    }
+
+    @Test
+    public void buildState_stateTooLarge_throws() {
+        State.Builder builder = new State.Builder();
+        int maxStateEntryCount = State.getMaxStateEntryCount();
+        for (int i = 0; i < maxStateEntryCount; i++) {
+            builder.addKeyToValueMapping(
+                    new AppDataKey<>(Integer.toString(i)), DynamicDataValue.fromInt(0));
+        }
+        assertThrows(IllegalStateException.class, () -> builder.addKeyToValueMapping(
+                new AppDataKey<>(Integer.toString(maxStateEntryCount + 1)),
+                DynamicDataValue.fromInt(0)));
+    }
+
+    @Test
+    public void buildState_stateSizeIsMaximum_buildSuccessfully() {
+        State.Builder builder = new State.Builder();
+        for (int i = 0; i < StateBuilders.State.getMaxStateEntryCount(); i++) {
+            builder.addKeyToValueMapping(
+                    new AppDataKey<>(Integer.toString(i)), DynamicDataValue.fromInt(0));
+        }
+        assertThat(builder.build().getKeyToValueMapping()).hasSize(30);
     }
 }

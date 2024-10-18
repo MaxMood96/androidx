@@ -1,27 +1,39 @@
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("androidx.stableaidl")
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 16
-    }
     buildFeatures {
         aidl = true
+    }
+    buildTypes.configureEach {
+        stableAidl {
+            version 1
+        }
     }
     testOptions.unitTests.includeAndroidResources = true
     namespace "androidx.browser"
 }
 
 dependencies {
-    api("androidx.core:core:1.1.0")
-    api("androidx.annotation:annotation:1.2.0")
+    api("androidx.core:core:1.10.0")
+    api("androidx.annotation:annotation:1.8.1")
+    api("androidx.annotation:annotation-experimental:1.4.1")
     api(libs.guavaListenableFuture)
 
-    implementation("androidx.collection:collection:1.1.0")
+    implementation("androidx.activity:activity:1.9.0")
+    implementation("androidx.collection:collection:1.4.2")
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
     implementation("androidx.interpolator:interpolator:1.0.0")
 
@@ -38,15 +50,15 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it"s own MockMaker
+    androidTestImplementation(libs.espressoCore)
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(project(":internal-testutils-runtime"))
 }
 
 androidx {
-    name = "Android Support Custom Tabs"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "Browser"
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2015"
-    description = "Android Support Custom Tabs"
+    description = "Provides support for embedding Custom Tabs in an app."
 }

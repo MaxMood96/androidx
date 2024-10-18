@@ -57,6 +57,10 @@ public class SexualActivityRecord(
         return result
     }
 
+    override fun toString(): String {
+        return "SexualActivityRecord(time=$time, zoneOffset=$zoneOffset, protectionUsed=$protectionUsed, metadata=$metadata)"
+    }
+
     companion object {
         const val PROTECTION_USED_UNKNOWN = 0
         const val PROTECTION_USED_PROTECTED = 1
@@ -82,10 +86,7 @@ public class SexualActivityRecord(
         const val UNPROTECTED = "unprotected"
     }
 
-    /**
-     * Whether protection was used during sexual activity.
-     * @suppress
-     */
+    /** Whether protection was used during sexual activity. */
     @Retention(AnnotationRetention.SOURCE)
     @IntDef(
         value =

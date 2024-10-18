@@ -16,6 +16,8 @@
 
 package androidx.wear.protolayout.expression.pipeline;
 
+import androidx.annotation.RestrictTo;
+
 /**
  * Node within a dynamic data pipeline.
  *
@@ -32,14 +34,14 @@ package androidx.wear.protolayout.expression.pipeline;
  *   private final DynamicTypeValueReceiver<Integer> myNode =
  *     new DynamicTypeValueReceiver<Integer>() {
  *       @Override
- *       public void onPreStateUpdate() {
+ *       public void onPreUpdate() {
  *         // Don't need to do anything here; just relay.
- *         downstreamNode.onPreStateUpdate();
+ *         downstreamNode.onPreUpdate();
  *       }
  *
  *       @Override
- *       public void onStateUpdate(Integer newData) {
- *         downstreamNode.onStateUpdate(newData.toString());
+ *       public void onData(Integer newData) {
+ *         downstreamNode.onData(newData.toString());
  *       }
  *     };
  *
@@ -56,4 +58,17 @@ package androidx.wear.protolayout.expression.pipeline;
  *
  * @param <O> The data type that this node yields.
  */
-interface DynamicDataNode<O> {}
+interface DynamicDataNode<O> {
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    int DEFAULT_NODE_COST = 1;
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    int FIXED_NODE_COST = 0;
+
+    /**
+     * Returns the cost of this node. This value is used to estimate performance impact of a node.
+     * By default, most nodes have a cost of {@link DynamicDataNode#DEFAULT_NODE_COST}.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    int getCost();
+}

@@ -25,7 +25,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.AnyThread;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.WorkerThread;
 import androidx.collection.ArrayMap;
@@ -56,9 +55,7 @@ import java.util.concurrent.TimeUnit;
  * keeps an up-to-date cache of the complete list in memory for quick access, except shortcuts'
  * Icons, which are stored on the disk and only loaded from disk separately if necessary.
  *
- * @hide
  */
-@RequiresApi(19)
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 //TODO: we need Futures.addCallback and CallbackToFutureAdapter, update once they're available
 public class ShortcutInfoCompatSaverImpl extends ShortcutInfoCompatSaver<ListenableFuture<Void>> {

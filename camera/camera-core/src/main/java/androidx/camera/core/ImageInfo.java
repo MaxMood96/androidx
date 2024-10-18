@@ -20,18 +20,15 @@ import android.graphics.Matrix;
 import android.hardware.camera2.CameraCharacteristics;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.TagBundle;
 import androidx.camera.core.impl.utils.ExifData;
 
 /** Metadata for an image. */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface ImageInfo {
     /**
      * Returns all tags stored in the metadata.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull
@@ -123,7 +120,6 @@ public interface ImageInfo {
     /**
      * Adds any stored EXIF information in this ImageInfo into the provided ExifData builder.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     void populateExifData(@NonNull ExifData.Builder exifBuilder);

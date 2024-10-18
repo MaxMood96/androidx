@@ -169,7 +169,6 @@ public final class CarText {
     }
 
     /**
-     * @hide
      */
     @NonNull
     @RestrictTo(LIBRARY)
@@ -178,7 +177,6 @@ public final class CarText {
     }
 
     /**
-     * @hide
      */
     @NonNull
     @RestrictTo(LIBRARY)
@@ -189,7 +187,6 @@ public final class CarText {
     /**
      * Returns a shortened string from the input {@code text}.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @Nullable
@@ -276,9 +273,9 @@ public final class CarText {
     /**
      * Wraps a span to send it to the host.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
+    @CarProtocol
     @KeepFields
     public static class SpanWrapper {
         private final int mStart;
@@ -346,6 +343,7 @@ public final class CarText {
     }
 
     /** A builder of {@link CarText}. */
+    @CarProtocol
     @KeepFields
     public static final class Builder {
         CharSequence mText;

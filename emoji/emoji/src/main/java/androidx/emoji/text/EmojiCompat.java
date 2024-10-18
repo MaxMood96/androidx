@@ -19,7 +19,6 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -37,7 +36,6 @@ import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.collection.ArraySet;
@@ -129,7 +127,6 @@ public class EmojiCompat {
     public static final int LOAD_STATE_FAILED = 2;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({LOAD_STATE_DEFAULT, LOAD_STATE_LOADING, LOAD_STATE_SUCCEEDED, LOAD_STATE_FAILED})
@@ -157,7 +154,6 @@ public class EmojiCompat {
     public static final int REPLACE_STRATEGY_NON_EXISTENT = 2;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({REPLACE_STRATEGY_DEFAULT, REPLACE_STRATEGY_NON_EXISTENT, REPLACE_STRATEGY_ALL})
@@ -181,7 +177,6 @@ public class EmojiCompat {
     public static final int LOAD_STRATEGY_MANUAL = 1;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({LOAD_STRATEGY_DEFAULT, LOAD_STRATEGY_MANUAL})
@@ -190,7 +185,6 @@ public class EmojiCompat {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     static final int EMOJI_COUNT_UNLIMITED = Integer.MAX_VALUE;
@@ -285,8 +279,7 @@ public class EmojiCompat {
         if (config.mInitCallbacks != null && !config.mInitCallbacks.isEmpty()) {
             mInitCallbacks.addAll(config.mInitCallbacks);
         }
-        mHelper = Build.VERSION.SDK_INT < 19 ? new CompatInternal(this) : new CompatInternal19(
-                this);
+        mHelper = new CompatInternal(this);
         loadMetadata();
     }
 
@@ -315,7 +308,6 @@ public class EmojiCompat {
      * Used by the tests to reset EmojiCompat with a new configuration. Every time it is called a
      * new instance is created with the new configuration.
      *
-     * @hide
      */
     @SuppressWarnings("GuardedBy")
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -330,7 +322,6 @@ public class EmojiCompat {
     /**
      * Used by the tests to reset EmojiCompat with a new singleton instance.
      *
-     * @hide
      */
     @SuppressWarnings("GuardedBy")
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -502,7 +493,6 @@ public class EmojiCompat {
 
     /**
      * @return whether a background should be drawn for the emoji.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     boolean isEmojiSpanIndicatorEnabled() {
@@ -511,7 +501,6 @@ public class EmojiCompat {
 
     /**
      * @return whether a background should be drawn for the emoji.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @ColorInt int getEmojiSpanIndicatorColor() {
@@ -540,11 +529,7 @@ public class EmojiCompat {
      */
     public static boolean handleOnKeyDown(@NonNull final Editable editable, final int keyCode,
             final KeyEvent event) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            return EmojiProcessor.handleOnKeyDown(editable, keyCode, event);
-        } else {
-            return false;
-        }
+        return EmojiProcessor.handleOnKeyDown(editable, keyCode, event);
     }
 
     /**
@@ -569,12 +554,8 @@ public class EmojiCompat {
             @NonNull final InputConnection inputConnection, @NonNull final Editable editable,
             @IntRange(from = 0) final int beforeLength, @IntRange(from = 0) final int afterLength,
             final boolean inCodePoints) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            return EmojiProcessor.handleDeleteSurroundingText(inputConnection, editable,
-                    beforeLength, afterLength, inCodePoints);
-        } else {
-            return false;
-        }
+        return EmojiProcessor.handleDeleteSurroundingText(inputConnection, editable,
+                beforeLength, afterLength, inCodePoints);
     }
 
     /**
@@ -805,7 +786,6 @@ public class EmojiCompat {
      * @see #EDITOR_INFO_METAVERSION_KEY
      * @see #EDITOR_INFO_REPLACE_ALL_KEY
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public void updateEditorInfoAttrs(@NonNull final EditorInfo outAttrs) {
@@ -822,10 +802,8 @@ public class EmojiCompat {
     /**
      * Factory class that creates the EmojiSpans. By default it creates {@link TypefaceEmojiSpan}.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    @RequiresApi(19)
     static class SpanFactory {
         /**
          * Create EmojiSpan instance.
@@ -907,7 +885,7 @@ public class EmojiCompat {
          * information, and some predefined OEMs, it is possible to write the following code
          * snippet.
          *
-         * {@sample frameworks/support/samples/SupportEmojiDemos/src/main/java/com/example/android/support/text/emoji/sample/GlyphCheckerSample.java glyphchecker}
+         * {@sample samples/SupportEmojiDemos/src/main/java/com/example/android/support/text/emoji/sample/GlyphCheckerSample.java glyphchecker}
          *
          * @param charSequence the CharSequence that is being processed
          * @param start the inclusive starting offset for the emoji in the {@code charSequence}
@@ -1049,6 +1027,8 @@ public class EmojiCompat {
         /**
          * @see #setUseEmojiAsDefaultStyle(boolean)
          *
+         * @param useEmojiAsDefaultStyle when true, use emoji style presentation for all emojis that
+         *                               would be text by default.
          * @param emojiAsDefaultStyleExceptions Contains the exception emojis which will be still
          *                                      presented as text style even if the
          *                                      useEmojiAsDefaultStyle flag is set to {@code true}.
@@ -1211,49 +1191,7 @@ public class EmojiCompat {
         }
     }
 
-    /**
-     * Internal helper class to behave no-op for certain functions.
-     */
-    private static class CompatInternal {
-        final EmojiCompat mEmojiCompat;
-
-        CompatInternal(EmojiCompat emojiCompat) {
-            mEmojiCompat = emojiCompat;
-        }
-
-        void loadMetadata() {
-            // Moves into LOAD_STATE_SUCCESS state immediately.
-            mEmojiCompat.onMetadataLoadSuccess();
-        }
-
-        boolean hasEmojiGlyph(@NonNull final CharSequence sequence) {
-            // Since no metadata is loaded, EmojiCompat cannot detect or render any emojis.
-            return false;
-        }
-
-        boolean hasEmojiGlyph(@NonNull final CharSequence sequence, final int metadataVersion) {
-            // Since no metadata is loaded, EmojiCompat cannot detect or render any emojis.
-            return false;
-        }
-
-        CharSequence process(@NonNull final CharSequence charSequence,
-                @IntRange(from = 0) final int start, @IntRange(from = 0) final int end,
-                @IntRange(from = 0) final int maxEmojiCount, boolean replaceAll) {
-            // Returns the given charSequence as it is.
-            return charSequence;
-        }
-
-        void updateEditorInfoAttrs(@NonNull final EditorInfo outAttrs) {
-            // Does not add any EditorInfo attributes.
-        }
-
-        String getAssetSignature() {
-            return "";
-        }
-    }
-
-    @RequiresApi(19)
-    private static final class CompatInternal19 extends CompatInternal {
+    private static final class CompatInternal {
         /**
          * Responsible to process a CharSequence and add the spans. @{code Null} until the time the
          * metadata is loaded.
@@ -1264,13 +1202,13 @@ public class EmojiCompat {
          * Keeps the information about emojis. Null until the time the data is loaded.
          */
         private volatile MetadataRepo mMetadataRepo;
+        final EmojiCompat mEmojiCompat;
 
 
-        CompatInternal19(EmojiCompat emojiCompat) {
-            super(emojiCompat);
+        CompatInternal(EmojiCompat emojiCompat) {
+            mEmojiCompat = emojiCompat;
         }
 
-        @Override
         void loadMetadata() {
             try {
                 final MetadataRepoLoaderCallback callback = new MetadataRepoLoaderCallback() {
@@ -1290,7 +1228,6 @@ public class EmojiCompat {
             }
         }
 
-        @SuppressWarnings("SyntheticAccessor")
         void onMetadataLoadSuccess(@NonNull final MetadataRepo metadataRepo) {
             //noinspection ConstantConditions
             if (metadataRepo == null) {
@@ -1310,30 +1247,25 @@ public class EmojiCompat {
             mEmojiCompat.onMetadataLoadSuccess();
         }
 
-        @Override
         boolean hasEmojiGlyph(@NonNull CharSequence sequence) {
             return mProcessor.getEmojiMetadata(sequence) != null;
         }
 
-        @Override
         boolean hasEmojiGlyph(@NonNull CharSequence sequence, int metadataVersion) {
             final EmojiMetadata emojiMetadata = mProcessor.getEmojiMetadata(sequence);
             return emojiMetadata != null && emojiMetadata.getCompatAdded() <= metadataVersion;
         }
 
-        @Override
         CharSequence process(@NonNull CharSequence charSequence, int start, int end,
                 int maxEmojiCount, boolean replaceAll) {
             return mProcessor.process(charSequence, start, end, maxEmojiCount, replaceAll);
         }
 
-        @Override
         void updateEditorInfoAttrs(@NonNull EditorInfo outAttrs) {
             outAttrs.extras.putInt(EDITOR_INFO_METAVERSION_KEY, mMetadataRepo.getMetadataVersion());
             outAttrs.extras.putBoolean(EDITOR_INFO_REPLACE_ALL_KEY, mEmojiCompat.mReplaceAll);
         }
 
-        @Override
         String getAssetSignature() {
             final String sha = mMetadataRepo.getMetadataList().sourceSha();
             return sha == null ? "" : sha;

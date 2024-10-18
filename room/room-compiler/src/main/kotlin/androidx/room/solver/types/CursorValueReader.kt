@@ -16,17 +16,16 @@
 
 package androidx.room.solver.types
 
-import androidx.room.parser.SQLTypeAffinity
 import androidx.room.compiler.processing.XType
+import androidx.room.parser.SQLTypeAffinity
 import androidx.room.solver.CodeGenScope
 
-/**
- * Reads value from a cursor at the given index.
- * see: StatementValueBinder
- */
+/** Reads value from a cursor at the given index. see: StatementValueBinder */
 interface CursorValueReader {
     fun affinity(): SQLTypeAffinity
+
     fun typeMirror(): XType
+
     fun readFromCursor(
         outVarName: String,
         cursorVarName: String,

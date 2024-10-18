@@ -36,7 +36,6 @@ import androidx.car.app.utils.RemoteUtils;
 /**
  * Implementation class for {@link SearchCallbackDelegate}.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 @CarProtocol
@@ -79,10 +78,11 @@ public class SearchCallbackDelegateImpl implements SearchCallbackDelegate {
     @NonNull
     // This listener relates to UI event and is expected to be triggered on the main thread.
     @SuppressLint("ExecutorRegistration")
-    static SearchCallbackDelegate create(@NonNull SearchCallback callback) {
+    public static SearchCallbackDelegate create(@NonNull SearchCallback callback) {
         return new SearchCallbackDelegateImpl(callback);
     }
 
+    @CarProtocol
     @KeepFields // We need to keep these stub for Bundler serialization logic.
     private static class SearchCallbackStub extends ISearchCallback.Stub {
         private final SearchCallback mCallback;

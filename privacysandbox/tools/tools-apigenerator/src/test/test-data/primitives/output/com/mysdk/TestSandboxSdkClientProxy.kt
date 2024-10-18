@@ -1,6 +1,6 @@
 package com.mysdk
 
-import com.mysdk.PrivacySandboxThrowableParcelConverter
+import android.os.Bundle
 import com.mysdk.PrivacySandboxThrowableParcelConverter.fromThrowableParcel
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -34,31 +34,54 @@ public class TestSandboxSdkClientProxy(
         }
     }
 
-    public override fun echoBoolean(input: Boolean): Unit {
+    public override suspend fun doSomethingWithBundlesAsync(first: Int, second: Bundle): Bundle =
+            suspendCancellableCoroutine {
+        var mCancellationSignal: ICancellationSignal? = null
+        val transactionCallback = object: IBundleTransactionCallback.Stub() {
+            override fun onCancellable(cancellationSignal: ICancellationSignal) {
+                if (it.isCancelled) {
+                    cancellationSignal.cancel()
+                }
+                mCancellationSignal = cancellationSignal
+            }
+            override fun onSuccess(result: Bundle) {
+                it.resumeWith(Result.success(result))
+            }
+            override fun onFailure(throwableParcel: PrivacySandboxThrowableParcel) {
+                it.resumeWithException(fromThrowableParcel(throwableParcel))
+            }
+        }
+        remote.doSomethingWithBundlesAsync(first, second, transactionCallback)
+        it.invokeOnCancellation {
+            mCancellationSignal?.cancel()
+        }
+    }
+
+    public override fun echoBoolean(input: Boolean) {
         remote.echoBoolean(input)
     }
 
-    public override fun echoChar(input: Char): Unit {
+    public override fun echoChar(input: Char) {
         remote.echoChar(input)
     }
 
-    public override fun echoDouble(input: Double): Unit {
+    public override fun echoDouble(input: Double) {
         remote.echoDouble(input)
     }
 
-    public override fun echoFloat(input: Float): Unit {
+    public override fun echoFloat(input: Float) {
         remote.echoFloat(input)
     }
 
-    public override fun echoInt(input: Int): Unit {
+    public override fun echoInt(input: Int) {
         remote.echoInt(input)
     }
 
-    public override fun echoLong(input: Long): Unit {
+    public override fun echoLong(input: Long) {
         remote.echoLong(input)
     }
 
-    public override fun echoString(input: String): Unit {
+    public override fun echoString(input: String) {
         remote.echoString(input)
     }
 
@@ -80,6 +103,29 @@ public class TestSandboxSdkClientProxy(
             }
         }
         remote.processBooleanList(x.toBooleanArray(), transactionCallback)
+        it.invokeOnCancellation {
+            mCancellationSignal?.cancel()
+        }
+    }
+
+    public override suspend fun processBundleList(x: List<Bundle>): List<Bundle> =
+            suspendCancellableCoroutine {
+        var mCancellationSignal: ICancellationSignal? = null
+        val transactionCallback = object: IListBundleTransactionCallback.Stub() {
+            override fun onCancellable(cancellationSignal: ICancellationSignal) {
+                if (it.isCancelled) {
+                    cancellationSignal.cancel()
+                }
+                mCancellationSignal = cancellationSignal
+            }
+            override fun onSuccess(result: Array<Bundle>) {
+                it.resumeWith(Result.success(result.toList()))
+            }
+            override fun onFailure(throwableParcel: PrivacySandboxThrowableParcel) {
+                it.resumeWithException(fromThrowableParcel(throwableParcel))
+            }
+        }
+        remote.processBundleList(x.toTypedArray(), transactionCallback)
         it.invokeOnCancellation {
             mCancellationSignal?.cancel()
         }
@@ -269,7 +315,7 @@ public class TestSandboxSdkClientProxy(
         }
     }
 
-    public override fun receiveAndReturnNothing(): Unit {
+    public override fun receiveAndReturnNothing() {
         remote.receiveAndReturnNothing()
     }
 
@@ -299,7 +345,7 @@ public class TestSandboxSdkClientProxy(
         first: Int,
         second: String,
         third: Long,
-    ): Unit {
+    ) {
         remote.receiveMultipleArguments(first, second, third)
     }
 }

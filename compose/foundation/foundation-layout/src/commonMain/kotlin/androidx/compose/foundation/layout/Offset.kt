@@ -18,13 +18,13 @@ package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.LayoutModifier
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.invalidatePlacement
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.platform.InspectorValueInfo
-import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -33,128 +33,169 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Offset the content by ([x] dp, [y] dp). The offsets can be positive as well as non-positive.
- * Applying an offset only changes the position of the content, without interfering with
- * its size measurement.
+ * Applying an offset only changes the position of the content, without interfering with its size
+ * measurement.
  *
  * This modifier will automatically adjust the horizontal offset according to the layout direction:
  * when the layout direction is LTR, positive [x] offsets will move the content to the right and
- * when the layout direction is RTL, positive [x] offsets will move the content to the left.
- * For a modifier that offsets without considering layout direction, see [absoluteOffset].
- *
- * @see absoluteOffset
+ * when the layout direction is RTL, positive [x] offsets will move the content to the left. For a
+ * modifier that offsets without considering layout direction, see [absoluteOffset].
  *
  * Example usage:
+ *
  * @sample androidx.compose.foundation.layout.samples.OffsetModifier
+ * @see absoluteOffset
  */
 @Stable
-fun Modifier.offset(x: Dp = 0.dp, y: Dp = 0.dp) = this.then(
-    OffsetModifier(
-        x = x,
-        y = y,
-        rtlAware = true,
-        inspectorInfo = debugInspectorInfo {
-            name = "offset"
-            properties["x"] = x
-            properties["y"] = y
-        }
-    )
-)
+fun Modifier.offset(x: Dp = 0.dp, y: Dp = 0.dp) =
+    this then
+        OffsetElement(
+            x = x,
+            y = y,
+            rtlAware = true,
+            inspectorInfo = {
+                name = "offset"
+                properties["x"] = x
+                properties["y"] = y
+            }
+        )
 
 /**
  * Offset the content by ([x] dp, [y] dp). The offsets can be positive as well as non-positive.
- * Applying an offset only changes the position of the content, without interfering with
- * its size measurement.
+ * Applying an offset only changes the position of the content, without interfering with its size
+ * measurement.
  *
- * This modifier will not consider layout direction when calculating the position of the content:
- * a positive [x] offset will always move the content to the right.
- * For a modifier that considers the layout direction when applying the offset, see [offset].
- *
- * @see offset
+ * This modifier will not consider layout direction when calculating the position of the content: a
+ * positive [x] offset will always move the content to the right. For a modifier that considers the
+ * layout direction when applying the offset, see [offset].
  *
  * Example usage:
+ *
  * @sample androidx.compose.foundation.layout.samples.AbsoluteOffsetModifier
+ * @see offset
  */
 @Stable
-fun Modifier.absoluteOffset(x: Dp = 0.dp, y: Dp = 0.dp) = this.then(
-    OffsetModifier(
-        x = x,
-        y = y,
-        rtlAware = false,
-        inspectorInfo = debugInspectorInfo {
-            name = "absoluteOffset"
-            properties["x"] = x
-            properties["y"] = y
-        }
-    )
-)
+fun Modifier.absoluteOffset(x: Dp = 0.dp, y: Dp = 0.dp) =
+    this then
+        OffsetElement(
+            x = x,
+            y = y,
+            rtlAware = false,
+            inspectorInfo = {
+                name = "absoluteOffset"
+                properties["x"] = x
+                properties["y"] = y
+            }
+        )
 
 /**
- * Offset the content by [offset] px. The offsets can be positive as well as non-positive.
- * Applying an offset only changes the position of the content, without interfering with
- * its size measurement.
+ * Offset the content by [offset] px. The offsets can be positive as well as non-positive. Applying
+ * an offset only changes the position of the content, without interfering with its size
+ * measurement.
  *
  * This modifier is designed to be used for offsets that change, possibly due to user interactions.
- * It avoids recomposition when the offset is changing, and also adds a graphics layer that
- * prevents unnecessary redrawing of the context when the offset is changing.
+ * It avoids recomposition when the offset is changing, and also adds a graphics layer that prevents
+ * unnecessary redrawing of the context when the offset is changing.
  *
  * This modifier will automatically adjust the horizontal offset according to the layout direction:
- * when the LD is LTR, positive horizontal offsets will move the content to the right and
- * when the LD is RTL, positive horizontal offsets will move the content to the left.
- * For a modifier that offsets without considering layout direction, see [absoluteOffset].
- *
- * @see [absoluteOffset]
+ * when the LD is LTR, positive horizontal offsets will move the content to the right and when the
+ * LD is RTL, positive horizontal offsets will move the content to the left. For a modifier that
+ * offsets without considering layout direction, see [absoluteOffset].
  *
  * Example usage:
+ *
  * @sample androidx.compose.foundation.layout.samples.OffsetPxModifier
+ * @see [absoluteOffset]
  */
-fun Modifier.offset(offset: Density.() -> IntOffset) = this.then(
-    OffsetPxModifier(
-        offset = offset,
-        rtlAware = true,
-        inspectorInfo = debugInspectorInfo {
-            name = "offset"
-            properties["offset"] = offset
-        }
-    )
-)
+fun Modifier.offset(offset: Density.() -> IntOffset) =
+    this then
+        OffsetPxElement(
+            offset = offset,
+            rtlAware = true,
+            inspectorInfo = {
+                name = "offset"
+                properties["offset"] = offset
+            }
+        )
 
 /**
- * Offset the content by [offset] px. The offsets can be positive as well as non-positive.
- * Applying an offset only changes the position of the content, without interfering with
- * its size measurement.
+ * Offset the content by [offset] px. The offsets can be positive as well as non-positive. Applying
+ * an offset only changes the position of the content, without interfering with its size
+ * measurement.
  *
  * This modifier is designed to be used for offsets that change, possibly due to user interactions.
- * It avoids recomposition when the offset is changing, and also adds a graphics layer that
- * prevents unnecessary redrawing of the context when the offset is changing.
+ * It avoids recomposition when the offset is changing, and also adds a graphics layer that prevents
+ * unnecessary redrawing of the context when the offset is changing.
  *
- * This modifier will not consider layout direction when calculating the position of the content:
- * a positive horizontal offset will always move the content to the right.
- * For a modifier that considers layout direction when applying the offset, see [offset].
- *
- * @see offset
+ * This modifier will not consider layout direction when calculating the position of the content: a
+ * positive horizontal offset will always move the content to the right. For a modifier that
+ * considers layout direction when applying the offset, see [offset].
  *
  * Example usage:
+ *
  * @sample androidx.compose.foundation.layout.samples.AbsoluteOffsetPxModifier
+ * @see offset
  */
-fun Modifier.absoluteOffset(
-    offset: Density.() -> IntOffset
-) = this.then(
-    OffsetPxModifier(
-        offset = offset,
-        rtlAware = false,
-        inspectorInfo = debugInspectorInfo {
-            name = "absoluteOffset"
-            properties["offset"] = offset
-        }
-    )
-)
+fun Modifier.absoluteOffset(offset: Density.() -> IntOffset) =
+    this then
+        OffsetPxElement(
+            offset = offset,
+            rtlAware = false,
+            inspectorInfo = {
+                name = "absoluteOffset"
+                properties["offset"] = offset
+            }
+        )
 
-private class OffsetModifier(
+private class OffsetElement(
     val x: Dp,
     val y: Dp,
     val rtlAware: Boolean,
-    inspectorInfo: InspectorInfo.() -> Unit
-) : LayoutModifier, InspectorValueInfo(inspectorInfo) {
+    val inspectorInfo: InspectorInfo.() -> Unit
+) : ModifierNodeElement<OffsetNode>() {
+    override fun create(): OffsetNode {
+        return OffsetNode(x, y, rtlAware)
+    }
+
+    override fun update(node: OffsetNode) {
+        node.update(x, y, rtlAware)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        val otherModifierElement = other as? OffsetElement ?: return false
+
+        return x == otherModifierElement.x &&
+            y == otherModifierElement.y &&
+            rtlAware == otherModifierElement.rtlAware
+    }
+
+    override fun hashCode(): Int {
+        var result = x.hashCode()
+        result = 31 * result + y.hashCode()
+        result = 31 * result + rtlAware.hashCode()
+        return result
+    }
+
+    override fun toString(): String = "OffsetModifierElement(x=$x, y=$y, rtlAware=$rtlAware)"
+
+    override fun InspectorInfo.inspectableProperties() {
+        inspectorInfo()
+    }
+}
+
+private class OffsetNode(var x: Dp, var y: Dp, var rtlAware: Boolean) :
+    LayoutModifierNode, Modifier.Node() {
+
+    override val shouldAutoInvalidate: Boolean = false
+
+    fun update(x: Dp, y: Dp, rtlAware: Boolean) {
+        if (this.x != x || this.y != y || this.rtlAware != rtlAware) invalidatePlacement()
+        this.x = x
+        this.y = y
+        this.rtlAware = rtlAware
+    }
+
     override fun MeasureScope.measure(
         measurable: Measurable,
         constraints: Constraints
@@ -168,31 +209,52 @@ private class OffsetModifier(
             }
         }
     }
+}
+
+private class OffsetPxElement(
+    val offset: Density.() -> IntOffset,
+    val rtlAware: Boolean,
+    val inspectorInfo: InspectorInfo.() -> Unit
+) : ModifierNodeElement<OffsetPxNode>() {
+    override fun create(): OffsetPxNode {
+        return OffsetPxNode(offset, rtlAware)
+    }
+
+    override fun update(node: OffsetPxNode) {
+        node.update(offset, rtlAware)
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        val otherModifier = other as? OffsetModifier ?: return false
+        val otherModifier = other as? OffsetPxElement ?: return false
 
-        return x == otherModifier.x &&
-            y == otherModifier.y &&
-            rtlAware == otherModifier.rtlAware
+        return offset === otherModifier.offset && rtlAware == otherModifier.rtlAware
     }
 
+    override fun toString(): String = "OffsetPxModifier(offset=$offset, rtlAware=$rtlAware)"
+
     override fun hashCode(): Int {
-        var result = x.hashCode()
-        result = 31 * result + y.hashCode()
+        var result = offset.hashCode()
         result = 31 * result + rtlAware.hashCode()
         return result
     }
 
-    override fun toString(): String = "OffsetModifier(x=$x, y=$y, rtlAware=$rtlAware)"
+    override fun InspectorInfo.inspectableProperties() {
+        inspectorInfo()
+    }
 }
 
-private class OffsetPxModifier(
-    val offset: Density.() -> IntOffset,
-    val rtlAware: Boolean,
-    inspectorInfo: InspectorInfo.() -> Unit
-) : LayoutModifier, InspectorValueInfo(inspectorInfo) {
+private class OffsetPxNode(var offset: Density.() -> IntOffset, var rtlAware: Boolean) :
+    LayoutModifierNode, Modifier.Node() {
+
+    override val shouldAutoInvalidate: Boolean = false
+
+    fun update(offset: Density.() -> IntOffset, rtlAware: Boolean) {
+        if (this.offset !== offset || this.rtlAware != rtlAware) invalidatePlacement()
+        this.offset = offset
+        this.rtlAware = rtlAware
+    }
+
     override fun MeasureScope.measure(
         measurable: Measurable,
         constraints: Constraints
@@ -207,20 +269,4 @@ private class OffsetPxModifier(
             }
         }
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        val otherModifier = other as? OffsetPxModifier ?: return false
-
-        return offset == otherModifier.offset &&
-            rtlAware == otherModifier.rtlAware
-    }
-
-    override fun hashCode(): Int {
-        var result = offset.hashCode()
-        result = 31 * result + rtlAware.hashCode()
-        return result
-    }
-
-    override fun toString(): String = "OffsetPxModifier(offset=$offset, rtlAware=$rtlAware)"
 }

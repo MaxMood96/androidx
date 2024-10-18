@@ -14,21 +14,29 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe.integration.config
 
-import androidx.annotation.RequiresApi
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.params.StreamConfigurationMap
+import android.os.Build
+import androidx.annotation.Nullable
 import androidx.annotation.VisibleForTesting
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraPipe
+import androidx.camera.camera2.pipe.DoNotDisturbException
+import androidx.camera.camera2.pipe.core.Log
 import androidx.camera.camera2.pipe.integration.adapter.CameraControlAdapter
 import androidx.camera.camera2.pipe.integration.adapter.CameraInfoAdapter
 import androidx.camera.camera2.pipe.integration.adapter.CameraInternalAdapter
+import androidx.camera.camera2.pipe.integration.adapter.ZslControl
+import androidx.camera.camera2.pipe.integration.adapter.ZslControlImpl
+import androidx.camera.camera2.pipe.integration.adapter.ZslControlNoOpImpl
 import androidx.camera.camera2.pipe.integration.compat.Camera2CameraControlCompat
+import androidx.camera.camera2.pipe.integration.compat.CameraCompatModule
 import androidx.camera.camera2.pipe.integration.compat.EvCompCompat
 import androidx.camera.camera2.pipe.integration.compat.ZoomCompat
+import androidx.camera.camera2.pipe.integration.compat.quirk.CameraQuirks
 import androidx.camera.camera2.pipe.integration.impl.CameraPipeCameraProperties
 import androidx.camera.camera2.pipe.integration.impl.CameraProperties
 import androidx.camera.camera2.pipe.integration.impl.ComboRequestListener
@@ -36,6 +44,7 @@ import androidx.camera.camera2.pipe.integration.impl.EvCompControl
 import androidx.camera.camera2.pipe.integration.impl.FlashControl
 import androidx.camera.camera2.pipe.integration.impl.FocusMeteringControl
 import androidx.camera.camera2.pipe.integration.impl.State3AControl
+import androidx.camera.camera2.pipe.integration.impl.StillCaptureRequestControl
 import androidx.camera.camera2.pipe.integration.impl.TorchControl
 import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.camera2.pipe.integration.impl.ZoomControl
@@ -45,41 +54,44 @@ import androidx.camera.core.impl.CameraControlInternal
 import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.core.impl.CameraInternal
 import androidx.camera.core.impl.CameraThreadConfig
+import androidx.camera.core.impl.Quirks
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.Subcomponent
+import javax.inject.Named
 import javax.inject.Scope
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 
-@Scope
-annotation class CameraScope
+@Scope public annotation class CameraScope
 
 /** Dependency bindings for adapting an individual [CameraInternal] instance to [CameraPipe] */
 @OptIn(ExperimentalCamera2Interop::class)
 @Module(
-    includes = [
-        ZoomCompat.Bindings::class,
-        ZoomControl.Bindings::class,
-        EvCompCompat.Bindings::class,
-        EvCompControl.Bindings::class,
-        FlashControl.Bindings::class,
-        FocusMeteringControl.Bindings::class,
-        State3AControl.Bindings::class,
-        TorchControl.Bindings::class,
-        Camera2CameraControlCompat.Bindings::class,
-    ],
+    includes =
+        [
+            Camera2CameraControlCompat.Bindings::class,
+            EvCompCompat.Bindings::class,
+            EvCompControl.Bindings::class,
+            FlashControl.Bindings::class,
+            FocusMeteringControl.Bindings::class,
+            State3AControl.Bindings::class,
+            StillCaptureRequestControl.Bindings::class,
+            TorchControl.Bindings::class,
+            ZoomCompat.Bindings::class,
+            ZoomControl.Bindings::class,
+        ],
     subcomponents = [UseCaseCameraComponent::class]
 )
-abstract class CameraModule {
-    companion object {
+public abstract class CameraModule {
+    public companion object {
 
         @CameraScope
         @Provides
-        fun provideUseCaseThreads(
+        public fun provideUseCaseThreads(
             cameraConfig: CameraConfig,
             cameraThreadConfig: CameraThreadConfig
         ): UseCaseThreads {
@@ -87,71 +99,107 @@ abstract class CameraModule {
             val executor = cameraThreadConfig.cameraExecutor
             val dispatcher = cameraThreadConfig.cameraExecutor.asCoroutineDispatcher()
 
-            val cameraScope = CoroutineScope(
-                SupervisorJob() +
-                    dispatcher +
-                    CoroutineName("CXCP-UseCase-${cameraConfig.cameraId.value}")
-            )
+            val cameraScope =
+                CoroutineScope(
+                    SupervisorJob() +
+                        dispatcher +
+                        CoroutineName("CXCP-UseCase-${cameraConfig.cameraId.value}")
+                )
 
-            return UseCaseThreads(
-                cameraScope,
-                executor,
-                dispatcher
-            )
+            return UseCaseThreads(cameraScope, executor, dispatcher)
         }
 
         @CameraScope
         @Provides
-        fun provideCamera2CameraControl(
+        public fun provideCamera2CameraControl(
             compat: Camera2CameraControlCompat,
             threads: UseCaseThreads,
-            @VisibleForTesting
-            requestListener: ComboRequestListener,
-        ) = Camera2CameraControl.create(
-            compat,
-            threads,
-            requestListener
-        )
+            @VisibleForTesting requestListener: ComboRequestListener,
+        ): Camera2CameraControl = Camera2CameraControl.create(compat, threads, requestListener)
 
+        @CameraScope
+        @Nullable
         @Provides
-        fun provideCameraMetadata(cameraPipe: CameraPipe, config: CameraConfig): CameraMetadata =
-            checkNotNull(cameraPipe.cameras().awaitCameraMetadata(config.cameraId))
+        public fun provideCameraMetadata(
+            cameraPipe: CameraPipe,
+            config: CameraConfig
+        ): CameraMetadata? {
+            try {
+                return cameraPipe.cameras().awaitCameraMetadata(config.cameraId)
+            } catch (exception: DoNotDisturbException) {
+                Log.error { "Failed to inject camera metadata: Do Not Disturb mode is on." }
+            }
+            return null
+        }
+
+        @CameraScope
+        @Provides
+        @Named("CameraId")
+        public fun provideCameraIdString(config: CameraConfig): String = config.cameraId.value
+
+        @CameraScope
+        @Nullable
+        @Provides
+        public fun provideStreamConfigurationMap(
+            cameraMetadata: CameraMetadata?
+        ): StreamConfigurationMap? {
+            return cameraMetadata?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        }
+
+        @CameraScope
+        @Provides
+        @Named("cameraQuirksValues")
+        public fun provideCameraQuirksValues(cameraQuirks: CameraQuirks): Quirks =
+            cameraQuirks.quirks
+
+        @CameraScope
+        @Provides
+        public fun provideZslControl(cameraProperties: CameraProperties): ZslControl {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                return ZslControlImpl(cameraProperties)
+            } else {
+                return ZslControlNoOpImpl()
+            }
+        }
     }
 
     @Binds
-    abstract fun bindCameraProperties(impl: CameraPipeCameraProperties): CameraProperties
+    public abstract fun bindCameraProperties(impl: CameraPipeCameraProperties): CameraProperties
+
+    @Binds public abstract fun bindCameraInternal(adapter: CameraInternalAdapter): CameraInternal
 
     @Binds
-    abstract fun bindCameraInternal(adapter: CameraInternalAdapter): CameraInternal
+    public abstract fun bindCameraInfoInternal(adapter: CameraInfoAdapter): CameraInfoInternal
 
     @Binds
-    abstract fun bindCameraInfoInternal(adapter: CameraInfoAdapter): CameraInfoInternal
-
-    @Binds
-    abstract fun bindCameraControlInternal(adapter: CameraControlAdapter): CameraControlInternal
+    public abstract fun bindCameraControlInternal(
+        adapter: CameraControlAdapter
+    ): CameraControlInternal
 }
 
 /** Configuration properties used when creating a [CameraInternal] instance. */
 @Module
-class CameraConfig(val cameraId: CameraId) {
-    @Provides
-    fun provideCameraConfig(): CameraConfig = this
+public class CameraConfig(public val cameraId: CameraId) {
+    @Provides public fun provideCameraConfig(): CameraConfig = this
 }
 
 /** Dagger subcomponent for a single [CameraInternal] instance. */
 @CameraScope
 @Subcomponent(
-    modules = [
-        CameraModule::class,
-        CameraConfig::class
-    ]
+    modules =
+        [
+            CameraModule::class,
+            CameraConfig::class,
+            CameraCompatModule::class,
+        ]
 )
-interface CameraComponent {
+public interface CameraComponent {
     @Subcomponent.Builder
-    interface Builder {
-        fun config(config: CameraConfig): Builder
-        fun build(): CameraComponent
+    public interface Builder {
+        public fun config(config: CameraConfig): Builder
+
+        public fun build(): CameraComponent
     }
 
-    fun getCameraInternal(): CameraInternal
+    public fun getCameraInternal(): CameraInternal
 }

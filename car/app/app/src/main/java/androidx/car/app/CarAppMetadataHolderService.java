@@ -25,7 +25,6 @@ import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -36,7 +35,6 @@ import androidx.annotation.RestrictTo;
  *
  * <p>The service is only used to expose metadata defined in the library's manifest.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class CarAppMetadataHolderService extends Service {
@@ -70,7 +68,6 @@ public class CarAppMetadataHolderService extends Service {
 
     @RequiresApi(24)
     private static class Api24Impl {
-        @DoNotInline
         static int getDisabledComponentFlag() {
             return PackageManager.MATCH_DISABLED_COMPONENTS;
         }

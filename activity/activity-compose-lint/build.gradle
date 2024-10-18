@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.BundleInsideHelper
 import androidx.build.LibraryType
 
@@ -25,15 +32,19 @@ plugins {
 BundleInsideHelper.forInsideLintJar(project)
 
 dependencies {
-    compileOnly(libs.androidLintMinComposeApi)
+    compileOnly(libs.androidLintMinApi)
     compileOnly(libs.kotlinStdlib)
-    bundleInside(projectOrArtifact(":compose:lint:common"))
+    bundleInside(project(":compose:lint:common"))
+    compileOnly(libs.intellijCore)
+    compileOnly(libs.uast)
+    compileOnly(libs.intellijKotlinCompiler)
 
-    testImplementation(projectOrArtifact(":compose:lint:common-test"))
+
+    testImplementation(project(":compose:lint:common-test"))
     testImplementation(libs.kotlinStdlib)
-    testImplementation(libs.kotlinReflect)
+    testRuntimeOnly(libs.kotlinReflect)
     testImplementation(libs.kotlinStdlibJdk8)
-    testImplementation(libs.androidLint)
+    testImplementation(libs.androidLintPrevApi)
     testImplementation(libs.androidLintTests)
     testImplementation(libs.junit)
     testImplementation(libs.truth)

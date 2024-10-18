@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package androidx.room.androidx.room.integration.kotlintestapp.dao
+package androidx.room.integration.kotlintestapp.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.androidx.room.integration.kotlintestapp.vo.User
+import androidx.room.integration.kotlintestapp.vo.User
 
 @Dao
 interface UsersDao {
-    @Insert
-    fun insertUser(user: User)
+    @Insert fun insertUser(user: User)
 
-    @Query("SELECT * FROM user")
-    fun getUsers(): List<User>
+    @Query("SELECT * FROM user") fun getUsers(): List<User>
 }

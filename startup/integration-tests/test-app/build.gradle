@@ -21,6 +21,7 @@ plugins {
 }
 
 android {
+    compileSdkVersion 35
     buildTypes {
         getByName("release") {
             minifyEnabled = true
@@ -35,6 +36,6 @@ dependencies {
     implementation(project(":startup:integration-tests:first-library"))
     implementation(project(":startup:integration-tests:second-library"))
     implementation(libs.constraintLayout)
-    implementation("androidx.arch.core:core-runtime:2.1.0")
+    implementation("androidx.arch.core:core-runtime:2.2.0")
     implementation("androidx.appcompat:appcompat:1.2.0")
 }

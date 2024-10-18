@@ -14,181 +14,174 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalComposeUiApi::class)
-
 package androidx.compose.animation.demos.lookahead
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector2D
+import androidx.compose.animation.core.DeferredTargetAnimation
+import androidx.compose.animation.core.ExperimentalAnimatableApi
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.LookaheadLayout
-import androidx.compose.ui.layout.LookaheadLayoutScope
+import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.approachLayout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun SceneHost(modifier: Modifier = Modifier, content: @Composable SceneScope.() -> Unit) {
-    LookaheadLayout(
-        modifier = modifier,
-        content = {
+    Box(modifier) {
+        LookaheadScope {
             val sceneScope = remember { SceneScope(this) }
             sceneScope.content()
-        },
-        measurePolicy = { measurables, constraints ->
-            val placeables = measurables.map { it.measure(constraints) }
-            val maxWidth: Int = placeables.maxOf { it.width }
-            val maxHeight = placeables.maxOf { it.height }
-            // Position the children.
-            layout(maxWidth, maxHeight) {
-                placeables.forEach {
-                    it.place(0, 0)
-                }
-            }
-        })
+        }
+    }
 }
 
-private const val debugSharedElement = false
+private const val debugSharedElement = true
 
-class SceneScope internal constructor(
-    lookaheadLayoutScope: LookaheadLayoutScope
-) : LookaheadLayoutScope by lookaheadLayoutScope {
+class SceneScope internal constructor(lookaheadScope: LookaheadScope) :
+    LookaheadScope by lookaheadScope {
+    @OptIn(ExperimentalAnimatableApi::class)
     fun Modifier.sharedElement(): Modifier = composed {
-        var offsetAnimation: Animatable<IntOffset, AnimationVector2D>?
-            by remember { mutableStateOf(null) }
-        var sizeAnimation: Animatable<IntSize, AnimationVector2D>?
-            by remember { mutableStateOf(null) }
+        val offsetAnimation: DeferredTargetAnimation<IntOffset, AnimationVector2D> = remember {
+            DeferredTargetAnimation(IntOffset.VectorConverter)
+        }
+        val sizeAnimation: DeferredTargetAnimation<IntSize, AnimationVector2D> = remember {
+            DeferredTargetAnimation(IntSize.VectorConverter)
+        }
 
         var placementOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
-        var targetOffset: IntOffset? by remember {
-            mutableStateOf(null)
-        }
-        var targetSize: IntSize? by remember {
-            mutableStateOf(null)
-        }
+        val coroutineScope = rememberCoroutineScope()
 
-        LaunchedEffect(Unit) {
-            launch {
-                snapshotFlow {
-                    targetOffset
-                }.collect { target ->
-                    if (target != null && target != offsetAnimation?.targetValue) {
-                        offsetAnimation?.run {
-                            launch { animateTo(target) }
-                        } ?: Animatable(target, IntOffset.VectorConverter).let {
-                            offsetAnimation = it
-                        }
-                    }
-                }
-            }
-            launch {
-                snapshotFlow {
-                    targetSize
-                }.collect { target ->
-                    if (target != null && target != sizeAnimation?.targetValue) {
-                        sizeAnimation?.run {
-                            launch { animateTo(target) }
-                        } ?: Animatable(target, IntSize.VectorConverter).let {
-                            sizeAnimation = it
-                        }
-                    }
-                }
-            }
-        }
-        this
-            .onPlaced { lookaheadScopeCoordinates, layoutCoordinates ->
-                targetOffset =
-                    lookaheadScopeCoordinates.localLookaheadPositionOf(layoutCoordinates).round()
-                placementOffset = lookaheadScopeCoordinates.localPositionOf(
-                    layoutCoordinates, Offset.Zero
-                ).round()
-            }
-            .drawBehind {
+        this.drawBehind {
                 if (debugSharedElement) {
                     drawRect(
                         color = Color.Black,
                         style = Stroke(2f),
-                        topLeft = (targetOffset!! - placementOffset).toOffset(),
-                        size = targetSize!!.toSize()
+                        topLeft = (offsetAnimation.pendingTarget!! - placementOffset).toOffset(),
+                        size = sizeAnimation.pendingTarget!!.toSize()
                     )
                 }
             }
-            .intermediateLayout { measurable, _, lookaheadSize ->
-                targetSize = lookaheadSize
-                val (width, height) = sizeAnimation?.value ?: lookaheadSize
-                val animatedConstraints = Constraints(
-                    minWidth = width,
-                    maxWidth = width,
-                    minHeight = height,
-                    maxHeight = height
-                )
-                val placeable = measurable.measure(animatedConstraints)
-                layout(placeable.width, placeable.height) {
-                    val (x, y) = offsetAnimation?.run {
-                        value - placementOffset
-                    } ?: (targetOffset!! - placementOffset)
-                    placeable.place(x, y)
+            .approachLayout(
+                isMeasurementApproachInProgress = {
+                    sizeAnimation.updateTarget(it, coroutineScope)
+                    !sizeAnimation.isIdle
+                },
+                isPlacementApproachInProgress = {
+                    val target = lookaheadScopeCoordinates.localLookaheadPositionOf(it)
+                    offsetAnimation.updateTarget(target.round(), coroutineScope, spring())
+                    !offsetAnimation.isIdle
+                }
+            ) { measurable, _ ->
+                with(coroutineScope) {
+                    val (width, height) =
+                        sizeAnimation.updateTarget(
+                            lookaheadSize,
+                            coroutineScope,
+                            spring(stiffness = Spring.StiffnessMediumLow)
+                        )
+                    val animatedConstraints = Constraints.fixed(width, height)
+                    val placeable = measurable.measure(animatedConstraints)
+                    layout(placeable.width, placeable.height) {
+                        val (x, y) =
+                            offsetAnimation.updateTargetBasedOnCoordinates(
+                                this@SceneScope,
+                                this@layout,
+                                this@with,
+                                spring(stiffness = Spring.StiffnessMediumLow),
+                            )
+                        coordinates?.let {
+                            placementOffset =
+                                lookaheadScopeCoordinates.localPositionOf(it, Offset.Zero).round()
+                        }
+                        placeable.place(x, y)
+                    }
                 }
             }
     }
+}
 
-    fun Modifier.animateSizeAndSkipToFinalLayout() = composed {
-        var sizeAnimation: Animatable<IntSize, AnimationVector2D>? by remember {
-            mutableStateOf(null)
-        }
-        var targetSize: IntSize? by remember { mutableStateOf(null) }
-        LaunchedEffect(Unit) {
-            snapshotFlow { targetSize }.collect { target ->
-                if (target != null && target != sizeAnimation?.targetValue) {
-                    sizeAnimation?.run {
-                        launch { animateTo(target) }
-                    } ?: Animatable(target, IntSize.VectorConverter).let {
-                        sizeAnimation = it
-                    }
-                }
-            }
-        }
-        this
-            .drawBehind {
-                if (debugSharedElement) {
-                    drawRect(
-                        color = Color.Black,
-                        style = Stroke(2f),
-                        topLeft = Offset.Zero,
-                        size = targetSize!!.toSize()
-                    )
-                }
-            }
-            .intermediateLayout { measurable, constraints, lookaheadSize ->
-                targetSize = lookaheadSize
-                val (width, height) = sizeAnimation?.value ?: lookaheadSize
-                val placeable = measurable.measure(
-                    Constraints.fixed(lookaheadSize.width, lookaheadSize.height)
+@OptIn(ExperimentalAnimatableApi::class)
+fun Modifier.animateSizeAndSkipToFinalLayout() = composed {
+    val sizeAnimation = remember { DeferredTargetAnimation(IntSize.VectorConverter) }
+    var targetSize: IntSize? by remember { mutableStateOf(null) }
+    val scope = rememberCoroutineScope()
+    this.drawBehind {
+            if (debugSharedElement) {
+                drawRect(
+                    color = Color.Black,
+                    style = Stroke(2f),
+                    topLeft = Offset.Zero,
+                    size = targetSize!!.toSize()
                 )
-                // Make sure the content is aligned to topStart
-                val wrapperWidth = width.coerceIn(constraints.minWidth, constraints.maxWidth)
-                val wrapperHeight = height.coerceIn(constraints.minHeight, constraints.maxHeight)
-                layout(width, height) {
-                    placeable.place(-(wrapperWidth - width) / 2, -(wrapperHeight - height) / 2)
+            }
+        }
+        .approachLayout(
+            isMeasurementApproachInProgress = {
+                sizeAnimation.updateTarget(it, scope)
+                !sizeAnimation.isIdle
+            }
+        ) { measurable, constraints ->
+            targetSize = lookaheadSize
+            val (width, height) = sizeAnimation.updateTarget(lookaheadSize, scope)
+            val placeable =
+                measurable.measure(Constraints.fixed(lookaheadSize.width, lookaheadSize.height))
+            // Make sure the content is aligned to topStart
+            val wrapperWidth = width.coerceIn(constraints.minWidth, constraints.maxWidth)
+            val wrapperHeight = height.coerceIn(constraints.minHeight, constraints.maxHeight)
+            layout(width, height) {
+                placeable.place(-(wrapperWidth - width) / 2, -(wrapperHeight - height) / 2)
+            }
+        }
+}
+
+@OptIn(ExperimentalAnimatableApi::class)
+internal fun DeferredTargetAnimation<IntOffset, AnimationVector2D>.updateTargetBasedOnCoordinates(
+    lookaheadScope: LookaheadScope,
+    placementScope: Placeable.PlacementScope,
+    coroutineScope: CoroutineScope,
+    animationSpec: FiniteAnimationSpec<IntOffset>,
+): IntOffset {
+    with(lookaheadScope) {
+        with(placementScope) {
+            coordinates?.let { coordinates ->
+                with(placementScope) {
+                    val targetOffset =
+                        lookaheadScopeCoordinates.localLookaheadPositionOf(coordinates)
+                    val animOffset =
+                        updateTarget(
+                            targetOffset.round(),
+                            coroutineScope,
+                            animationSpec,
+                        )
+                    val current =
+                        lookaheadScopeCoordinates.localPositionOf(coordinates, Offset.Zero).round()
+                    return (animOffset - current)
                 }
             }
+
+            return IntOffset.Zero
+        }
     }
 }

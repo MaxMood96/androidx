@@ -17,8 +17,6 @@ import androidx.core.i18n.messageformat_icu.util.ICUCloneNotSupportedException;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import androidx.core.i18n.messageformat_icu.impl.ICUConfig;
-
 //Note: Minimize ICU dependencies, only use a very small part of the ICU core.
 //In particular, do not depend on *Format classes.
 
@@ -77,14 +75,12 @@ import androidx.core.i18n.messageformat_icu.impl.ICUConfig;
  *
  * icu_annot::stable ICU 4.8
  * @author Markus Scherer
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public final class MessagePattern implements Cloneable, Freezable<MessagePattern> {
     /**
      * Mode for when an apostrophe starts quoted literal text for MessageFormat output.
-     * The default is DOUBLE_OPTIONAL unless overridden via ICUConfig
-     * (/com/ibm/icu/ICUConfig.properties).
+     * The default is {@link ApostropheMode#DOUBLE_OPTIONAL}.
      * <p>
      * A pair of adjacent apostrophes always results in a single apostrophe in the output,
      * even when the pair is between two single, text-quoting apostrophes.
@@ -894,7 +890,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
     /**
      * Freezes this object, making it immutable and thread-safe.
-     * @return this 
+     * @return this
      * icu_annot::stable ICU 4.8
      */
     @Override
@@ -942,7 +938,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             char c=msg.charAt(index++);
             if(c=='\'') {
                 if(index==msg.length()) {
-                    // The apostrophe is the last character in the pattern. 
+                    // The apostrophe is the last character in the pattern.
                     // Add a Part for auto-quoting.
                     addPart(Part.Type.INSERT_CHAR, index, 0, '\'');  // value=char to be inserted
                     needsAutoQuoting=true;
@@ -1613,8 +1609,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     private boolean frozen;
 
     private static final ApostropheMode defaultAposMode=
-        ApostropheMode.valueOf(
-            ICUConfig.get("com.ibm.icu.text.MessagePattern.ApostropheMode", "DOUBLE_OPTIONAL"));
+        ApostropheMode.DOUBLE_OPTIONAL;
 
     private static final ArgType[] argTypes=ArgType.values();
 }

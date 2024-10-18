@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.BundleInsideHelper
 import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -24,25 +31,17 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-BundleInsideHelper.forInsideAar(
-        project,
-        /* from = */ "com.google.protobuf",
-        /* to =   */ "androidx.health.platform.client.proto"
-)
-
 dependencies {
     api(libs.kotlinStdlib)
     // Add dependencies here
     api("androidx.activity:activity:1.2.0")
-    api("androidx.annotation:annotation:1.2.0")
-    bundleInside(project(
-            path: ":health:connect:connect-client-proto",
-            configuration: "export"
-    ))
+    api("androidx.annotation:annotation:1.8.1")
+    implementation(project(":health:connect:connect-client-proto"))
     implementation(libs.guavaListenableFuture)
     implementation(libs.guavaAndroid)
     implementation(libs.kotlinCoroutinesAndroid)
     implementation(libs.kotlinCoroutinesGuava)
+    implementation("androidx.core:core-ktx:1.12.0")
 
     testImplementation(libs.testCore)
     testImplementation(libs.testRunner)
@@ -58,7 +57,12 @@ dependencies {
     testImplementation(libs.espressoIntents)
     testImplementation(libs.kotlinReflect)
 
-    samples(project(":health:connect:connect-client-samples"))
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.kotlinCoroutinesTest)
+    androidTestImplementation(libs.kotlinReflect)
+    androidTestImplementation(libs.kotlinTest)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.truth)
 }
 
 android {
@@ -68,16 +72,19 @@ android {
     buildFeatures {
         aidl = true
     }
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     testOptions.unitTests.includeAndroidResources = true
     namespace "androidx.health.connect.client"
+    compileSdk = 35
 }
 
 androidx {
-    name = "AndroidX Health Connect Client Library"
+    name = "Health Connect Client"
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "read or write user's health and fitness records."
+    legacyDisableKotlinStrictApiMode = true
+    samples(project(":health:connect:connect-client-samples"))
 }

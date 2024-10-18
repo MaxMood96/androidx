@@ -21,11 +21,7 @@ import android.os.Parcelable
 import androidx.annotation.RestrictTo
 import androidx.health.services.client.data.ExerciseGoal
 
-/**
- * Request for adding a [ExerciseGoal] to an exercise.
- *
- * @hide
- */
+/** Request for adding a [ExerciseGoal] to an exercise. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public data class ExerciseGoalRequest(val packageName: String, val exerciseGoal: ExerciseGoal<*>) :
     Parcelable {

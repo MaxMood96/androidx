@@ -29,7 +29,7 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
-import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.impl.utils.MainThreadAsyncHandler;
 
 import java.util.Map;
@@ -39,7 +39,6 @@ import java.util.concurrent.Executor;
 /**
  * Helper for accessing features in {@link CameraManager} in a backwards compatible fashion.
  */
-@RequiresApi(21)
 public final class CameraManagerCompat {
     private final CameraManagerCompatImpl mImpl;
 
@@ -76,9 +75,8 @@ public final class CameraManagerCompat {
     /**
      * Get a {@link CameraManagerCompat} instance from a provided {@link CameraManagerCompatImpl}.
      *
-     * @hide
      */
-    @RestrictTo(RestrictTo.Scope.TESTS)
+    @VisibleForTesting
     @NonNull
     public static CameraManagerCompat from(@NonNull final CameraManagerCompatImpl impl) {
         return new CameraManagerCompat(impl);
@@ -186,9 +184,8 @@ public final class CameraManagerCompat {
             characteristics = mCameraCharacteristicsMap.get(cameraId);
             if (characteristics == null) {
                 try {
-                    characteristics =
-                            CameraCharacteristicsCompat.toCameraCharacteristicsCompat(
-                                    mImpl.getCameraCharacteristics(cameraId));
+                    characteristics = CameraCharacteristicsCompat.toCameraCharacteristicsCompat(
+                            mImpl.getCameraCharacteristics(cameraId), cameraId);
                     mCameraCharacteristicsMap.put(cameraId, characteristics);
                 } catch (AssertionError e) {
                     // Some devices may throw AssertionError when creating CameraCharacteristics
@@ -305,7 +302,6 @@ public final class CameraManagerCompat {
         }
     }
 
-    @RequiresApi(21)
     static final class AvailabilityCallbackExecutorWrapper extends
             CameraManager.AvailabilityCallback {
 

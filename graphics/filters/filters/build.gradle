@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
@@ -23,17 +30,20 @@ plugins {
 }
 
 dependencies {
-    def media3Version = '1.0.0-beta03'
+    def media3Version = '1.0.0'
 
     api(libs.kotlinStdlib)
 
     // Add dependencies here
-    implementation("androidx.annotation:annotation:1.1.0")
+    implementation("androidx.annotation:annotation:1.8.1")
     implementation('androidx.media3:media3-effect:' + media3Version)
     implementation('androidx.media3:media3-common:' + media3Version)
     implementation('androidx.media3:media3-ui:' + media3Version)
     implementation('androidx.media3:media3-exoplayer:' + media3Version)
     implementation('androidx.media3:media3-transformer:' + media3Version)
+
+    // Force upgrade since 1.2.0 is not compatible with latest lint.
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
 
     // Test dependencies
     androidTestImplementation(libs.testExtJunit)
@@ -44,10 +54,6 @@ dependencies {
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-    }
-
     namespace "androidx.graphics.filters"
 }
 
@@ -56,4 +62,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "Apply visual filters to images, video or UI in real time."
+    legacyDisableKotlinStrictApiMode = true
 }

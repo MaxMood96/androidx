@@ -18,6 +18,10 @@ package androidx.work.impl.background.systemjob;
 import static android.content.Context.JOB_SCHEDULER_SERVICE;
 
 import static androidx.work.OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST;
+import static androidx.work.impl.WorkManagerImpl.MIN_JOB_SCHEDULER_API_LEVEL;
+import static androidx.work.impl.background.systemjob.JobSchedulerExtKt.createErrorMessage;
+import static androidx.work.impl.background.systemjob.JobSchedulerExtKt.getSafePendingJobs;
+import static androidx.work.impl.background.systemjob.JobSchedulerExtKt.getWmJobScheduler;
 import static androidx.work.impl.background.systemjob.SystemJobInfoConverter.EXTRA_WORK_SPEC_GENERATION;
 import static androidx.work.impl.background.systemjob.SystemJobInfoConverter.EXTRA_WORK_SPEC_ID;
 import static androidx.work.impl.model.SystemIdInfoKt.systemIdInfo;
@@ -37,11 +41,11 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Consumer;
+import androidx.work.Configuration;
 import androidx.work.Logger;
 import androidx.work.WorkInfo;
 import androidx.work.impl.Scheduler;
 import androidx.work.impl.WorkDatabase;
-import androidx.work.impl.WorkManagerImpl;
 import androidx.work.impl.model.SystemIdInfo;
 import androidx.work.impl.model.WorkGenerationalId;
 import androidx.work.impl.model.WorkSpec;
@@ -56,49 +60,53 @@ import java.util.Set;
 
 /**
  * A class that schedules work using {@link android.app.job.JobScheduler}.
- *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@RequiresApi(WorkManagerImpl.MIN_JOB_SCHEDULER_API_LEVEL)
+@RequiresApi(MIN_JOB_SCHEDULER_API_LEVEL)
 public class SystemJobScheduler implements Scheduler {
 
     private static final String TAG = Logger.tagWithPrefix("SystemJobScheduler");
 
     private final Context mContext;
     private final JobScheduler mJobScheduler;
-    private final WorkManagerImpl mWorkManager;
     private final SystemJobInfoConverter mSystemJobInfoConverter;
 
-    public SystemJobScheduler(@NonNull Context context, @NonNull WorkManagerImpl workManager) {
+    private final WorkDatabase mWorkDatabase;
+    private final Configuration mConfiguration;
+
+    public SystemJobScheduler(@NonNull Context context, @NonNull WorkDatabase workDatabase,
+            @NonNull Configuration configuration) {
         this(context,
-                workManager,
-                (JobScheduler) context.getSystemService(JOB_SCHEDULER_SERVICE),
-                new SystemJobInfoConverter(context)
+                workDatabase,
+                configuration,
+                getWmJobScheduler(context),
+                new SystemJobInfoConverter(context, configuration.getClock(),
+                        configuration.isMarkingJobsAsImportantWhileForeground())
         );
     }
 
     @VisibleForTesting
     public SystemJobScheduler(
             @NonNull Context context,
-            @NonNull WorkManagerImpl workManager,
+            @NonNull WorkDatabase workDatabase,
+            @NonNull Configuration configuration,
             @NonNull JobScheduler jobScheduler,
             @NonNull SystemJobInfoConverter systemJobInfoConverter) {
         mContext = context;
-        mWorkManager = workManager;
         mJobScheduler = jobScheduler;
         mSystemJobInfoConverter = systemJobInfoConverter;
+        mWorkDatabase = workDatabase;
+        mConfiguration = configuration;
     }
 
     @Override
     public void schedule(@NonNull WorkSpec... workSpecs) {
-        WorkDatabase workDatabase = mWorkManager.getWorkDatabase();
-        IdGenerator idGenerator = new IdGenerator(workDatabase);
+        IdGenerator idGenerator = new IdGenerator(mWorkDatabase);
 
         for (WorkSpec workSpec : workSpecs) {
-            workDatabase.beginTransaction();
+            mWorkDatabase.beginTransaction();
             try {
-                WorkSpec currentDbWorkSpec = workDatabase.workSpecDao().getWorkSpec(workSpec.id);
+                WorkSpec currentDbWorkSpec = mWorkDatabase.workSpecDao().getWorkSpec(workSpec.id);
                 if (currentDbWorkSpec == null) {
                     Logger.get().warning(
                             TAG,
@@ -107,7 +115,7 @@ public class SystemJobScheduler implements Scheduler {
 
                     // Marking this transaction as successful, as we don't want this transaction
                     // to affect transactions for unrelated WorkSpecs.
-                    workDatabase.setTransactionSuccessful();
+                    mWorkDatabase.setTransactionSuccessful();
                     continue;
                 } else if (currentDbWorkSpec.state != WorkInfo.State.ENQUEUED) {
                     Logger.get().warning(
@@ -117,21 +125,19 @@ public class SystemJobScheduler implements Scheduler {
 
                     // Marking this transaction as successful, as we don't want this transaction
                     // to affect transactions for unrelated WorkSpecs.
-                    workDatabase.setTransactionSuccessful();
+                    mWorkDatabase.setTransactionSuccessful();
                     continue;
                 }
                 WorkGenerationalId generationalId = generationalId(workSpec);
-                SystemIdInfo info = workDatabase.systemIdInfoDao().getSystemIdInfo(generationalId);
+                SystemIdInfo info = mWorkDatabase.systemIdInfoDao().getSystemIdInfo(generationalId);
 
                 int jobId = info != null ? info.systemId : idGenerator.nextJobSchedulerIdWithRange(
-                        mWorkManager.getConfiguration().getMinJobSchedulerId(),
-                        mWorkManager.getConfiguration().getMaxJobSchedulerId());
+                        mConfiguration.getMinJobSchedulerId(),
+                        mConfiguration.getMaxJobSchedulerId());
 
                 if (info == null) {
                     SystemIdInfo newSystemIdInfo = systemIdInfo(generationalId, jobId);
-                    mWorkManager.getWorkDatabase()
-                            .systemIdInfoDao()
-                            .insertSystemIdInfo(newSystemIdInfo);
+                    mWorkDatabase.systemIdInfoDao().insertSystemIdInfo(newSystemIdInfo);
                 }
 
                 scheduleInternal(workSpec, jobId);
@@ -163,15 +169,15 @@ public class SystemJobScheduler implements Scheduler {
                         } else {
                             // Create a new jobId
                             nextJobId = idGenerator.nextJobSchedulerIdWithRange(
-                                    mWorkManager.getConfiguration().getMinJobSchedulerId(),
-                                    mWorkManager.getConfiguration().getMaxJobSchedulerId());
+                                    mConfiguration.getMinJobSchedulerId(),
+                                    mConfiguration.getMaxJobSchedulerId());
                         }
                         scheduleInternal(workSpec, nextJobId);
                     }
                 }
-                workDatabase.setTransactionSuccessful();
+                mWorkDatabase.setTransactionSuccessful();
             } finally {
-                workDatabase.endTransaction();
+                mWorkDatabase.endTransaction();
             }
         }
     }
@@ -204,24 +210,13 @@ public class SystemJobScheduler implements Scheduler {
         } catch (IllegalStateException e) {
             // This only gets thrown if we exceed 100 jobs.  Let's figure out if WorkManager is
             // responsible for all these jobs.
-            List<JobInfo> jobs = getPendingJobs(mContext, mJobScheduler);
-            int numWorkManagerJobs = jobs != null ? jobs.size() : 0;
-
-            String message = String.format(Locale.getDefault(),
-                    "JobScheduler 100 job limit exceeded.  We count %d WorkManager "
-                            + "jobs in JobScheduler; we have %d tracked jobs in our DB; "
-                            + "our Configuration limit is %d.",
-                    numWorkManagerJobs,
-                    mWorkManager.getWorkDatabase().workSpecDao().getScheduledWork().size(),
-                    mWorkManager.getConfiguration().getMaxSchedulerLimit());
-
+            String message = createErrorMessage(mContext, mWorkDatabase, mConfiguration);
             Logger.get().error(TAG, message);
 
             IllegalStateException schedulingException = new IllegalStateException(message, e);
             // If a SchedulingExceptionHandler is defined, let the app handle the scheduling
             // exception.
-            Consumer<Throwable> handler =
-                    mWorkManager.getConfiguration().getSchedulingExceptionHandler();
+            Consumer<Throwable> handler = mConfiguration.getSchedulingExceptionHandler();
             if (handler != null) {
                 handler.accept(schedulingException);
             } else {
@@ -244,9 +239,7 @@ public class SystemJobScheduler implements Scheduler {
             }
 
             // Drop the relevant system ids.
-            mWorkManager.getWorkDatabase()
-                .systemIdInfoDao()
-                .removeSystemIdInfo(workSpecId);
+            mWorkDatabase.systemIdInfoDao().removeSystemIdInfo(workSpecId);
         }
     }
 
@@ -274,14 +267,22 @@ public class SystemJobScheduler implements Scheduler {
      *
      * @param context The {@link Context} for the {@link JobScheduler}
      */
-    public static void cancelAll(@NonNull Context context) {
+    public static void cancelAllInAllNamespaces(@NonNull Context context) {
+        // on API 34+ at first we cancel everything in our own namespace.
+        if (Build.VERSION.SDK_INT >= 34) {
+            JobScheduler namespacedScheduler = getWmJobScheduler(context);
+            namespacedScheduler.cancelAll();
+        }
+
+        // on API 34+ we still cancel our jobs in the default namespace, because
+        // there can be jobs scheduled by older version of library in the default namespace.
+        // On the previous APIs there is no namespaces, so we cancel our jobs in the only one
+        // global JobScheduler.
         JobScheduler jobScheduler = (JobScheduler) context.getSystemService(JOB_SCHEDULER_SERVICE);
-        if (jobScheduler != null) {
-            List<JobInfo> jobs = getPendingJobs(context, jobScheduler);
-            if (jobs != null && !jobs.isEmpty()) {
-                for (JobInfo jobInfo : jobs) {
-                    cancelJobById(jobScheduler, jobInfo.getId());
-                }
+        List<JobInfo> jobs = getPendingJobs(context, jobScheduler);
+        if (jobs != null && !jobs.isEmpty()) {
+            for (JobInfo jobInfo : jobs) {
+                cancelJobById(jobScheduler, jobInfo.getId());
             }
         }
     }
@@ -297,18 +298,19 @@ public class SystemJobScheduler implements Scheduler {
      * expected {@link WorkSpec}s, reset the {@code scheduleRequestedAt} bit, so that jobs can be
      * rescheduled.
      *
-     * @param context     The application {@link Context}
-     * @param workManager The {@link WorkManagerImpl} instance
+     * @param context      The application {@link Context}
+     * @param workDatabase The {@link WorkDatabase} instance
      * @return <code>true</code> if jobs need to be reconciled.
      */
     public static boolean reconcileJobs(
             @NonNull Context context,
-            @NonNull WorkManagerImpl workManager) {
-
-        JobScheduler jobScheduler = (JobScheduler) context.getSystemService(JOB_SCHEDULER_SERVICE);
+            @NonNull WorkDatabase workDatabase) {
+        // reconcile only in the namespaced jobscheduler.
+        // all the work is explicitly migrated to namespace on API 34+.
+        JobScheduler jobScheduler = getWmJobScheduler(context);
         List<JobInfo> jobs = getPendingJobs(context, jobScheduler);
         List<String> workManagerWorkSpecs =
-                workManager.getWorkDatabase().systemIdInfoDao().getWorkSpecIds();
+                workDatabase.systemIdInfoDao().getWorkSpecIds();
 
         int jobSize = jobs != null ? jobs.size() : 0;
         Set<String> jobSchedulerWorkSpecs = new HashSet<>(jobSize);
@@ -336,7 +338,6 @@ public class SystemJobScheduler implements Scheduler {
         }
 
         if (needsReconciling) {
-            WorkDatabase workDatabase = workManager.getWorkDatabase();
             workDatabase.beginTransaction();
             try {
                 WorkSpecDao workSpecDao = workDatabase.workSpecDao();
@@ -357,21 +358,10 @@ public class SystemJobScheduler implements Scheduler {
     }
 
     @Nullable
-    private static List<JobInfo> getPendingJobs(
+    static List<JobInfo> getPendingJobs(
             @NonNull Context context,
             @NonNull JobScheduler jobScheduler) {
-        List<JobInfo> pendingJobs = null;
-        try {
-            // Note: despite what the word "pending" and the associated Javadoc might imply, this is
-            // actually a list of all unfinished jobs that JobScheduler knows about for the current
-            // process.
-            pendingJobs = jobScheduler.getAllPendingJobs();
-        } catch (Throwable exception) {
-            // OEM implementation bugs in JobScheduler cause the app to crash. Avoid crashing.
-            Logger.get().error(TAG, "getAllPendingJobs() is not reliable on this device.",
-                    exception);
-        }
-
+        List<JobInfo> pendingJobs = getSafePendingJobs(jobScheduler);
         if (pendingJobs == null) {
             return null;
         }

@@ -1,0 +1,142 @@
+// Signature format: 4.0
+package androidx.wear.protolayout.material3 {
+
+  public final class ButtonGroupDefaults {
+    field public static final androidx.wear.protolayout.LayoutElementBuilders.Spacer DEFAULT_SPACER_BETWEEN_BUTTON_GROUPS;
+    field @Dimension(unit=androidx.annotation.Dimension.Companion.DP) public static final float DEFAULT_SPACER_WIDTH_DP = 4.0f;
+    field public static final androidx.wear.protolayout.material3.ButtonGroupDefaults INSTANCE;
+  }
+
+  public final class ButtonGroupKt {
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement buttonGroup(androidx.wear.protolayout.material3.MaterialScope, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float spacing, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.ButtonGroupScope,kotlin.Unit> content);
+  }
+
+  @androidx.wear.protolayout.material3.MaterialScopeMarker public final class ButtonGroupScope {
+    method public void buttonGroupItem(kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> content);
+  }
+
+  public final class ColorTokens {
+    field public static final int BACKGROUND = 0; // 0x0
+    field public static final int ERROR = 1; // 0x1
+    field public static final int ERROR_CONTAINER = 2; // 0x2
+    field public static final androidx.wear.protolayout.material3.ColorTokens INSTANCE;
+    field public static final int ON_BACKGROUND = 3; // 0x3
+    field public static final int ON_ERROR = 4; // 0x4
+    field public static final int ON_ERROR_CONTAINER = 5; // 0x5
+    field public static final int ON_PRIMARY = 6; // 0x6
+    field public static final int ON_PRIMARY_CONTAINER = 7; // 0x7
+    field public static final int ON_SECONDARY = 8; // 0x8
+    field public static final int ON_SECONDARY_CONTAINER = 9; // 0x9
+    field public static final int ON_SURFACE = 10; // 0xa
+    field public static final int ON_SURFACE_VARIANT = 11; // 0xb
+    field public static final int ON_TERTIARY = 12; // 0xc
+    field public static final int ON_TERTIARY_CONTAINER = 13; // 0xd
+    field public static final int OUTLINE = 14; // 0xe
+    field public static final int OUTLINE_VARIANT = 15; // 0xf
+    field public static final int PRIMARY = 16; // 0x10
+    field public static final int PRIMARY_CONTAINER = 17; // 0x11
+    field public static final int PRIMARY_DIM = 18; // 0x12
+    field public static final int SECONDARY = 19; // 0x13
+    field public static final int SECONDARY_CONTAINER = 20; // 0x14
+    field public static final int SECONDARY_DIM = 21; // 0x15
+    field public static final int SURFACE_CONTAINER = 22; // 0x16
+    field public static final int SURFACE_CONTAINER_HIGH = 23; // 0x17
+    field public static final int SURFACE_CONTAINER_LOW = 24; // 0x18
+    field public static final int TERTIARY = 25; // 0x19
+    field public static final int TERTIARY_CONTAINER = 26; // 0x1a
+    field public static final int TERTIARY_DIM = 27; // 0x1b
+  }
+
+  public final class EdgeButtonColors {
+    ctor public EdgeButtonColors(androidx.wear.protolayout.ColorBuilders.ColorProp container, androidx.wear.protolayout.ColorBuilders.ColorProp content);
+    method public androidx.wear.protolayout.ColorBuilders.ColorProp getContainer();
+    method public androidx.wear.protolayout.ColorBuilders.ColorProp getContent();
+    property public final androidx.wear.protolayout.ColorBuilders.ColorProp container;
+    property public final androidx.wear.protolayout.ColorBuilders.ColorProp content;
+  }
+
+  public final class EdgeButtonDefaults {
+    method public androidx.wear.protolayout.material3.EdgeButtonColors filled(androidx.wear.protolayout.material3.MaterialScope);
+    method public androidx.wear.protolayout.material3.EdgeButtonColors filledTonal(androidx.wear.protolayout.material3.MaterialScope);
+    method public androidx.wear.protolayout.material3.EdgeButtonColors filledVariant(androidx.wear.protolayout.material3.MaterialScope);
+    field public static final androidx.wear.protolayout.material3.EdgeButtonDefaults INSTANCE;
+  }
+
+  public final class EdgeButtonKt {
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement iconEdgeButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, androidx.wear.protolayout.TypeBuilders.StringProp contentDescription, optional androidx.wear.protolayout.material3.EdgeButtonColors colors, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> iconContent);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement textEdgeButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, androidx.wear.protolayout.TypeBuilders.StringProp contentDescription, optional androidx.wear.protolayout.material3.EdgeButtonColors colors, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> labelContent);
+  }
+
+  public final class EdgeButtonStyle {
+    field public static final androidx.wear.protolayout.material3.EdgeButtonStyle.Companion Companion;
+    field public static final androidx.wear.protolayout.material3.EdgeButtonStyle DEFAULT;
+    field public static final androidx.wear.protolayout.material3.EdgeButtonStyle TOP_ALIGN;
+  }
+
+  public static final class EdgeButtonStyle.Companion {
+  }
+
+  public final class IconKt {
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement icon(androidx.wear.protolayout.material3.MaterialScope, String protoLayoutResourceId, optional androidx.wear.protolayout.DimensionBuilders.ImageDimension size, optional androidx.wear.protolayout.ColorBuilders.ColorProp tintColor);
+  }
+
+  @androidx.wear.protolayout.material3.MaterialScopeMarker public class MaterialScope {
+    method public final androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters getDeviceConfiguration();
+    property public final androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters deviceConfiguration;
+  }
+
+  public final class MaterialScopeKt {
+    method public static androidx.wear.protolayout.ColorBuilders.ColorProp getColorProp(androidx.wear.protolayout.material3.MaterialScope, int colorToken);
+    method public static androidx.wear.protolayout.ModifiersBuilders.Corner getCorner(androidx.wear.protolayout.material3.MaterialScope, int shapeToken);
+    method public static boolean isDynamicThemeEnabled(android.content.Context context);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement materialScope(android.content.Context context, androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters deviceConfiguration, optional boolean allowDynamicTheme, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> layout);
+  }
+
+  @kotlin.DslMarker public @interface MaterialScopeMarker {
+  }
+
+  public final class PrimaryLayoutKt {
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement primaryLayout(androidx.wear.protolayout.material3.MaterialScope, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> mainSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? titleSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? bottomSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? labelForBottomSlot, optional androidx.wear.protolayout.ModifiersBuilders.Clickable? onClick);
+  }
+
+  public final class Shape {
+    field public static final int CORNER_EXTRA_LARGE = 0; // 0x0
+    field public static final int CORNER_EXTRA_SMALL = 1; // 0x1
+    field public static final int CORNER_FULL = 2; // 0x2
+    field public static final int CORNER_LARGE = 3; // 0x3
+    field public static final int CORNER_MEDIUM = 4; // 0x4
+    field public static final int CORNER_NONE = 5; // 0x5
+    field public static final int CORNER_SMALL = 6; // 0x6
+    field public static final androidx.wear.protolayout.material3.Shape INSTANCE;
+  }
+
+  public final class TextKt {
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement text(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.TypeBuilders.StringProp text, optional androidx.wear.protolayout.TypeBuilders.StringLayoutConstraint stringLayoutConstraint, optional int typography, optional androidx.wear.protolayout.ColorBuilders.ColorProp color, optional boolean italic, optional boolean underline, optional boolean scalable, optional int maxLines, optional int multilineAlignment, optional int overflow, optional androidx.wear.protolayout.ModifiersBuilders.Modifiers modifiers);
+  }
+
+  public final class Typography {
+    field public static final int ARC_MEDIUM = 0; // 0x0
+    field public static final int ARC_SMALL = 1; // 0x1
+    field public static final int BODY_EXTRA_SMALL = 2; // 0x2
+    field public static final int BODY_LARGE = 3; // 0x3
+    field public static final int BODY_MEDIUM = 4; // 0x4
+    field public static final int BODY_SMALL = 5; // 0x5
+    field public static final int DISPLAY_LARGE = 6; // 0x6
+    field public static final int DISPLAY_MEDIUM = 7; // 0x7
+    field public static final int DISPLAY_SMALL = 8; // 0x8
+    field public static final androidx.wear.protolayout.material3.Typography INSTANCE;
+    field public static final int LABEL_LARGE = 9; // 0x9
+    field public static final int LABEL_MEDIUM = 10; // 0xa
+    field public static final int LABEL_SMALL = 11; // 0xb
+    field public static final int NUMERAL_EXTRA_LARGE = 12; // 0xc
+    field public static final int NUMERAL_EXTRA_SMALL = 13; // 0xd
+    field public static final int NUMERAL_LARGE = 14; // 0xe
+    field public static final int NUMERAL_MEDIUM = 15; // 0xf
+    field public static final int NUMERAL_SMALL = 16; // 0x10
+    field public static final int TITLE_LARGE = 17; // 0x11
+    field public static final int TITLE_MEDIUM = 18; // 0x12
+    field public static final int TITLE_SMALL = 19; // 0x13
+  }
+
+}
+

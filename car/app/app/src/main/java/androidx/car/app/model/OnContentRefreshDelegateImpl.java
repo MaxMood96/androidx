@@ -35,7 +35,6 @@ import androidx.car.app.utils.RemoteUtils;
 /**
  * Implementation class for {@link OnContentRefreshListener}.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 @CarProtocol
@@ -73,6 +72,7 @@ public class OnContentRefreshDelegateImpl implements OnContentRefreshDelegate {
         mListener = null;
     }
 
+    @CarProtocol
     @KeepFields // We need to keep these stub for Bundler serialization logic.
     private static class OnContentRefreshListenerStub extends
             IOnContentRefreshListener.Stub {

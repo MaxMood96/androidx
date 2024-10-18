@@ -21,13 +21,17 @@ import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.appsearch.app.EmbeddingVector;
+import androidx.appsearch.app.Features;
 import androidx.appsearch.app.GenericDocument;
 import androidx.core.util.Preconditions;
+
+import java.util.Arrays;
 
 /**
  * Translates between Platform and Jetpack versions of {@link GenericDocument}.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -85,6 +89,10 @@ public final class GenericDocumentToPlatformConverter {
                     platformSubDocuments[j] = toPlatformGenericDocument(documentValues[j]);
                 }
                 platformBuilder.setPropertyDocument(propertyName, platformSubDocuments);
+            } else if (property instanceof EmbeddingVector[]) {
+                // TODO(b/326656531): Remove this once embedding search APIs are available.
+                throw new UnsupportedOperationException(Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG
+                        + " is not available on this AppSearch implementation.");
             } else {
                 throw new IllegalStateException(
                         String.format("Property \"%s\" has unsupported value type %s", propertyName,
@@ -113,6 +121,15 @@ public final class GenericDocumentToPlatformConverter {
                 .setCreationTimestampMillis(platformDocument.getCreationTimestampMillis());
         for (String propertyName : platformDocument.getPropertyNames()) {
             Object property = platformDocument.getProperty(propertyName);
+            if (propertyName.equals(GenericDocument.PARENT_TYPES_SYNTHETIC_PROPERTY)) {
+                if (!(property instanceof String[])) {
+                    throw new IllegalStateException(
+                            String.format("Parents list must be of String[] type, but got %s",
+                                    property.getClass().toString()));
+                }
+                jetpackBuilder.setParentTypes(Arrays.asList((String[]) property));
+                continue;
+            }
             if (property instanceof String[]) {
                 jetpackBuilder.setPropertyString(propertyName, (String[]) property);
             } else if (property instanceof long[]) {
@@ -132,6 +149,8 @@ public final class GenericDocumentToPlatformConverter {
                 }
                 jetpackBuilder.setPropertyDocument(propertyName, jetpackSubDocuments);
             } else {
+                // TODO(b/326656531) : Add an entry for EmbeddingVector once it becomes
+                //  available in platform.
                 throw new IllegalStateException(
                         String.format("Property \"%s\" has unsupported value type %s", propertyName,
                                 property.getClass().toString()));

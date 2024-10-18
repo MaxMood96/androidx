@@ -30,7 +30,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.UiThread;
-import androidx.webkit.internal.ApiHelperForLollipop;
 import androidx.webkit.internal.SafeBrowsingResponseImpl;
 import androidx.webkit.internal.WebResourceErrorImpl;
 import androidx.webkit.internal.WebViewFeatureInternal;
@@ -45,10 +44,6 @@ import java.lang.reflect.InvocationHandler;
 /**
  * Compatibility version of {@link android.webkit.WebViewClient}.
  */
-// Note: some methods are marked as RequiresApi 21, because only an up-to-date WebView APK would
-// ever invoke these methods (and WebView can only be updated on Lollipop and above). The app can
-// still construct a WebViewClientCompat on a pre-Lollipop devices, and explicitly invoke these
-// methods, so each of these methods must also handle this case.
 @SuppressWarnings("HiddenSuperclass")
 public class WebViewClientCompat extends WebViewClient implements WebViewClientBoundaryInterface {
     private static final String[] sSupportedFeatures = new String[] {
@@ -59,7 +54,6 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
         Features.SAFE_BROWSING_HIT,
     };
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef(value = {
             WebViewClient.SAFE_BROWSING_THREAT_UNKNOWN,
@@ -75,7 +69,6 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
      * Returns the list of features this client supports. This feature list should always be a
      * subset of the Features declared in WebViewFeature.
      *
-     * @hide
      */
     @Override
     @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -125,11 +118,9 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
      * Applications are not meant to override this, and should instead override the non-final {@link
      * #onReceivedError(WebView, WebResourceRequest, WebResourceErrorCompat)} method.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
-    @RequiresApi(21)
     public final void onReceivedError(@NonNull WebView view, @NonNull WebResourceRequest request,
             /* WebResourceError */ @NonNull InvocationHandler handler) {
         onReceivedError(view, request, new WebResourceErrorImpl(handler));
@@ -143,10 +134,10 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
      * #onReceivedError(WebView, WebResourceRequest, WebResourceErrorCompat)} method.
      */
     @Override
-    @RequiresApi(23)
+    @RequiresApi(Build.VERSION_CODES.M)
     public final void onReceivedError(@NonNull WebView view, @NonNull WebResourceRequest request,
             @NonNull WebResourceError error) {
-        if (Build.VERSION.SDK_INT < 23) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
         onReceivedError(view, request, new WebResourceErrorImpl(error));
     }
 
@@ -165,21 +156,19 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
      * @param error Information about the error occurred.
      */
     @SuppressWarnings("deprecation") // for invoking the old onReceivedError.
-    @RequiresApi(21)
     @UiThread
     public void onReceivedError(@NonNull WebView view, @NonNull WebResourceRequest request,
             @NonNull WebResourceErrorCompat error) {
-        if (Build.VERSION.SDK_INT < 21) return;
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_CODE)
                 || !WebViewFeature.isFeatureSupported(
                         WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION)) {
             // If the WebView APK drops supports for these APIs in the future, simply do nothing.
             return;
         }
-        if (ApiHelperForLollipop.isForMainFrame(request)) {
+        if (request.isForMainFrame()) {
             onReceivedError(view,
                     error.getErrorCode(), error.getDescription().toString(),
-                    ApiHelperForLollipop.getUrl(request).toString());
+                    request.getUrl().toString());
         }
     }
 
@@ -209,7 +198,6 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
      * Applications are not meant to override this, and should instead override the non-final {@link
      * #onSafeBrowsingHit(WebView, WebResourceRequest, int, SafeBrowsingResponseCompat)} method.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
@@ -227,7 +215,7 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
      * #onSafeBrowsingHit(WebView, WebResourceRequest, int, SafeBrowsingResponseCompat)} method.
      */
     @Override
-    @RequiresApi(27)
+    @RequiresApi(Build.VERSION_CODES.O_MR1)
     public final void onSafeBrowsingHit(@NonNull WebView view, @NonNull WebResourceRequest request,
             @SafeBrowsingThreat int threatType, @NonNull SafeBrowsingResponse response) {
         onSafeBrowsingHit(view, request, threatType, new SafeBrowsingResponseImpl(response));
@@ -235,10 +223,10 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
 
     /**
      * Notify the host application that a loading URL has been flagged by Safe Browsing.
-     *
+     * <p>
      * The application must invoke the callback to indicate the preferred response. The default
      * behavior is to show an interstitial to the user, with the reporting checkbox visible.
-     *
+     * <p>
      * If the application needs to show its own custom interstitial UI, the callback can be invoked
      * asynchronously with {@link SafeBrowsingResponseCompat#backToSafety} or {@link
      * SafeBrowsingResponseCompat#proceed}, depending on user response.
@@ -291,16 +279,13 @@ public class WebViewClientCompat extends WebViewClient implements WebViewClientB
      */
     @Override
     @SuppressWarnings("deprecation") // for invoking the old shouldOverrideUrlLoading.
-    @RequiresApi(21)
     @UiThread
     public boolean shouldOverrideUrlLoading(@NonNull WebView view,
             @NonNull WebResourceRequest request) {
-        if (Build.VERSION.SDK_INT < 21) return false;
-        return shouldOverrideUrlLoading(view, ApiHelperForLollipop.getUrl(request).toString());
+        return shouldOverrideUrlLoading(view, request.getUrl().toString());
     }
 
     /**
-     * @hide
      */
     // TODO(crbug.com/1284805): Replace the missing override suppression annotation with @Override
     // After the boundary interface is rolled.

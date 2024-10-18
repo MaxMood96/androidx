@@ -39,8 +39,10 @@ class DisplayInfoManagerTest {
     @Test
     fun defaultDisplayIsDeviceDisplay_whenOneDisplay() {
         // Arrange
-        val displayManager = (ApplicationProvider.getApplicationContext() as Context)
-            .getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        val displayManager =
+            (ApplicationProvider.getApplicationContext() as Context).getSystemService(
+                Context.DISPLAY_SERVICE
+            ) as DisplayManager
 
         Assume.assumeTrue(displayManager.displays.size == 1)
 
@@ -58,8 +60,10 @@ class DisplayInfoManagerTest {
     @Test
     fun previewSizeAreaIsWithinMaxPreviewArea() {
         // Act & Assert
-        val previewSize = displayInfoManager.previewSize
-        assertTrue("$previewSize has larger area than 1920 * 1080",
-            previewSize.width * previewSize.height <= 1920 * 1080)
+        val previewSize = displayInfoManager.getPreviewSize()
+        assertTrue(
+            "$previewSize has larger area than 1920 * 1080",
+            previewSize.width * previewSize.height <= 1920 * 1080
+        )
     }
 }

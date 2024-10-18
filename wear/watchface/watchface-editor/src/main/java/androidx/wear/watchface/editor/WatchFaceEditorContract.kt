@@ -187,7 +187,6 @@ constructor(
          * @param watchfacePackageName The package name of the watchface, see
          *   [ComponentName.getPackageName].
          * @throws [PackageManager.NameNotFoundException] if watchfacePackageName is not recognized.
-         * @hide
          */
         @JvmStatic
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -203,8 +202,7 @@ constructor(
                         ComponentName(watchfacePackageName, WATCHFACE_CONTROL_SERVICE),
                         PackageManager.GET_META_DATA
                     )
-                    .metaData
-                    ?: return false
+                    .metaData ?: return false
             return metaData.getInt(ANDROIDX_WATCHFACE_API_VERSION) >= 4
         }
     }

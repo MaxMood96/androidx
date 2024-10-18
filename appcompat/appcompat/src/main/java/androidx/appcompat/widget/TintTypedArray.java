@@ -28,7 +28,6 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
@@ -40,7 +39,6 @@ import androidx.core.content.res.ResourcesCompat;
  * A class that wraps a {@link TypedArray} and provides the same public API
  * surface. The purpose of this class is so that we can intercept calls to new APIs.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class TintTypedArray {
@@ -264,12 +262,10 @@ public class TintTypedArray {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static int getType(TypedArray typedArray, int index) {
             return typedArray.getType(index);
         }
 
-        @DoNotInline
         static int getChangingConfigurations(TypedArray typedArray) {
             return typedArray.getChangingConfigurations();
         }

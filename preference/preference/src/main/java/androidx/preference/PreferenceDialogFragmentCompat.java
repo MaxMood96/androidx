@@ -34,7 +34,6 @@ import android.view.Window;
 import android.view.WindowInsets;
 import android.widget.TextView;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -202,7 +201,6 @@ public abstract class PreferenceDialogFragmentCompat extends DialogFragment impl
      * focus (ideally in {@link #onBindDialogView(View)}) for the input field in order to
      * correctly attach the input method to the field.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     protected boolean needInputMethod() {
@@ -215,7 +213,6 @@ public abstract class PreferenceDialogFragmentCompat extends DialogFragment impl
      * Note that starting from Android R, the new WindowInsets API supports showing soft-input
      * on-demand, so there is no longer a need to schedule showing soft-input when input connection
      * established by the focused editor.</p>
-     * @hide
      */
     @RestrictTo(LIBRARY)
     protected void scheduleShowSoftInput() {
@@ -306,7 +303,6 @@ public abstract class PreferenceDialogFragmentCompat extends DialogFragment impl
         /**
          * Shows the IME on demand for the given {@link Window}.
          */
-        @DoNotInline
         static void showIme(@NonNull Window dialogWindow) {
             dialogWindow.getDecorView().getWindowInsetsController().show(WindowInsets.Type.ime());
         }

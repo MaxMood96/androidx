@@ -59,7 +59,6 @@ import java.util.List;
  *
  * @see MediaRouteButton
  * @see MediaRouteActionProvider
- * @hide
  */
 @RestrictTo(LIBRARY)
 public class MediaRouteDynamicChooserDialog extends AppCompatDialog {
@@ -393,7 +392,7 @@ public class MediaRouteDynamicChooserDialog extends AppCompatDialog {
             switch (route.getDeviceType()) {
                 case  MediaRouter.RouteInfo.DEVICE_TYPE_TV:
                     return mTvIcon;
-                case MediaRouter.RouteInfo.DEVICE_TYPE_SPEAKER:
+                case MediaRouter.RouteInfo.DEVICE_TYPE_REMOTE_SPEAKER:
                     return mSpeakerIcon;
             }
 

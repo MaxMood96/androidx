@@ -24,7 +24,6 @@ import android.os.Bundle;
 import android.util.Pair;
 import android.view.ContentInfo;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -49,7 +48,6 @@ public final class ContentInfoCompat {
      * Specifies the UI through which content is being inserted. Future versions of Android may
      * support additional values.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @IntDef(value = {SOURCE_APP, SOURCE_CLIPBOARD, SOURCE_INPUT_METHOD, SOURCE_DRAG_AND_DROP,
@@ -98,7 +96,6 @@ public final class ContentInfoCompat {
     /**
      * Returns the symbolic name of the given source.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @NonNull
@@ -117,7 +114,6 @@ public final class ContentInfoCompat {
     /**
      * Flags to configure the insertion behavior.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @IntDef(flag = true, value = {FLAG_CONVERT_TO_PLAIN_TEXT})
@@ -134,7 +130,6 @@ public final class ContentInfoCompat {
     /**
      * Returns the symbolic names of the set flags or {@code "0"} if no flags are set.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @NonNull
@@ -314,6 +309,7 @@ public final class ContentInfoCompat {
      * <p>Except for the {@link ClipData} items, the returned objects will contain all the same
      * metadata as the passed-in {@link ContentInfo}.
      *
+     * @param payload payload to add to returned pair.
      * @param itemPredicate The predicate to test each {@link ClipData.Item} to determine which
      *                      partition to place it into.
      * @return A pair containing the partitioned content. The pair's first object will have the
@@ -332,7 +328,6 @@ public final class ContentInfoCompat {
     private static final class Api31Impl {
         private Api31Impl() {}
 
-        @DoNotInline
         @NonNull
         public static Pair<ContentInfo, ContentInfo> partition(@NonNull ContentInfo payload,
                 @NonNull Predicate<ClipData.Item> itemPredicate) {

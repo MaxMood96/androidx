@@ -7,11 +7,7 @@ import androidx.health.services.client.impl.response.AvailabilityResponse
 import androidx.health.services.client.impl.response.DataPointsResponse
 import androidx.health.services.client.proto.EventsProto.MeasureCallbackEvent as ListenerProto
 
-/**
- * An event representing a `MeasureCallback` invocation.
- *
- * @hide
- */
+/** An event representing a `MeasureCallback` invocation. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class MeasureCallbackEvent(public override val proto: ListenerProto) :
     ProtoParcelable<ListenerProto>() {

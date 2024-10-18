@@ -27,16 +27,15 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.location.GnssMeasurementsEvent;
 import android.location.LocationManager;
-import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.text.TextUtils;
 
-import androidx.core.os.CancellationSignal;
 import androidx.core.os.ExecutorCompat;
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 
@@ -61,15 +60,11 @@ public class LocationManagerCompatTest {
     @Test
     public void testIsLocationEnabled() {
         boolean isLocationEnabled;
-        if (Build.VERSION.SDK_INT >= 28) {
+        if (VERSION.SDK_INT >= 28) {
             isLocationEnabled = mLocationManager.isLocationEnabled();
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             isLocationEnabled = Settings.Secure.getInt(mContext.getContentResolver(), LOCATION_MODE,
                     LOCATION_MODE_OFF) != LOCATION_MODE_OFF;
-        } else {
-            isLocationEnabled = !TextUtils.isEmpty(
-                    Settings.Secure.getString(mContext.getContentResolver(),
-                            Settings.Secure.LOCATION_PROVIDERS_ALLOWED));
         }
 
         assertEquals(isLocationEnabled, LocationManagerCompat.isLocationEnabled(mLocationManager));
@@ -79,7 +74,7 @@ public class LocationManagerCompatTest {
     public void testHasProvider() {
         for (String provider : mLocationManager.getAllProviders()) {
             boolean hasProvider;
-            if (Build.VERSION.SDK_INT >= 31) {
+            if (VERSION.SDK_INT >= 31) {
                 hasProvider = mLocationManager.hasProvider(provider);
             } else {
                 hasProvider = mLocationManager.getProvider(provider) != null;
@@ -94,6 +89,18 @@ public class LocationManagerCompatTest {
     public void testGetCurrentLocation() {
         // can't do much to test this except check it doesn't crash
         CancellationSignal cs = new CancellationSignal();
+        LocationManagerCompat.getCurrentLocation(mLocationManager,
+                LocationManager.PASSIVE_PROVIDER, cs,
+                ExecutorCompat.create(new Handler(Looper.getMainLooper())),
+                location -> {});
+        cs.cancel();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testGetCurrentLocation_compat() {
+        // can't do much to test this except check it doesn't crash
+        androidx.core.os.CancellationSignal cs = new androidx.core.os.CancellationSignal();
         LocationManagerCompat.getCurrentLocation(mLocationManager,
                 LocationManager.PASSIVE_PROVIDER, cs,
                 ExecutorCompat.create(new Handler(Looper.getMainLooper())),
@@ -149,21 +156,52 @@ public class LocationManagerCompatTest {
         assertTrue(LocationManagerCompat.getGnssYearOfHardware(mLocationManager) >= 0);
     }
 
-    @FlakyTest(bugId = 241572276)
     @SdkSuppress(minSdkVersion = 24)
     @Test
     public void testRegisterGnssMeasurementsCallback_handler() {
+        if (VERSION.SDK_INT == VERSION_CODES.Q) {
+            // Q is very flaky
+            return;
+        }
+
+        GnssMeasurementsEvent.Callback callback = new GnssMeasurementsEvent.Callback() {};
+
         // can't do much to test this except check it doesn't crash
         assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                new GnssMeasurementsEvent.Callback() {}, new Handler(Looper.getMainLooper())));
+                callback, new Handler(Looper.getMainLooper())));
+        try {
+            assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
+                    Runnable::run,
+                    callback));
+            assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
+                    callback, new Handler(Looper.getMainLooper())));
+        } finally {
+            LocationManagerCompat.unregisterGnssMeasurementsCallback(mLocationManager, callback);
+        }
     }
 
-    @SdkSuppress(minSdkVersion = 30)
+    @SdkSuppress(minSdkVersion = 24)
     @Test
     public void testRegisterGnssMeasurementsCallback_executor() {
+        if (VERSION.SDK_INT == VERSION_CODES.Q) {
+            // Q is very flaky
+            return;
+        }
+
+        GnssMeasurementsEvent.Callback callback = new GnssMeasurementsEvent.Callback() {};
+
         // can't do much to test this except check it doesn't crash
         assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
                 Runnable::run,
-                new GnssMeasurementsEvent.Callback() {}));
+                callback));
+        try {
+            assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
+                    callback, new Handler(Looper.getMainLooper())));
+            assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
+                    Runnable::run,
+                    callback));
+        } finally {
+            LocationManagerCompat.unregisterGnssMeasurementsCallback(mLocationManager, callback);
+        }
     }
 }

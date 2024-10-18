@@ -22,9 +22,7 @@ import androidx.annotation.RestrictTo
 
 private val PROFILE_RULE_REGEX = "(H?S?P?)L([^;]*);(->)?(.*)".toRegex()
 
-/**
- * @hide
- */
+/**  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 data class ProfileRule(
     val underlying: String,
@@ -33,9 +31,7 @@ data class ProfileRule(
     val methodDescriptor: String?
 ) {
     companion object {
-        /**
-         * Parses a profile rule to its constituent elements.
-         */
+        /** Parses a profile rule to its constituent elements. */
         @JvmStatic
         fun parse(rule: String): ProfileRule? {
             return when (val result = PROFILE_RULE_REGEX.find(rule)) {
@@ -48,14 +44,11 @@ data class ProfileRule(
             }
         }
 
-        internal val comparator: Comparator<ProfileRule> = compareBy(
-            // When building the Comparator, we need to ignore method flags.
-            { profileRule ->
-                profileRule.classDescriptor
-            },
-            { profileRule ->
-                profileRule.methodDescriptor ?: ""
-            }
-        )
+        internal val comparator: Comparator<ProfileRule> =
+            compareBy(
+                // When building the Comparator, we need to ignore method flags.
+                { profileRule -> profileRule.classDescriptor },
+                { profileRule -> profileRule.methodDescriptor ?: "" }
+            )
     }
 }

@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
@@ -22,21 +29,23 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.androidBuilderModelMin)
+    compileOnly("com.android.tools.build:builder-model:8.1.0")
     compileOnly(libs.androidLintMinApi)
     compileOnly(libs.kotlinStdlib)
+    compileOnly(libs.intellijCore)
+    compileOnly(libs.uast)
 
     testImplementation(libs.kotlinStdlib)
-    testImplementation(libs.kotlinReflect)
+    testRuntimeOnly(libs.kotlinReflect)
     testImplementation(libs.kotlinStdlibJdk8)
-    testImplementation(libs.androidLint)
+    testImplementation(libs.androidLintPrevApi)
     testImplementation(libs.androidLintTests)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
 }
 
 androidx {
-    name = "Android Activity Lint Checks"
+    name = "Activity Lint Checks"
     type = LibraryType.LINT
     inceptionYear = "2020"
     description = "Android Activity Lint Checks"

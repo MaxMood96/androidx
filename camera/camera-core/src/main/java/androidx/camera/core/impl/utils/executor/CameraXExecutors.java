@@ -20,7 +20,6 @@ import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,7 +27,6 @@ import java.util.concurrent.ScheduledExecutorService;
 /**
  * Utility class for generating specific implementations of {@link Executor}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class CameraXExecutors {
 
     // Should not be instantiated
@@ -45,6 +43,12 @@ public final class CameraXExecutors {
     @NonNull
     public static Executor ioExecutor() {
         return IoExecutor.getInstance();
+    }
+
+    /** Returns a cached {@link Executor} suitable for audio I/O. */
+    @NonNull
+    public static Executor audioExecutor() {
+        return AudioExecutor.getInstance();
     }
 
     /** Returns a cached executor that runs tasks directly from the calling thread. */

@@ -24,7 +24,6 @@ import android.hardware.camera2.CameraDevice;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 
@@ -38,7 +37,6 @@ import java.util.Set;
 /**
  * Helper for accessing features in {@link CameraAccessException} in a backwards compatible fashion.
  */
-@RequiresApi(21)
 public class CameraAccessExceptionCompat extends Exception {
 
     // Start of the CameraAccessException error
@@ -89,7 +87,6 @@ public class CameraAccessExceptionCompat extends Exception {
     /**
      * A deprecated HAL version is in use.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public static final int CAMERA_DEPRECATED_HAL = 1000;
@@ -136,7 +133,6 @@ public class CameraAccessExceptionCompat extends Exception {
 
     private final CameraAccessException mCameraAccessException;
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(value = {

@@ -1,31 +1,337 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.0.0-alpha05" type="baseline" client="gradle" dependencies="false" name="AGP (8.0.0-alpha05)" variant="all" version="8.0.0-alpha05">
+<issues format="6" by="lint 8.7.0-alpha02" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.0-alpha02)" variant="all" version="8.7.0-alpha02">
 
     <issue
-        id="ExperimentalPropertyAnnotation"
-        message="This property does not have all required annotations to correctly mark it as experimental."
-        errorLine1="    @ExperimentalMaterial3Api"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
         <location
-            file="src/commonMain/kotlin/androidx/compose/material3/SwipeableV2.kt"/>
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ButtonGroupScreenshotTest.kt"/>
     </issue>
 
     <issue
-        id="ExperimentalPropertyAnnotation"
-        message="This property does not have all required annotations to correctly mark it as experimental."
-        errorLine1="    @ExperimentalMaterial3Api"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
         <location
-            file="src/commonMain/kotlin/androidx/compose/material3/SwipeableV2.kt"/>
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ButtonGroupScreenshotTest.kt"/>
     </issue>
 
     <issue
-        id="ExperimentalPropertyAnnotation"
-        message="This property does not have all required annotations to correctly mark it as experimental."
-        errorLine1="    @ExperimentalMaterial3Api"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
         <location
-            file="src/commonMain/kotlin/androidx/compose/material3/SwipeableV2.kt"/>
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ButtonGroupScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ButtonGroupScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ButtonGroupScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/CardScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/CheckboxScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/FloatingActionButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/IconButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="            Thread.sleep(300)"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/NavigationBarScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="            Thread.sleep(300)"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/NavigationDrawerItemScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="            Thread.sleep(300)"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/NavigationRailScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/RadioButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/RadioButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/RadioButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/RadioButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/RadioButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/RadioButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/SplitButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/SwitchScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/SwitchScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/SwitchScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="            Thread.sleep(300)"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/TabScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="BanThreadSleep"
+        message="Uses Thread.sleep()"
+        errorLine1="        Thread.sleep(300)"
+        errorLine2="               ~~~~~">
+        <location
+            file="src/androidInstrumentedTest/kotlin/androidx/compose/material3/ToggleButtonScreenshotTest.kt"/>
+    </issue>
+
+    <issue
+        id="ListIterator"
+        message="Creating an unnecessary Iterator to iterate through a List"
+        errorLine1="                perVertexRounding = buildList { for (p in actualPoints) add(p.r) },"
+        errorLine2="                                                       ~~">
+        <location
+            file="src/commonMain/kotlin/androidx/compose/material3/MaterialShapes.kt"/>
+    </issue>
+
+    <issue
+        id="PrimitiveInCollection"
+        message="variable crossAxisSizes with type List&lt;Integer>: replace with IntList"
+        errorLine1="        val crossAxisSizes = mutableListOf&lt;Int>()"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/commonMain/kotlin/androidx/compose/material3/AlertDialog.kt"/>
+    </issue>
+
+    <issue
+        id="PrimitiveInCollection"
+        message="variable crossAxisPositions with type List&lt;Integer>: replace with IntList"
+        errorLine1="        val crossAxisPositions = mutableListOf&lt;Int>()"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/commonMain/kotlin/androidx/compose/material3/AlertDialog.kt"/>
+    </issue>
+
+    <issue
+        id="PrimitiveInCollection"
+        message="variable tabContentWidths with type List&lt;Dp>: replace with FloatList"
+        errorLine1="            val tabContentWidths = mutableListOf&lt;Dp>()"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/commonMain/kotlin/androidx/compose/material3/TabRow.kt"/>
     </issue>
 
 </issues>

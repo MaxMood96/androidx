@@ -21,12 +21,13 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.graphics.drawable.IconCompat;
+
+import java.util.Objects;
 
 /**
  * Provides an immutable reference to an entity that appears repeatedly on different surfaces of the
@@ -62,7 +63,6 @@ public class Person {
      * can be created from a {@link Person} using {@link #toPersistableBundle()}. The Icon of the
      * Person will not be extracted from the PersistableBundle.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @NonNull
@@ -74,7 +74,6 @@ public class Person {
     /**
      * Converts an Android framework {@link android.app.Person} to a compat {@link Person}.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @RequiresApi(28)
@@ -127,7 +126,6 @@ public class Person {
      * bundle can be converted back by using {@link #fromPersistableBundle(PersistableBundle)}. The
      * Icon of the Person will not be included in the resulting PersistableBundle.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @NonNull
@@ -145,7 +143,6 @@ public class Person {
     /**
      * Converts this compat {@link Person} to the base Android framework {@link android.app.Person}.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @NonNull
@@ -214,7 +211,6 @@ public class Person {
 
     /**
      * @return the URI associated with this person, or "name:mName" otherwise
-     * @hide
      */
     @NonNull
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -226,6 +222,49 @@ public class Person {
             return "name:" + mName;
         }
         return "";
+    }
+
+    @Override
+    public boolean equals(@Nullable Object otherObject) {
+        if (otherObject == null) {
+            return false;
+        }
+
+        if (!(otherObject instanceof Person)) {
+            return false;
+        }
+
+        Person otherPerson = (Person) otherObject;
+
+        // If a unique ID was provided, use it
+        String key1 = getKey();
+        String key2 = otherPerson.getKey();
+        if (key1 != null || key2 != null) {
+            return Objects.equals(key1, key2);
+        }
+
+        // CharSequence doesn't have well-defined "equals" behavior -- convert to String instead
+        String name1 = Objects.toString(getName());
+        String name2 = Objects.toString(otherPerson.getName());
+
+        // Fallback: Compare field-by-field
+        return
+                Objects.equals(name1, name2)
+                        && Objects.equals(getUri(), otherPerson.getUri())
+                        && Objects.equals(isBot(), otherPerson.isBot())
+                        && Objects.equals(isImportant(), otherPerson.isImportant());
+    }
+
+    @Override
+    public int hashCode() {
+        // If a unique ID was provided, use it
+        String key = getKey();
+        if (key != null) {
+            return key.hashCode();
+        }
+
+        // Fallback: Use hash code for individual fields
+        return Objects.hash(getName(), getUri(), isBot(), isImportant());
     }
 
     /** Builder for the immutable {@link Person} class. */
@@ -335,7 +374,6 @@ public class Person {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Person fromPersistableBundle(PersistableBundle bundle) {
             return new Builder()
                     .setName(bundle.getString(NAME_KEY))
@@ -346,7 +384,6 @@ public class Person {
                     .build();
         }
 
-        @DoNotInline
         static PersistableBundle toPersistableBundle(Person person) {
             PersistableBundle result = new PersistableBundle();
             result.putString(NAME_KEY, person.mName != null ? person.mName.toString() : null);
@@ -364,7 +401,6 @@ public class Person {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Person fromAndroidPerson(android.app.Person person) {
             return new Builder()
                     .setName(person.getName())
@@ -380,7 +416,6 @@ public class Person {
         }
 
         @SuppressWarnings("deprecation")
-        @DoNotInline
         static android.app.Person toAndroidPerson(Person person) {
             return new android.app.Person.Builder()
                     .setName(person.getName())

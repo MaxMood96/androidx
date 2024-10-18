@@ -26,6 +26,8 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.work.impl.utils.taskexecutor.TaskExecutor;
 
+import kotlin.coroutines.CoroutineContext;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -46,6 +48,7 @@ public final class WorkerParameters {
     private @NonNull RuntimeExtras mRuntimeExtras;
     private int mRunAttemptCount;
     private @NonNull Executor mBackgroundExecutor;
+    private @NonNull CoroutineContext mWorkerContext;
     private @NonNull TaskExecutor mWorkTaskExecutor;
     private @NonNull WorkerFactory mWorkerFactory;
     private @NonNull ProgressUpdater mProgressUpdater;
@@ -53,7 +56,6 @@ public final class WorkerParameters {
     private int mGeneration;
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public WorkerParameters(
@@ -64,6 +66,7 @@ public final class WorkerParameters {
             @IntRange(from = 0) int runAttemptCount,
             @IntRange(from = 0) int generation,
             @NonNull Executor backgroundExecutor,
+            @NonNull CoroutineContext workerContext,
             @NonNull TaskExecutor workTaskExecutor,
             @NonNull WorkerFactory workerFactory,
             @NonNull ProgressUpdater progressUpdater,
@@ -75,6 +78,7 @@ public final class WorkerParameters {
         mRunAttemptCount = runAttemptCount;
         mGeneration = generation;
         mBackgroundExecutor = backgroundExecutor;
+        mWorkerContext = workerContext;
         mWorkTaskExecutor = workTaskExecutor;
         mWorkerFactory = workerFactory;
         mProgressUpdater = progressUpdater;
@@ -176,7 +180,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull Executor getBackgroundExecutor() {
@@ -184,7 +187,13 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public @NonNull CoroutineContext getWorkerContext() {
+        return mWorkerContext;
+    }
+
+    /**
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull TaskExecutor getTaskExecutor() {
@@ -192,7 +201,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull WorkerFactory getWorkerFactory() {
@@ -200,7 +208,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull ProgressUpdater getProgressUpdater() {
@@ -208,7 +215,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull ForegroundUpdater getForegroundUpdater() {
@@ -216,7 +222,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull RuntimeExtras getRuntimeExtras() {
@@ -226,7 +231,6 @@ public final class WorkerParameters {
     /**
      * Extra runtime information for Workers.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static class RuntimeExtras {

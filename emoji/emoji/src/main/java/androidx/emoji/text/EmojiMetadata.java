@@ -25,7 +25,6 @@ import androidx.annotation.AnyThread;
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.text.emoji.flatbuffer.MetadataItem;
 import androidx.text.emoji.flatbuffer.MetadataList;
@@ -36,11 +35,9 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Information about a single emoji.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 @AnyThread
-@RequiresApi(19)
 public class EmojiMetadata {
     /**
      * Defines whether the system can render the emoji.

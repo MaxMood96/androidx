@@ -72,7 +72,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -429,7 +428,6 @@ public class SearchView extends LinearLayoutCompat implements CollapsibleActionV
     /**
      * Sets the APP_DATA for legacy SearchDialog use.
      * @param appSearchData bundle provided by the app when launching the search dialog
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public void setAppSearchData(Bundle appSearchData) {
@@ -1839,7 +1837,6 @@ public class SearchView extends LinearLayoutCompat implements CollapsibleActionV
 
     /**
      * Local subclass for AutoCompleteTextView.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public static class SearchAutoComplete extends AppCompatAutoCompleteTextView {
@@ -2127,12 +2124,10 @@ public class SearchView extends LinearLayoutCompat implements CollapsibleActionV
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setInputMethodMode(SearchAutoComplete searchAutoComplete, int mode) {
             searchAutoComplete.setInputMethodMode(mode);
         }
 
-        @DoNotInline
         static void refreshAutoCompleteResults(AutoCompleteTextView autoCompleteTextView) {
             autoCompleteTextView.refreshAutoCompleteResults();
         }

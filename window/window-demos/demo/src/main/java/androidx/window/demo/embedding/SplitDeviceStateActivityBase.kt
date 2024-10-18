@@ -18,7 +18,6 @@ package androidx.window.demo.embedding
 
 import android.content.ComponentName
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -26,28 +25,37 @@ import android.widget.ArrayAdapter
 import android.widget.CompoundButton
 import android.widget.RadioGroup
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.core.util.Consumer
-import androidx.window.core.ExperimentalWindowApi
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.window.WindowSdkExtensions
+import androidx.window.demo.R
+import androidx.window.demo.common.EdgeToEdgeActivity
+import androidx.window.demo.databinding.ActivitySplitDeviceStateLayoutBinding
 import androidx.window.embedding.EmbeddingRule
+import androidx.window.embedding.RuleController
 import androidx.window.embedding.SplitAttributes
+import androidx.window.embedding.SplitAttributes.SplitType.Companion.SPLIT_TYPE_EQUAL
+import androidx.window.embedding.SplitAttributes.SplitType.Companion.SPLIT_TYPE_EXPAND
 import androidx.window.embedding.SplitController
+import androidx.window.embedding.SplitController.SplitSupportStatus.Companion.SPLIT_ERROR_PROPERTY_NOT_DECLARED
+import androidx.window.embedding.SplitController.SplitSupportStatus.Companion.SPLIT_UNAVAILABLE
 import androidx.window.embedding.SplitInfo
 import androidx.window.embedding.SplitPairFilter
 import androidx.window.embedding.SplitPairRule
-import androidx.window.demo.R
-import androidx.window.demo.databinding.ActivitySplitDeviceStateLayoutBinding
-import androidx.window.embedding.RuleController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListener,
-    RadioGroup.OnCheckedChangeListener, CompoundButton.OnCheckedChangeListener,
+open class SplitDeviceStateActivityBase :
+    EdgeToEdgeActivity(),
+    View.OnClickListener,
+    RadioGroup.OnCheckedChangeListener,
+    CompoundButton.OnCheckedChangeListener,
     AdapterView.OnItemSelectedListener {
 
     private lateinit var splitController: SplitController
     private lateinit var ruleController: RuleController
-
-    private val splitStateChangeListener = SplitStateChangeListener()
 
     private lateinit var splitPairRule: SplitPairRule
     private var shouldReverseContainerPosition = false
@@ -58,22 +66,23 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
     private lateinit var activityA: ComponentName
     private lateinit var activityB: ComponentName
 
-    /** Controller to manage the global configuration. */
     private val demoActivityEmbeddingController = DemoActivityEmbeddingController.getInstance()
 
     /** The last selected split rule id. */
     private var lastCheckedRuleId = 0
 
-    @OptIn(ExperimentalWindowApi::class)
+    private val isCallbackSupported = WindowSdkExtensions.getInstance().extensionVersion >= 2
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewBinding = ActivitySplitDeviceStateLayoutBinding.inflate(layoutInflater)
         splitController = SplitController.getInstance(this)
-        if (!splitController.isSplitSupported()) {
-            Toast.makeText(
-                this, R.string.toast_split_not_support,
-                Toast.LENGTH_SHORT
-            ).show()
+        if (splitController.splitSupportStatus == SPLIT_UNAVAILABLE) {
+            Toast.makeText(this, R.string.toast_split_not_available, Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        } else if (splitController.splitSupportStatus == SPLIT_ERROR_PROPERTY_NOT_DECLARED) {
+            Toast.makeText(this, R.string.toast_split_not_support, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -85,28 +94,19 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
         activityB = ComponentName(this, SplitDeviceStateActivityB::class.java.name)
 
         val radioGroup = viewBinding.splitAttributesOptionsRadioGroup
-        val animationBgColorDropdown = viewBinding.animationBackgroundColorDropdown
         if (componentName == activityA) {
             // Set to the first option
-            demoActivityEmbeddingController.animationBackgroundColor =
-                ANIMATION_BACKGROUND_COLORS_VALUE[0]
             radioGroup.check(R.id.use_default_split_attributes)
             onCheckedChanged(radioGroup, radioGroup.checkedRadioButtonId)
             radioGroup.setOnCheckedChangeListener(this)
-            animationBgColorDropdown.adapter = ArrayAdapter(
-                this,
-                android.R.layout.simple_spinner_dropdown_item,
-                ANIMATION_BACKGROUND_COLORS_TEXT
-            )
-            animationBgColorDropdown.onItemSelectedListener = this
         } else {
             // Only update split pair rule on the primary Activity. The secondary Activity can only
             // finish itself to prevent confusing users. We only apply the rule when the Activity is
             // launched from the primary.
             viewBinding.chooseLayoutTextView.visibility = View.GONE
             radioGroup.visibility = View.GONE
-            animationBgColorDropdown.visibility = View.GONE
-            viewBinding.launchActivityToSide.text = "Finish this Activity"
+            viewBinding.launchActivityToSide.text =
+                resources.getString(R.string.finish_this_activity)
         }
 
         viewBinding.showHorizontalLayoutInTabletopCheckBox.setOnCheckedChangeListener(this)
@@ -114,7 +114,6 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
         viewBinding.swapPrimarySecondaryPositionCheckBox.setOnCheckedChangeListener(this)
         viewBinding.launchActivityToSide.setOnClickListener(this)
 
-        val isCallbackSupported = splitController.isSplitAttributesCalculatorSupported()
         if (!isCallbackSupported) {
             // Disable the radioButtons that use SplitAttributesCalculator
             viewBinding.showFullscreenInPortraitRadioButton.isEnabled = false
@@ -123,23 +122,38 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
             viewBinding.splitByHingeWhenSeparatingRadioButton.isEnabled = false
             hideAllSubCheckBoxes()
             // Add the error message to notify the SplitAttributesCalculator is not available.
-            viewBinding.errorMessageTextView.text = "SplitAttributesCalculator is not supported!"
-            animationBgColorDropdown.isEnabled = false
+            viewBinding.warningMessageTextView.text =
+                resources.getString(R.string.split_attributes_calculator_not_supported)
         }
-    }
 
-    override fun onStart() {
-        super.onStart()
-        splitController.addSplitListener(
-            this,
-            ContextCompat.getMainExecutor(this),
-            splitStateChangeListener
-        )
-    }
+        // Animation background
+        if (WindowSdkExtensions.getInstance().extensionVersion >= 5 && componentName == activityA) {
+            // Show on only the primary activity.
+            val animationBackgroundDropdown = viewBinding.animationBackgroundDropdown
+            animationBackgroundDropdown.visibility = View.VISIBLE
+            viewBinding.animationBackgroundDivider.visibility = View.VISIBLE
+            viewBinding.animationBackgroundTextView.visibility = View.VISIBLE
+            animationBackgroundDropdown.adapter =
+                ArrayAdapter(
+                    this,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    DemoActivityEmbeddingController.ANIMATION_BACKGROUND_TEXTS
+                )
+            animationBackgroundDropdown.onItemSelectedListener = this
+        }
 
-    override fun onStop() {
-        super.onStop()
-        splitController.removeSplitListener(splitStateChangeListener)
+        lifecycleScope.launch {
+            // The block passed to repeatOnLifecycle is executed when the lifecycle
+            // is at least STARTED and is cancelled when the lifecycle is STOPPED.
+            // It automatically restarts the block when the lifecycle is STARTED again.
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                splitController.splitInfoList(this@SplitDeviceStateActivityBase).collect {
+                    newSplitInfos ->
+                    updateSplitAttributesText(newSplitInfos)
+                    updateRadioGroupAndCheckBoxFromRule()
+                }
+            }
+        }
     }
 
     override fun onClick(button: View) {
@@ -164,9 +178,7 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
             }
             R.id.show_horizontal_layout_in_tabletop_check_box -> {
                 shouldShowHorizontalInTabletop = isChecked
-                updateSplitPairRuleWithRadioButtonId(
-                    R.id.show_fullscreen_in_portrait_radio_button
-                )
+                updateSplitPairRuleWithRadioButtonId(R.id.show_fullscreen_in_portrait_radio_button)
             }
             R.id.show_fullscreen_in_book_mode_check_box -> {
                 shouldShowFullscreenInBookMode = isChecked
@@ -183,8 +195,8 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
     }
 
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-        demoActivityEmbeddingController.animationBackgroundColor =
-            ANIMATION_BACKGROUND_COLORS_VALUE[position]
+        demoActivityEmbeddingController.animationBackground =
+            DemoActivityEmbeddingController.ANIMATION_BACKGROUND_VALUES[position]
         updateSplitPairRuleWithRadioButtonId(lastCheckedRuleId)
     }
 
@@ -253,81 +265,71 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
         ruleController.clearRules()
 
         val splitPairFilters = HashSet<SplitPairFilter>()
-        val splitPairFilter = SplitPairFilter(
-            activityA,
-            activityB,
-            secondaryActivityIntentAction = null
-        )
+        val splitPairFilter =
+            SplitPairFilter(activityA, activityB, secondaryActivityIntentAction = null)
         splitPairFilters.add(splitPairFilter)
-        val defaultSplitAttributes = SplitAttributes.Builder()
-            .setSplitType(SplitAttributes.SplitType.splitEqually())
-            .setLayoutDirection(SplitAttributes.LayoutDirection.LOCALE)
-            .setAnimationBackgroundColor(demoActivityEmbeddingController.animationBackgroundColor)
-            .build()
+        val defaultSplitAttributes =
+            SplitAttributes.Builder()
+                .setSplitType(SPLIT_TYPE_EQUAL)
+                .setLayoutDirection(SplitAttributes.LayoutDirection.LOCALE)
+                .setAnimationBackground(demoActivityEmbeddingController.animationBackground)
+                .build()
         // Use the tag to control the rule how to change split attributes with the current state
-        var tag = when (id) {
-            R.id.use_default_split_attributes -> TAG_USE_DEFAULT_SPLIT_ATTRIBUTES
-            R.id.show_fullscreen_in_portrait_radio_button -> {
-                if (shouldShowHorizontalInTabletop) {
-                    TAG_SHOW_FULLSCREEN_IN_PORTRAIT + SUFFIX_AND_HORIZONTAL_LAYOUT_IN_TABLETOP
-                } else {
-                    TAG_SHOW_FULLSCREEN_IN_PORTRAIT
+        var tag =
+            when (id) {
+                R.id.use_default_split_attributes -> TAG_USE_DEFAULT_SPLIT_ATTRIBUTES
+                R.id.show_fullscreen_in_portrait_radio_button -> {
+                    if (shouldShowHorizontalInTabletop) {
+                        TAG_SHOW_FULLSCREEN_IN_PORTRAIT + SUFFIX_AND_HORIZONTAL_LAYOUT_IN_TABLETOP
+                    } else {
+                        TAG_SHOW_FULLSCREEN_IN_PORTRAIT
+                    }
                 }
-            }
-            R.id.show_horizontal_layout_in_tabletop_radio_button -> {
-                if (shouldReverseContainerPosition) {
-                    TAG_SHOW_HORIZONTAL_LAYOUT_IN_TABLETOP + SUFFIX_REVERSED
-                } else {
-                    TAG_SHOW_HORIZONTAL_LAYOUT_IN_TABLETOP
+                R.id.show_horizontal_layout_in_tabletop_radio_button -> {
+                    if (shouldReverseContainerPosition) {
+                        TAG_SHOW_HORIZONTAL_LAYOUT_IN_TABLETOP + SUFFIX_REVERSED
+                    } else {
+                        TAG_SHOW_HORIZONTAL_LAYOUT_IN_TABLETOP
+                    }
                 }
-            }
-            R.id.show_different_layout_with_size_radio_button -> {
-                if (shouldShowFullscreenInBookMode) {
-                    TAG_SHOW_DIFFERENT_LAYOUT_WITH_SIZE + SUFFIX_AND_FULLSCREEN_IN_BOOK_MODE
-                } else {
-                    TAG_SHOW_DIFFERENT_LAYOUT_WITH_SIZE
+                R.id.show_different_layout_with_size_radio_button -> {
+                    if (shouldShowFullscreenInBookMode) {
+                        TAG_SHOW_DIFFERENT_LAYOUT_WITH_SIZE + SUFFIX_AND_FULLSCREEN_IN_BOOK_MODE
+                    } else {
+                        TAG_SHOW_DIFFERENT_LAYOUT_WITH_SIZE
+                    }
                 }
+                R.id.split_by_hinge_when_separating_radio_button ->
+                    TAG_SHOW_LAYOUT_FOLLOWING_HINGE_WHEN_SEPARATING
+                else -> null
             }
-            R.id.split_by_hinge_when_separating_radio_button ->
-                TAG_SHOW_LAYOUT_FOLLOWING_HINGE_WHEN_SEPARATING
-            else -> null
-        }
         if (shouldReverseContainerPosition) {
             tag += SUFFIX_REVERSED
         }
 
-        splitPairRule = SplitPairRule.Builder(splitPairFilters)
-            .setTag(tag)
-            .setMinWidthDp(DEFAULT_MINIMUM_WIDTH_DP)
-            .setMinSmallestWidthDp(DEFAULT_MINIMUM_WIDTH_DP)
-            .setDefaultSplitAttributes(defaultSplitAttributes)
-            .build()
+        splitPairRule =
+            SplitPairRule.Builder(splitPairFilters)
+                .setTag(tag)
+                .setMinWidthDp(DEFAULT_MINIMUM_WIDTH_DP)
+                .setMinSmallestWidthDp(DEFAULT_MINIMUM_WIDTH_DP)
+                .setDefaultSplitAttributes(defaultSplitAttributes)
+                .build()
         ruleController.addRule(splitPairRule)
     }
 
-    /** Updates split attributes when receives callback from the extension. */
-    inner class SplitStateChangeListener : Consumer<List<SplitInfo>> {
-        override fun accept(newSplitInfos: List<SplitInfo>) {
-            updateSplitAttributesText(newSplitInfos)
-            updateRadioGroupAndCheckBoxFromRule()
-        }
-    }
-
-    @OptIn(ExperimentalWindowApi::class)
-    fun updateSplitAttributesText(newSplitInfos: List<SplitInfo>) {
-        var splitAttributes: SplitAttributes = SplitAttributes.Builder()
-            .setSplitType(SplitAttributes.SplitType.expandContainers())
-            .build()
+    private suspend fun updateSplitAttributesText(newSplitInfos: List<SplitInfo>) {
+        var splitAttributes: SplitAttributes =
+            SplitAttributes.Builder()
+                .setSplitType(SPLIT_TYPE_EXPAND)
+                .setAnimationBackground(demoActivityEmbeddingController.animationBackground)
+                .build()
         var suggestToFinishItself = false
-        val isCallbackSupported = splitController.isSplitAttributesCalculatorSupported()
+
         // Traverse SplitInfos from the end because last SplitInfo has the highest z-order.
         for (info in newSplitInfos.reversed()) {
             if (info.contains(this@SplitDeviceStateActivityBase)) {
                 splitAttributes = info.splitAttributes
-                if (componentName == activityB &&
-                    splitAttributes.splitType
-                        is SplitAttributes.SplitType.ExpandContainersSplitType
-                ) {
+                if (componentName == activityB && splitAttributes.splitType == SPLIT_TYPE_EXPAND) {
                     // We don't put any functionality on activity B. Suggest users to finish the
                     // activity if it fills the host task.
                     suggestToFinishItself = true
@@ -335,14 +337,14 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
                 break
             }
         }
-        runOnUiThread {
+        withContext(Dispatchers.Main) {
             viewBinding.activityPairSplitAttributesTextView.text =
                 resources.getString(R.string.current_split_attributes) + splitAttributes
             if (!isCallbackSupported) {
                 // Don't update the error message if the callback is not supported.
-                return@runOnUiThread
+                return@withContext
             }
-            viewBinding.errorMessageTextView.text =
+            viewBinding.warningMessageTextView.text =
                 if (suggestToFinishItself) {
                     "Please finish the activity to try other split configurations."
                 } else {
@@ -351,10 +353,10 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
         }
     }
 
-    fun updateRadioGroupAndCheckBoxFromRule() {
-        val splitPairRule = ruleController.getRules().firstOrNull { rule ->
-            isRuleForSplitActivityA(rule)
-        } ?: return
+    private fun updateRadioGroupAndCheckBoxFromRule() {
+        val splitPairRule =
+            ruleController.getRules().firstOrNull { rule -> isRuleForSplitActivityA(rule) }
+                ?: return
         val tag = splitPairRule.tag
         viewBinding.splitAttributesOptionsRadioGroup.check(
             when (tag?.substringBefore(SUFFIX_REVERSED)) {
@@ -392,8 +394,8 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
             return false
         }
         rule.filters.forEach { filter ->
-            if (filter.primaryActivityName == activityA &&
-                filter.secondaryActivityName == activityB
+            if (
+                filter.primaryActivityName == activityA && filter.secondaryActivityName == activityB
             ) {
                 return true
             }
@@ -410,20 +412,13 @@ open class SplitDeviceStateActivityBase : AppCompatActivity(), View.OnClickListe
         const val SUFFIX_REVERSED = "_reversed"
         const val SUFFIX_AND_HORIZONTAL_LAYOUT_IN_TABLETOP = "_and_horizontal_layout_in_tabletop"
         const val SUFFIX_AND_FULLSCREEN_IN_BOOK_MODE = "_and_fullscreen_in_book_mode"
-        val ANIMATION_BACKGROUND_COLORS_TEXT = arrayOf("DEFAULT", "BLUE", "GREEN", "YELLOW")
-        val ANIMATION_BACKGROUND_COLORS_VALUE = arrayOf(
-            SplitAttributes.BackgroundColor.DEFAULT,
-            SplitAttributes.BackgroundColor.color(Color.BLUE),
-            SplitAttributes.BackgroundColor.color(Color.GREEN),
-            SplitAttributes.BackgroundColor.color(Color.YELLOW)
-        )
 
         /**
          * The default minimum dimension for large screen devices.
          *
          * It is also the default value of [SplitPairRule.minWidthDp] and
-         * [SplitPairRule.minSmallestWidthDp] if the properties are not specified in static rule
-         * XML format.
+         * [SplitPairRule.minSmallestWidthDp] if the properties are not specified in static rule XML
+         * format.
          */
         const val DEFAULT_MINIMUM_WIDTH_DP = 600
     }

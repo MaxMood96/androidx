@@ -40,6 +40,7 @@ import android.database.sqlite.SQLiteDatabaseCorruptException;
 import android.database.sqlite.SQLiteDatabaseLockedException;
 import android.database.sqlite.SQLiteDiskIOException;
 import android.database.sqlite.SQLiteException;
+import android.database.sqlite.SQLiteFullException;
 import android.database.sqlite.SQLiteTableLockedException;
 import android.os.Build;
 import android.text.TextUtils;
@@ -48,9 +49,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
+import androidx.core.os.UserManagerCompat;
 import androidx.core.util.Consumer;
 import androidx.work.Configuration;
 import androidx.work.Logger;
+import androidx.work.WorkInfo;
 import androidx.work.impl.Schedulers;
 import androidx.work.impl.WorkDatabase;
 import androidx.work.impl.WorkDatabasePathHelper;
@@ -68,7 +71,6 @@ import java.util.concurrent.TimeUnit;
  * Alarms and Jobs get cancelled when an application is force-stopped. To reschedule, we
  * create a pending alarm that will not survive force stops.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class ForceStopRunnable implements Runnable {
@@ -133,13 +135,14 @@ public class ForceStopRunnable implements Runnable {
                 try {
                     forceStopRunnable();
                     break;
-                } catch (SQLiteCantOpenDatabaseException
-                         | SQLiteDiskIOException
+                } catch (SQLiteAccessPermException
+                         | SQLiteCantOpenDatabaseException
+                         | SQLiteConstraintException
                          | SQLiteDatabaseCorruptException
                          | SQLiteDatabaseLockedException
-                         | SQLiteTableLockedException
-                         | SQLiteConstraintException
-                         | SQLiteAccessPermException exception) {
+                         | SQLiteDiskIOException
+                         | SQLiteFullException
+                         | SQLiteTableLockedException exception) {
                     mRetryCount++;
                     if (mRetryCount >= MAX_ATTEMPTS) {
                         // ForceStopRunnable is usually the first thing that accesses a database
@@ -147,8 +150,17 @@ public class ForceStopRunnable implements Runnable {
                         // PackageManager bugs are attributed to ForceStopRunnable, which is
                         // unfortunate. This gives the developer a better error
                         // message.
-                        String message = "The file system on the device is in a bad state. "
-                                + "WorkManager cannot access the app's internal data store.";
+                        String message;
+                        if (UserManagerCompat.isUserUnlocked(mContext)) {
+                            message = "The file system on the device is in a bad state. "
+                                    + "WorkManager cannot access the app's internal data store.";
+                        } else {
+                            message = "WorkManager can't be accessed from direct boot, because "
+                                    + "credential encrypted storage isn't accessible.\n"
+                                    + "Don't access or initialise WorkManager from directAware "
+                                    + "components. See "
+                                    + "https://developer.android.com/training/articles/direct-boot";
+                        }
                         Logger.get().error(TAG, message, exception);
                         IllegalStateException throwable = new IllegalStateException(message,
                                 exception);
@@ -249,7 +261,8 @@ public class ForceStopRunnable implements Runnable {
             Logger.get().debug(TAG, "Application was force-stopped, rescheduling.");
             mWorkManager.rescheduleEligibleWork();
             // Update the last known force-stop event timestamp.
-            mPreferenceUtils.setLastForceStopEventMillis(System.currentTimeMillis());
+            mPreferenceUtils.setLastForceStopEventMillis(
+                    mWorkManager.getConfiguration().getClock().currentTimeMillis());
         } else if (needsScheduling) {
             Logger.get().debug(TAG, "Found unfinished work, scheduling it.");
             Schedulers.schedule(
@@ -275,7 +288,8 @@ public class ForceStopRunnable implements Runnable {
             // Mitigation for faulty implementations of JobScheduler (b/134058261) and
             // Mitigation for a platform bug, which causes jobs to get dropped when binding to
             // SystemJobService fails.
-            needsReconciling = SystemJobScheduler.reconcileJobs(mContext, mWorkManager);
+            needsReconciling = SystemJobScheduler.reconcileJobs(mContext,
+                    mWorkManager.getWorkDatabase());
         }
         // Reset previously unfinished work.
         WorkDatabase workDatabase = mWorkManager.getWorkDatabase();
@@ -296,6 +310,7 @@ public class ForceStopRunnable implements Runnable {
                 // To solve this, we simply force-reschedule all unfinished work.
                 for (WorkSpec workSpec : workSpecs) {
                     workSpecDao.setState(ENQUEUED, workSpec.id);
+                    workSpecDao.setStopReason(workSpec.id, WorkInfo.STOP_REASON_UNKNOWN);
                     workSpecDao.markWorkSpecScheduled(workSpec.id, SCHEDULE_NOT_REQUESTED_YET);
                 }
             }
@@ -379,13 +394,11 @@ public class ForceStopRunnable implements Runnable {
             flags |= FLAG_MUTABLE;
         }
         PendingIntent pendingIntent = getPendingIntent(context, flags);
+        // OK to use System.currentTimeMillis() since this is intended only to keep the alarm
+        // scheduled ~forever and shouldn't need WorkManager to be initialized to reschedule.
         long triggerAt = System.currentTimeMillis() + TEN_YEARS;
         if (alarmManager != null) {
-            if (Build.VERSION.SDK_INT >= 19) {
-                alarmManager.setExact(RTC_WAKEUP, triggerAt, pendingIntent);
-            } else {
-                alarmManager.set(RTC_WAKEUP, triggerAt, pendingIntent);
-            }
+            alarmManager.setExact(RTC_WAKEUP, triggerAt, pendingIntent);
         }
     }
 
@@ -394,7 +407,6 @@ public class ForceStopRunnable implements Runnable {
      * long lived alarm which helps track force stops for an application.  This is the target of the
      * alarm set by ForceStopRunnable in {@link #setAlarm(Context)}.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static class BroadcastReceiver extends android.content.BroadcastReceiver {

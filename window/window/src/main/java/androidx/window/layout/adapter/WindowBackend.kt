@@ -17,10 +17,13 @@ package androidx.window.layout.adapter
 
 import android.app.Activity
 import android.content.Context
+import androidx.annotation.RestrictTo
+import androidx.annotation.UiContext
 import androidx.core.util.Consumer
+import androidx.window.RequiresWindowSdkExtension
+import androidx.window.layout.SupportedPosture
 import androidx.window.layout.WindowLayoutInfo
 import java.util.concurrent.Executor
-import androidx.annotation.UiContext
 
 /**
  * Backing interface for [androidx.window.layout.WindowInfoTracker] instances that serve as the
@@ -29,10 +32,10 @@ import androidx.annotation.UiContext
 internal interface WindowBackend {
 
     /**
-     * Registers a callback for layout changes of the window for the supplied [UiContext].
-     * Must be called only after the it is attached to the window.
-     * The supplied [UiContext] should correspond to a window or an area on the screen. It must be
-     * either an [Activity] or a [UiContext] created with [Context#createWindowContext].
+     * Registers a callback for layout changes of the window for the supplied [UiContext]. Must be
+     * called only after the it is attached to the window. The supplied [UiContext] should
+     * correspond to a window or an area on the screen. It must be either an [Activity] or a
+     * [UiContext] created with [Context#createWindowContext].
      */
     fun registerLayoutChangeCallback(
         @UiContext context: Context,
@@ -40,8 +43,18 @@ internal interface WindowBackend {
         callback: Consumer<WindowLayoutInfo>
     )
 
-    /**
-     * Unregisters a callback for window layout changes.
-     */
+    /** Unregisters a callback for window layout changes. */
     fun unregisterLayoutChangeCallback(callback: Consumer<WindowLayoutInfo>)
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    fun hasRegisteredListeners(): Boolean {
+        return false
+    }
+
+    /**
+     * Returns a [List] of [SupportedPosture] for the device.
+     *
+     * @throws UnsupportedOperationException if the Window SDK version is less than 6.
+     */
+    @RequiresWindowSdkExtension(version = 6) val supportedPostures: List<SupportedPosture>
 }

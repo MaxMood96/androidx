@@ -26,6 +26,7 @@ import androidx.camera.core.impl.CameraInternal
 import androidx.camera.core.impl.CameraStateRegistry
 import androidx.camera.core.impl.utils.executor.CameraXExecutors
 import androidx.camera.testing.fakes.FakeCamera
+import androidx.camera.testing.impl.fakes.FakeCameraCoordinator
 import androidx.lifecycle.Observer
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -40,12 +41,13 @@ import org.robolectric.annotation.internal.DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 internal class CameraStateMachineTest {
 
-    @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
+    @get:Rule val instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    private val cameraCoordinator = FakeCameraCoordinator()
 
     /** Wrapper method that initializes the required test parameters, then runs the test's body. */
     private fun runTest(body: (CameraStateMachine, StateObserver) -> Unit) {
-        val registry = CameraStateRegistry(1)
+        val registry = CameraStateRegistry(cameraCoordinator, 1)
         val stateMachine = CameraStateMachine(registry)
         val stateObserver = StateObserver()
         stateMachine.stateLiveData.observeForever(stateObserver)
@@ -57,24 +59,20 @@ internal class CameraStateMachineTest {
     }
 
     @Test
-    fun shouldEmitClosedStateInitially() =
-        runTest { _, stateObserver ->
-            stateObserver
-                .assertHasState(CameraState.create(Type.CLOSED))
-                .assertHasNoMoreStates()
-        }
+    fun shouldEmitClosedStateInitially() = runTest { _, stateObserver ->
+        stateObserver.assertHasState(CameraState.create(Type.CLOSED)).assertHasNoMoreStates()
+    }
 
     @Test
-    fun shouldNotEmitNewState_whenStateHasNotChanged() =
-        runTest { stateMachine, stateObserver ->
-            stateMachine.updateState(CameraInternal.State.OPENING, null)
-            stateMachine.updateState(CameraInternal.State.OPENING, null)
+    fun shouldNotEmitNewState_whenStateHasNotChanged() = runTest { stateMachine, stateObserver ->
+        stateMachine.updateState(CameraInternal.State.OPENING, null)
+        stateMachine.updateState(CameraInternal.State.OPENING, null)
 
-            stateObserver
-                .assertHasState(CameraState.create(Type.CLOSED))
-                .assertHasState(CameraState.create(Type.OPENING))
-                .assertHasNoMoreStates()
-        }
+        stateObserver
+            .assertHasState(CameraState.create(Type.CLOSED))
+            .assertHasState(CameraState.create(Type.OPENING))
+            .assertHasNoMoreStates()
+    }
 
     @Test
     fun shouldNotEmitNewState_whenStateAndErrorHaveNotChanged() =
@@ -91,64 +89,66 @@ internal class CameraStateMachineTest {
             stateObserver
                 .assertHasState(CameraState.create(Type.CLOSED))
                 .assertHasState(
-                    CameraState.create(
-                        Type.OPENING,
-                        StateError.create(ERROR_CAMERA_IN_USE)
-                    )
+                    CameraState.create(Type.OPENING, StateError.create(ERROR_CAMERA_IN_USE))
                 )
                 .assertHasNoMoreStates()
         }
 
     @Test
-    fun shouldEmitNewState_whenStateChanges() =
-        runTest { stateMachine, stateObserver ->
-            stateMachine.updateState(CameraInternal.State.OPENING, null)
-            stateMachine.updateState(CameraInternal.State.OPEN, null)
+    fun shouldEmitNewState_whenStateChanges() = runTest { stateMachine, stateObserver ->
+        stateMachine.updateState(CameraInternal.State.OPENING, null)
+        stateMachine.updateState(CameraInternal.State.OPEN, null)
 
-            stateObserver
-                .assertHasState(CameraState.create(Type.CLOSED))
-                .assertHasState(CameraState.create(Type.OPENING))
-                .assertHasState(CameraState.create(Type.OPEN))
-                .assertHasNoMoreStates()
-        }
+        stateObserver
+            .assertHasState(CameraState.create(Type.CLOSED))
+            .assertHasState(CameraState.create(Type.OPENING))
+            .assertHasState(CameraState.create(Type.OPEN))
+            .assertHasNoMoreStates()
+    }
 
     @Test
-    fun shouldEmitNewState_whenErrorChanges() =
-        runTest { stateMachine, stateObserver ->
-            stateMachine.updateState(
-                CameraInternal.State.OPENING,
-                StateError.create(ERROR_CAMERA_IN_USE)
-            )
-            stateMachine.updateState(
-                CameraInternal.State.OPENING,
-                StateError.create(ERROR_MAX_CAMERAS_IN_USE)
-            )
+    fun shouldNotEmitNewState_whenInConfiguredState() = runTest { stateMachine, stateObserver ->
+        stateMachine.updateState(CameraInternal.State.OPENING, null)
+        stateMachine.updateState(CameraInternal.State.OPEN, null)
+        stateMachine.updateState(CameraInternal.State.CONFIGURED, null)
 
-            stateObserver
-                .assertHasState(CameraState.create(Type.CLOSED))
-                .assertHasState(
-                    CameraState.create(
-                        Type.OPENING,
-                        StateError.create(ERROR_CAMERA_IN_USE)
-                    )
-                )
-                .assertHasState(
-                    CameraState.create(
-                        Type.OPENING,
-                        StateError.create(ERROR_MAX_CAMERAS_IN_USE)
-                    )
-                )
-                .assertHasNoMoreStates()
-        }
+        stateObserver
+            .assertHasState(CameraState.create(Type.CLOSED))
+            .assertHasState(CameraState.create(Type.OPENING))
+            .assertHasState(CameraState.create(Type.OPEN))
+            .assertHasNoMoreStates()
+    }
+
+    @Test
+    fun shouldEmitNewState_whenErrorChanges() = runTest { stateMachine, stateObserver ->
+        stateMachine.updateState(
+            CameraInternal.State.OPENING,
+            StateError.create(ERROR_CAMERA_IN_USE)
+        )
+        stateMachine.updateState(
+            CameraInternal.State.OPENING,
+            StateError.create(ERROR_MAX_CAMERAS_IN_USE)
+        )
+
+        stateObserver
+            .assertHasState(CameraState.create(Type.CLOSED))
+            .assertHasState(
+                CameraState.create(Type.OPENING, StateError.create(ERROR_CAMERA_IN_USE))
+            )
+            .assertHasState(
+                CameraState.create(Type.OPENING, StateError.create(ERROR_MAX_CAMERAS_IN_USE))
+            )
+            .assertHasNoMoreStates()
+    }
 
     @Test
     fun shouldEmitOpeningState_whenCameraIsOpening_whileAnotherIsClosing() {
-        val registry = CameraStateRegistry(1)
+        val registry = CameraStateRegistry(cameraCoordinator, 1)
         val stateMachine = CameraStateMachine(registry)
 
         // Create, open then start closing first camera
         val camera1 = FakeCamera()
-        registry.registerCamera(camera1, CameraXExecutors.directExecutor(), {})
+        registry.registerCamera(camera1, CameraXExecutors.directExecutor(), {}, {})
         registry.tryOpenCamera(camera1)
         registry.markCameraState(camera1, CameraInternal.State.OPEN)
         registry.markCameraState(camera1, CameraInternal.State.CLOSING)
@@ -156,7 +156,7 @@ internal class CameraStateMachineTest {
         // Create and try to open second camera. Since the first camera is still closing, its
         // internal state will move to PENDING_OPEN
         val camera2 = FakeCamera()
-        registry.registerCamera(camera2, CameraXExecutors.directExecutor(), {})
+        registry.registerCamera(camera2, CameraXExecutors.directExecutor(), {}, {})
         registry.tryOpenCamera(camera2)
         registry.markCameraState(camera2, CameraInternal.State.PENDING_OPEN)
 

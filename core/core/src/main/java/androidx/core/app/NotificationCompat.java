@@ -28,6 +28,8 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.LocusId;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -54,12 +56,13 @@ import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.RemoteViews;
+import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.DimenRes;
 import androidx.annotation.Dimension;
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -719,12 +722,10 @@ public class NotificationCompat {
     /**
      * Maximum number of (generic) action buttons in a notification (contextual action buttons are
      * handled separately).
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public static final int MAX_ACTION_BUTTONS = 3;
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({AudioManager.STREAM_VOICE_CALL, AudioManager.STREAM_SYSTEM, AudioManager.STREAM_RING,
             AudioManager.STREAM_MUSIC, AudioManager.STREAM_ALARM, AudioManager.STREAM_NOTIFICATION,
@@ -732,7 +733,6 @@ public class NotificationCompat {
     @Retention(RetentionPolicy.SOURCE)
     public @interface StreamType {}
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Retention(SOURCE)
     @IntDef({VISIBILITY_PUBLIC, VISIBILITY_PRIVATE, VISIBILITY_SECRET})
@@ -862,7 +862,11 @@ public class NotificationCompat {
      */
     public static final String CATEGORY_MISSED_CALL = "missed_call";
 
-    /** @hide */
+    /**
+     * Notification category: voicemail.
+     */
+    public static final String CATEGORY_VOICEMAIL = "voicemail";
+
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({BADGE_ICON_NONE, BADGE_ICON_SMALL, BADGE_ICON_LARGE})
@@ -884,7 +888,6 @@ public class NotificationCompat {
      */
     public static final int BADGE_ICON_LARGE = Notification.BADGE_ICON_LARGE;
 
-    /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({GROUP_ALERT_ALL, GROUP_ALERT_SUMMARY, GROUP_ALERT_CHILDREN})
@@ -929,7 +932,6 @@ public class NotificationCompat {
      */
     public static final String GROUP_KEY_SILENT = "silent";
 
-    /** @hide */
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({FOREGROUND_SERVICE_DEFAULT,
@@ -1011,15 +1013,12 @@ public class NotificationCompat {
         // All these variables are declared public/hidden so they can be accessed by a builder
         // extender.
 
-        /** @hide */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public Context mContext;
 
-        /** @hide */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public ArrayList<Action> mActions = new ArrayList<>();
 
-        /** @hide */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @NonNull
         public ArrayList<Person> mPersonList = new ArrayList<>();
@@ -1034,7 +1033,7 @@ public class NotificationCompat {
         PendingIntent mContentIntent;
         PendingIntent mFullScreenIntent;
         RemoteViews mTickerView;
-        Bitmap mLargeIcon;
+        IconCompat mLargeIcon;
         CharSequence mContentInfo;
         int mNumber;
         int mPriority;
@@ -1086,7 +1085,6 @@ public class NotificationCompat {
          * equivalent to the given one, such that updates can be made to an existing notification
          * with the NotificationCompat.Builder API.
          */
-        @RequiresApi(19)
         @SuppressWarnings("deprecation")
         public Builder(@NonNull Context context,
                 @NonNull Notification notification) {
@@ -1099,7 +1097,6 @@ public class NotificationCompat {
                     .setSubText(NotificationCompat.getSubText(notification))
                     .setSettingsText(NotificationCompat.getSettingsText(notification))
                     .setStyle(style)
-                    .setContentIntent(notification.contentIntent)
                     .setGroup(NotificationCompat.getGroup(notification))
                     .setGroupSummary(NotificationCompat.isGroupSummary(notification))
                     .setLocusId(NotificationCompat.getLocusId(notification))
@@ -1143,6 +1140,10 @@ public class NotificationCompat {
             // Avoid the setter which requires wrapping/unwrapping IconCompat and extra null checks
             if (Build.VERSION.SDK_INT >= 23) {
                 this.mSmallIcon = Api23Impl.getSmallIcon(notification);
+                Icon largeIcon = Api23Impl.getLargeIcon(notification);
+                if (largeIcon != null) {
+                    this.mLargeIcon = IconCompat.createFromIcon(largeIcon);
+                }
             }
 
             // Add actions from the notification.
@@ -1197,7 +1198,6 @@ public class NotificationCompat {
 
         /** Remove all extras which have been parsed by the rest of the copy process */
         @Nullable
-        @RequiresApi(19)
         private static Bundle getExtrasWithoutDuplicateData(
                 @NonNull Notification notification, @Nullable Style style) {
             if (notification.extras == null) {
@@ -1589,39 +1589,25 @@ public class NotificationCompat {
         }
 
         /**
-         * Set the large icon that is shown in the notification.
+         * Sets the large icon that is shown in the notification. Icons will be scaled on versions
+         * before API 27. Starting in API 27, the framework does this automatically.
          */
         public @NonNull Builder setLargeIcon(@Nullable Bitmap icon) {
-            mLargeIcon = reduceLargeIconSize(icon);
+            mLargeIcon = icon == null ? null : IconCompat.createWithBitmap(
+             reduceLargeIconSize(mContext, icon));
             return this;
         }
 
         /**
-         * Reduce the size of a notification icon if it's overly large. The framework does
-         * this automatically starting from API 27.
+         * Sets the large icon that is shown in the notification. Starting in API 27, the framework
+         * scales icons automatically. Before API 27, for safety, {@code #reduceLargeIconSize}
+         * should be called on bitmaps before putting them in an {@code Icon} and passing them
+         * into this function.
          */
-        private @Nullable Bitmap reduceLargeIconSize(@Nullable Bitmap icon) {
-            if (icon == null || Build.VERSION.SDK_INT >= 27) {
-                return icon;
-            }
-
-            Resources res = mContext.getResources();
-            int maxWidth =
-                    res.getDimensionPixelSize(R.dimen.compat_notification_large_icon_max_width);
-            int maxHeight =
-                    res.getDimensionPixelSize(R.dimen.compat_notification_large_icon_max_height);
-            if (icon.getWidth() <= maxWidth && icon.getHeight() <= maxHeight) {
-                return icon;
-            }
-
-            double scale = Math.min(
-                    maxWidth / (double) Math.max(1, icon.getWidth()),
-                    maxHeight / (double) Math.max(1, icon.getHeight()));
-            return Bitmap.createScaledBitmap(
-                    icon,
-                    (int) Math.ceil(icon.getWidth() * scale),
-                    (int) Math.ceil(icon.getHeight() * scale),
-                    true /* filtered */);
+        @RequiresApi(23)
+        public @NonNull Builder setLargeIcon(@Nullable Icon icon) {
+            mLargeIcon = icon == null ? null : IconCompat.createFromIcon(icon);
+            return this;
         }
 
         /**
@@ -2238,10 +2224,6 @@ public class NotificationCompat {
          */
         @SuppressLint("BuilderSetStyle")  // This API is copied from Notification.Builder
         public @Nullable RemoteViews createBigContentView() {
-            // Before Jellybean, there was no "big" notification view
-            if (Build.VERSION.SDK_INT < 16) {
-                return null;
-            }
             // If the user setCustomBigContentView(), return it if appropriate for the style.
             if (mBigContentView != null && useExistingRemoteView()) {
                 return mBigContentView;
@@ -2559,7 +2541,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public RemoteViews getContentView() {
@@ -2567,7 +2548,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public RemoteViews getBigContentView() {
@@ -2575,7 +2555,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public RemoteViews getHeadsUpContentView() {
@@ -2585,7 +2564,6 @@ public class NotificationCompat {
         /**
          * return when if it is showing or 0 otherwise
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public long getWhenIfShowing() {
@@ -2595,7 +2573,6 @@ public class NotificationCompat {
         /**
          * @return the priority set on the notification
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public int getPriority() {
@@ -2605,7 +2582,6 @@ public class NotificationCompat {
         /**
          * @return the foreground service behavior defined for the notification
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public int getForegroundServiceBehavior() {
@@ -2615,7 +2591,6 @@ public class NotificationCompat {
         /**
          * @return the color of the notification
          *
-         * @hide
          */
         @ColorInt
         @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -2626,7 +2601,6 @@ public class NotificationCompat {
         /**
          * @return the {@link BubbleMetadata} of the notification
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public @Nullable BubbleMetadata getBubbleMetadata() {
@@ -2642,29 +2616,24 @@ public class NotificationCompat {
         static class Api21Impl {
             private Api21Impl() { }
 
-            @DoNotInline
             static AudioAttributes.Builder createBuilder() {
                 return new AudioAttributes.Builder();
             }
 
-            @DoNotInline
             static AudioAttributes.Builder setContentType(AudioAttributes.Builder builder,
                     int contentType) {
                 return builder.setContentType(contentType);
             }
 
-            @DoNotInline
             static AudioAttributes.Builder setUsage(AudioAttributes.Builder builder, int usage) {
                 return builder.setUsage(usage);
             }
 
-            @DoNotInline
             static AudioAttributes.Builder setLegacyStreamType(AudioAttributes.Builder builder,
                     int streamType) {
                 return builder.setLegacyStreamType(streamType);
             }
 
-            @DoNotInline
             static AudioAttributes build(AudioAttributes.Builder builder) {
                 return builder.build();
             }
@@ -2679,9 +2648,12 @@ public class NotificationCompat {
         static class Api23Impl {
             private Api23Impl() { }
 
-            @DoNotInline
             static Icon getSmallIcon(Notification notification) {
                 return notification.getSmallIcon();
+            }
+
+            static Icon getLargeIcon(Notification notification) {
+                return notification.getLargeIcon();
             }
         }
 
@@ -2694,22 +2666,18 @@ public class NotificationCompat {
         static class Api24Impl {
             private Api24Impl() { }
 
-            @DoNotInline
             static Notification.Builder recoverBuilder(Context context, Notification n) {
                 return Notification.Builder.recoverBuilder(context, n);
             }
 
-            @DoNotInline
             static RemoteViews createContentView(Notification.Builder builder) {
                 return builder.createContentView();
             }
 
-            @DoNotInline
             static RemoteViews createHeadsUpContentView(Notification.Builder builder) {
                 return builder.createHeadsUpContentView();
             }
 
-            @DoNotInline
             static RemoteViews createBigContentView(Notification.Builder builder) {
                 return builder.createHeadsUpContentView();
             }
@@ -2725,7 +2693,6 @@ public class NotificationCompat {
      */
     public static abstract class Style {
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         protected Builder mBuilder;
@@ -2758,7 +2725,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @Nullable
         @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -2771,14 +2737,12 @@ public class NotificationCompat {
          * Applies the compat style data to the framework {@link Notification} in a backwards
          * compatible way. All other data should be stored within the Notification's extras.
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public void apply(NotificationBuilderWithBuilderAccessor builder) {
         }
 
         /**
-         * @hide
          * @return Whether custom content views are displayed inline in the style
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -2787,7 +2751,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public RemoteViews makeContentView(NotificationBuilderWithBuilderAccessor builder) {
@@ -2795,7 +2758,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public RemoteViews makeBigContentView(NotificationBuilderWithBuilderAccessor builder) {
@@ -2803,7 +2765,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public RemoteViews makeHeadsUpContentView(NotificationBuilderWithBuilderAccessor builder) {
@@ -2819,7 +2780,6 @@ public class NotificationCompat {
          * Moreover, recovering builders and styles is only supported at API 19 and above, no
          * implementation is required for current BigTextStyle, BigPictureStyle, or InboxStyle.
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public void addCompatExtras(@NonNull Bundle extras) {
@@ -2836,7 +2796,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         protected void restoreFromCompatExtras(@NonNull Bundle extras) {
@@ -2848,7 +2807,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         protected void clearCompatExtraKeys(@NonNull Bundle extras) {
@@ -2858,7 +2816,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Nullable
@@ -2876,24 +2833,22 @@ public class NotificationCompat {
             if (platformTemplateClass == null) {
                 return null;
             }
-            if (Build.VERSION.SDK_INT >= 16) {
-                if (platformTemplateClass.equals(Notification.BigPictureStyle.class.getName())) {
-                    return new BigPictureStyle();
+            if (platformTemplateClass.equals(Notification.BigPictureStyle.class.getName())) {
+                return new BigPictureStyle();
+            }
+            if (platformTemplateClass.equals(Notification.BigTextStyle.class.getName())) {
+                return new BigTextStyle();
+            }
+            if (platformTemplateClass.equals(Notification.InboxStyle.class.getName())) {
+                return new InboxStyle();
+            }
+            if (Build.VERSION.SDK_INT >= 24) {
+                if (platformTemplateClass.equals(Notification.MessagingStyle.class.getName())) {
+                    return new MessagingStyle();
                 }
-                if (platformTemplateClass.equals(Notification.BigTextStyle.class.getName())) {
-                    return new BigTextStyle();
-                }
-                if (platformTemplateClass.equals(Notification.InboxStyle.class.getName())) {
-                    return new InboxStyle();
-                }
-                if (Build.VERSION.SDK_INT >= 24) {
-                    if (platformTemplateClass.equals(Notification.MessagingStyle.class.getName())) {
-                        return new MessagingStyle();
-                    }
-                    if (platformTemplateClass.equals(
-                            Notification.DecoratedCustomViewStyle.class.getName())) {
-                        return new DecoratedCustomViewStyle();
-                    }
+                if (platformTemplateClass.equals(
+                        Notification.DecoratedCustomViewStyle.class.getName())) {
+                    return new DecoratedCustomViewStyle();
                 }
             }
             return null;
@@ -2963,7 +2918,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @NonNull
@@ -2975,7 +2929,7 @@ public class NotificationCompat {
             boolean showLine2 = false;
 
             boolean minPriority = mBuilder.getPriority() < NotificationCompat.PRIORITY_LOW;
-            if (Build.VERSION.SDK_INT >= 16 && Build.VERSION.SDK_INT < 21) {
+            if (Build.VERSION.SDK_INT < 21) {
                 // lets color the backgrounds
                 if (minPriority) {
                     contentView.setInt(R.id.notification_background,
@@ -2993,12 +2947,9 @@ public class NotificationCompat {
             if (mBuilder.mLargeIcon != null) {
                 // On versions before Jellybean, the large icon was shown by SystemUI, so we need
                 // to hide it here.
-                if (Build.VERSION.SDK_INT >= 16) {
-                    contentView.setViewVisibility(R.id.icon, View.VISIBLE);
-                    contentView.setImageViewBitmap(R.id.icon, mBuilder.mLargeIcon);
-                } else {
-                    contentView.setViewVisibility(R.id.icon, View.GONE);
-                }
+                contentView.setViewVisibility(R.id.icon, View.VISIBLE);
+                contentView.setImageViewBitmap(R.id.icon,
+                            createColoredBitmap(mBuilder.mLargeIcon, Color.TRANSPARENT));
                 if (showSmallIcon && mBuilder.mNotification.icon != 0) {
                     int backgroundSize = res.getDimensionPixelSize(
                             R.dimen.notification_right_icon_size);
@@ -3044,7 +2995,8 @@ public class NotificationCompat {
                 showLine3 = true;
             }
             // If there is a large icon we have a right side
-            boolean hasRightSide = !(Build.VERSION.SDK_INT >= 21) && mBuilder.mLargeIcon != null;
+            boolean hasRightSide =
+                    !(Build.VERSION.SDK_INT >= 21) && mBuilder.mLargeIcon != null;
             if (mBuilder.mContentInfo != null) {
                 contentView.setTextViewText(R.id.info, mBuilder.mContentInfo);
                 contentView.setViewVisibility(R.id.info, View.VISIBLE);
@@ -3067,8 +3019,8 @@ public class NotificationCompat {
                 contentView.setViewVisibility(R.id.info, View.GONE);
             }
 
-            // Need to show three lines? Only allow on Jellybean+
-            if (mBuilder.mSubText != null && Build.VERSION.SDK_INT >= 16) {
+            // Need to show three lines?
+            if (mBuilder.mSubText != null) {
                 contentView.setTextViewText(R.id.text, mBuilder.mSubText);
                 if (mBuilder.mContentText != null) {
                     contentView.setTextViewText(R.id.text2, mBuilder.mContentText);
@@ -3081,20 +3033,20 @@ public class NotificationCompat {
 
             // RemoteViews.setViewPadding and RemoteViews.setTextViewTextSize is not available on
             // ICS-
-            if (showLine2 && Build.VERSION.SDK_INT >= 16) {
+            if (showLine2) {
                 if (fitIn1U) {
                     // need to shrink all the type to make sure everything fits
                     final float subTextSize = res.getDimensionPixelSize(
                             R.dimen.notification_subtext_size);
-                    Api16Impl.setTextViewTextSize(contentView, R.id.text,
-                            TypedValue.COMPLEX_UNIT_PX, subTextSize);
+                    contentView.setTextViewTextSize(R.id.text, TypedValue.COMPLEX_UNIT_PX,
+                            subTextSize);
                 }
                 // vertical centering
-                Api16Impl.setViewPadding(contentView, R.id.line1, 0, 0, 0, 0);
+                contentView.setViewPadding(R.id.line1, 0, 0, 0, 0);
             }
 
             if (mBuilder.getWhenIfShowing() != 0) {
-                if (mBuilder.mUseChronometer && Build.VERSION.SDK_INT >= 16) {
+                if (mBuilder.mUseChronometer) {
                     contentView.setViewVisibility(R.id.chronometer, View.VISIBLE);
                     contentView.setLong(R.id.chronometer, "setBase",
                             mBuilder.getWhenIfShowing()
@@ -3119,7 +3071,6 @@ public class NotificationCompat {
          * Create a bitmap using the given icon together with a color filter created from the given
          * color.
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public Bitmap createColoredBitmap(int iconId, int color) {
@@ -3169,7 +3120,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public void buildIntoRemoteViews(RemoteViews outerView,
@@ -3182,8 +3132,8 @@ public class NotificationCompat {
             outerView.setViewVisibility(R.id.notification_main_column, View.VISIBLE);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 // Adjust padding depending on font size.
-                Api16Impl.setViewPadding(outerView, R.id.notification_main_column_container, 0,
-                        calculateTopPadding(), 0, 0);
+                int top = calculateTopPadding();
+                outerView.setViewPadding(R.id.notification_main_column_container, 0, top, 0, 0);
             }
         }
 
@@ -3212,28 +3162,6 @@ public class NotificationCompat {
 
         /**
          * A class for wrapping calls to {@link NotificationCompat.Style} methods which
-         * were added in API 16; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         */
-        @RequiresApi(16)
-        static class Api16Impl {
-            private Api16Impl() { }
-
-            @DoNotInline
-            static void setTextViewTextSize(RemoteViews remoteViews, int viewId, int units,
-                    float size) {
-                remoteViews.setTextViewTextSize(viewId, units, size);
-            }
-
-            @DoNotInline
-            static void setViewPadding(RemoteViews remoteViews, int viewId, int left, int top,
-                    int right, int bottom) {
-                remoteViews.setViewPadding(viewId, left, top, right, bottom);
-            }
-        }
-
-        /**
-         * A class for wrapping calls to {@link NotificationCompat.Style} methods which
          * were added in API 24; these calls must be wrapped to avoid performance issues.
          * See the UnsafeNewApiCall lint rule for more details.
          */
@@ -3241,7 +3169,6 @@ public class NotificationCompat {
         static class Api24Impl {
             private Api24Impl() { }
 
-            @DoNotInline
             static void setChronometerCountDown(RemoteViews remoteViews, int viewId,
                     boolean isCountDown) {
                 remoteViews.setChronometerCountDown(viewId, isCountDown);
@@ -3367,7 +3294,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -3377,61 +3303,58 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
         public void apply(NotificationBuilderWithBuilderAccessor builder) {
-            if (Build.VERSION.SDK_INT >= 16) {
-                Notification.BigPictureStyle style =
-                        Api16Impl.setBigContentTitle(
-                                Api16Impl.createBigPictureStyle(builder.getBuilder()),
-                                mBigContentTitle
-                        );
-                if (mPictureIcon != null) {
-                    // Attempts to set the icon for BigPictureStyle; prefers using data as Icon,
-                    // with a fallback to store the Bitmap if Icon is not supported directly.
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        Context context = null;
-                        if (builder instanceof NotificationCompatBuilder) {
-                            context = ((NotificationCompatBuilder) builder).getContext();
-                        }
-                        Api31Impl.setBigPicture(style, mPictureIcon.toIcon(context));
-                    } else if (mPictureIcon.getType() == IconCompat.TYPE_BITMAP) {
-                        style = Api16Impl.bigPicture(style, mPictureIcon.getBitmap());
-                    }
-                }
-                // Attempts to set the big large icon for BigPictureStyle.
-                if (mBigLargeIconSet) {
-                    if (mBigLargeIcon == null) {
-                        Api16Impl.setBigLargeIcon(style, null);
-                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        Context context = null;
-                        if (builder instanceof NotificationCompatBuilder) {
-                            context = ((NotificationCompatBuilder) builder).getContext();
-                        }
-                        Api23Impl.setBigLargeIcon(style, mBigLargeIcon.toIcon(context));
-                    } else if (mBigLargeIcon.getType() == IconCompat.TYPE_BITMAP) {
-                        // Before M, only the Bitmap setter existed
-                        Api16Impl.setBigLargeIcon(style, mBigLargeIcon.getBitmap());
-                    } else {
-                        // TODO(b/172282791): When we add #bigLargeIcon(Icon) we'll need to support
-                        // other icon types here by rendering them into a new Bitmap.
-                        Api16Impl.setBigLargeIcon(style, null);
-                    }
-                }
-                if (mSummaryTextSet) {
-                    Api16Impl.setSummaryText(style, mSummaryText);
-                }
+            Notification.Builder builder1 = builder.getBuilder();
+            Notification.BigPictureStyle bigPictureStyle =
+                    new Notification.BigPictureStyle(builder1);
+            Notification.BigPictureStyle style =
+                    bigPictureStyle.setBigContentTitle(mBigContentTitle);
+            if (mPictureIcon != null) {
+                // Attempts to set the icon for BigPictureStyle; prefers using data as Icon,
+                // with a fallback to store the Bitmap if Icon is not supported directly.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    Api31Impl.showBigPictureWhenCollapsed(style, mShowBigPictureWhenCollapsed);
-                    Api31Impl.setContentDescription(style, mPictureContentDescription);
+                    Context context = null;
+                    if (builder instanceof NotificationCompatBuilder) {
+                        context = ((NotificationCompatBuilder) builder).getContext();
+                    }
+                    Api31Impl.setBigPicture(style, mPictureIcon.toIcon(context));
+                } else if (mPictureIcon.getType() == IconCompat.TYPE_BITMAP) {
+                    Bitmap b = mPictureIcon.getBitmap();
+                    style = style.bigPicture(b);
                 }
+            }
+            // Attempts to set the big large icon for BigPictureStyle.
+            if (mBigLargeIconSet) {
+                if (mBigLargeIcon == null) {
+                    style.bigLargeIcon((Bitmap) null);
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    Context context = null;
+                    if (builder instanceof NotificationCompatBuilder) {
+                        context = ((NotificationCompatBuilder) builder).getContext();
+                    }
+                    Api23Impl.setBigLargeIcon(style, mBigLargeIcon.toIcon(context));
+                } else if (mBigLargeIcon.getType() == IconCompat.TYPE_BITMAP) {
+                    // Before M, only the Bitmap setter existed
+                    style.bigLargeIcon(mBigLargeIcon.getBitmap());
+                } else {
+                    // TODO(b/172282791): When we add #bigLargeIcon(Icon) we'll need to support
+                    // other icon types here by rendering them into a new Bitmap.
+                    style.bigLargeIcon((Bitmap) null);
+                }
+            }
+            if (mSummaryTextSet) {
+                style.setSummaryText(mSummaryText);
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Api31Impl.showBigPictureWhenCollapsed(style, mShowBigPictureWhenCollapsed);
+                Api31Impl.setContentDescription(style, mPictureContentDescription);
             }
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -3448,7 +3371,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Nullable
@@ -3481,7 +3403,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @Override
         @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -3491,51 +3412,6 @@ public class NotificationCompat {
             extras.remove(EXTRA_PICTURE);
             extras.remove(EXTRA_PICTURE_ICON);
             extras.remove(EXTRA_SHOW_BIG_PICTURE_WHEN_COLLAPSED);
-        }
-
-        /**
-         * A class for wrapping calls to {@link Notification.BigPictureStyle} methods which
-         * were added in API 16; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         */
-        @RequiresApi(16)
-        private static class Api16Impl {
-            private Api16Impl() {
-            }
-
-            @DoNotInline
-            static Notification.BigPictureStyle bigPicture(
-                    Notification.BigPictureStyle bigPictureStyle, Bitmap b) {
-                return bigPictureStyle.bigPicture(b);
-            }
-
-            @DoNotInline
-            static Notification.BigPictureStyle createBigPictureStyle(
-                    Notification.Builder builder) {
-                return new Notification.BigPictureStyle(builder);
-            }
-
-            /**
-             * Calls {@link Notification.BigPictureStyle#bigLargeIcon(Bitmap)}
-             */
-            @RequiresApi(16)
-            static void setBigLargeIcon(Notification.BigPictureStyle style, Bitmap icon) {
-                style.bigLargeIcon(icon);
-            }
-
-            /**
-             * Calls {@link Notification.BigPictureStyle#setSummaryText(CharSequence)}
-             */
-            @RequiresApi(16)
-            static void setSummaryText(Notification.BigPictureStyle style, CharSequence text) {
-                style.setSummaryText(text);
-            }
-
-            @DoNotInline
-            static Notification.BigPictureStyle setBigContentTitle(
-                    Notification.BigPictureStyle bigPictureStyle, CharSequence title) {
-                return bigPictureStyle.setBigContentTitle(title);
-            }
         }
 
         /**
@@ -3658,7 +3534,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -3668,24 +3543,21 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
         public void apply(NotificationBuilderWithBuilderAccessor builder) {
-            if (Build.VERSION.SDK_INT >= 16) {
-                Notification.BigTextStyle style =
-                        Api16Impl.createBigTextStyle(builder.getBuilder());
-                style = Api16Impl.setBigContentTitle(style, mBigContentTitle);
-                style = Api16Impl.bigText(style, mBigText);
-                if (mSummaryTextSet) {
-                    Api16Impl.setSummaryText(style, mSummaryText);
-                }
+            Notification.Builder builder1 = builder.getBuilder();
+            Notification.BigTextStyle style =
+                    new Notification.BigTextStyle(builder1);
+            style = style.setBigContentTitle(mBigContentTitle);
+            style = style.bigText(mBigText);
+            if (mSummaryTextSet) {
+                style.setSummaryText(mSummaryText);
             }
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -3696,7 +3568,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -3712,47 +3583,12 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @Override
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         protected void clearCompatExtraKeys(@NonNull Bundle extras) {
             super.clearCompatExtraKeys(extras);
             extras.remove(EXTRA_BIG_TEXT);
-        }
-
-        /**
-         * A class for wrapping calls to {@link Notification.BigTextStyle} methods which
-         * were added in API 16; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         */
-        @RequiresApi(16)
-        static class Api16Impl {
-            private Api16Impl() {
-            }
-
-            @DoNotInline
-            static Notification.BigTextStyle createBigTextStyle(Notification.Builder builder) {
-                return new Notification.BigTextStyle(builder);
-            }
-
-            @DoNotInline
-            static Notification.BigTextStyle setBigContentTitle(
-                    Notification.BigTextStyle bigTextStyle, CharSequence title) {
-                return bigTextStyle.setBigContentTitle(title);
-            }
-
-            @DoNotInline
-            static Notification.BigTextStyle bigText(
-                    Notification.BigTextStyle bigTextStyle, CharSequence bigText) {
-                return bigTextStyle.bigText(bigText);
-            }
-
-            @DoNotInline
-            static Notification.BigTextStyle setSummaryText(Notification.BigTextStyle bigTextStyle,
-                    CharSequence cs) {
-                return bigTextStyle.setSummaryText(cs);
-            }
         }
     }
 
@@ -4044,7 +3880,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -4054,7 +3889,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -4105,7 +3939,8 @@ public class NotificationCompat {
                     Api28Impl.setGroupConversation((Notification.MessagingStyle) frameworkStyle,
                             mIsGroupConversation);
                 }
-                Api16Impl.setBuilder((Notification.Style) frameworkStyle, builder.getBuilder());
+                Notification.Builder builder1 = builder.getBuilder();
+                ((Notification.Style) frameworkStyle).setBuilder(builder1);
             } else {
                 Message latestIncomingMessage = findLatestIncomingMessage();
                 // Set the title
@@ -4125,24 +3960,23 @@ public class NotificationCompat {
                             : latestIncomingMessage.getText());
                 }
                 // Build a fallback BigTextStyle for API 16-23 devices
-                if (Build.VERSION.SDK_INT >= 16) {
-                    SpannableStringBuilder completeMessage = new SpannableStringBuilder();
-                    boolean showNames = mConversationTitle != null
-                            || hasMessagesWithoutSender();
-                    for (int i = mMessages.size() - 1; i >= 0; i--) {
-                        Message message = mMessages.get(i);
-                        CharSequence line;
-                        line = showNames ? makeMessageLine(message) : message.getText();
-                        if (i != mMessages.size() - 1) {
-                            completeMessage.insert(0, "\n");
-                        }
-                        completeMessage.insert(0, line);
+                SpannableStringBuilder completeMessage = new SpannableStringBuilder();
+                boolean showNames = mConversationTitle != null
+                        || hasMessagesWithoutSender();
+                for (int i = mMessages.size() - 1; i >= 0; i--) {
+                    Message message = mMessages.get(i);
+                    CharSequence line;
+                    line = showNames ? makeMessageLine(message) : message.getText();
+                    if (i != mMessages.size() - 1) {
+                        completeMessage.insert(0, "\n");
                     }
-                    Notification.BigTextStyle style =
-                            Api16Impl.createBigTextStyle(builder.getBuilder());
-                    style = Api16Impl.setBigContentTitle(style, null);
-                    Api16Impl.bigText(style, completeMessage);
+                    completeMessage.insert(0, line);
                 }
+                Notification.Builder builder1 = builder.getBuilder();
+                Notification.BigTextStyle style =
+                        new Notification.BigTextStyle(builder1);
+                style = style.setBigContentTitle(null);
+                style.bigText(completeMessage);
             }
         }
 
@@ -4226,7 +4060,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -4263,7 +4096,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @Override
         @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -4337,12 +4169,14 @@ public class NotificationCompat {
              * where the platform doesn't support the MIME type, the original text provided in the
              * constructor will be used.
              *
-             * @param dataMimeType The MIME type of the content
+             * @param dataMimeType The MIME type of the content. See
+             * {@link android.graphics.ImageDecoder#isMimeTypeSupported(String)}
+             * for a list of supported image MIME types.
              * @param dataUri The uri containing the content whose type is given by the MIME type.
              * <p class="note">
+             * Notification Listeners including the System UI need permission to access the
+             * data the Uri points to. The recommended ways to do this are:
              * <ol>
-             *   <li>Notification Listeners including the System UI need permission to access the
-             *       data the Uri points to. The recommended ways to do this are:</li>
              *   <li>Store the data in your own ContentProvider, making sure that other apps have
              *       the correct permission to access your provider. The preferred mechanism for
              *       providing access is to use per-URI permissions which are temporary and only
@@ -4430,7 +4264,8 @@ public class NotificationCompat {
 
                     // Write person to native notification
                     if (Build.VERSION.SDK_INT >= 28) {
-                        bundle.putParcelable(KEY_NOTIFICATION_PERSON, mPerson.toAndroidPerson());
+                        bundle.putParcelable(KEY_NOTIFICATION_PERSON,
+                                Api28Impl.castToParcelable(mPerson.toAndroidPerson()));
                     } else {
                         bundle.putBundle(KEY_PERSON, mPerson.toBundle());
                     }
@@ -4517,7 +4352,6 @@ public class NotificationCompat {
             /**
              * Converts this compat {@link Message} to the base Android framework
              * {@link Notification.MessagingStyle.Message}.
-             * @hide
              */
             @RestrictTo(LIBRARY_GROUP_PREFIX)
             @NonNull
@@ -4551,13 +4385,11 @@ public class NotificationCompat {
                     // This class is not instantiable.
                 }
 
-                @DoNotInline
                 static Notification.MessagingStyle.Message createMessage(CharSequence text,
                         long timestamp, CharSequence sender) {
                     return new Notification.MessagingStyle.Message(text, timestamp, sender);
                 }
 
-                @DoNotInline
                 static Notification.MessagingStyle.Message setData(
                         Notification.MessagingStyle.Message message, String dataMimeType,
                         Uri dataUri) {
@@ -4576,43 +4408,14 @@ public class NotificationCompat {
                     // This class is not instantiable.
                 }
 
-                @DoNotInline
                 static Notification.MessagingStyle.Message createMessage(CharSequence text,
                         long timestamp, android.app.Person sender) {
                     return new Notification.MessagingStyle.Message(text, timestamp, sender);
                 }
-            }
-        }
 
-        /**
-         * A class for wrapping calls to {@link Notification.MessagingStyle} methods which
-         * were added in API 16; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         */
-        @RequiresApi(16)
-        static class Api16Impl {
-            private Api16Impl() { }
-
-            @DoNotInline
-            static void setBuilder(Notification.Style style, Notification.Builder builder) {
-                style.setBuilder(builder);
-            }
-
-            @DoNotInline
-            static Notification.BigTextStyle createBigTextStyle(Notification.Builder builder) {
-                return new Notification.BigTextStyle(builder);
-            }
-
-            @DoNotInline
-            static Notification.BigTextStyle setBigContentTitle(
-                    Notification.BigTextStyle bigTextStyle, CharSequence title) {
-                return bigTextStyle.setBigContentTitle(title);
-            }
-
-            @DoNotInline
-            static Notification.BigTextStyle bigText(
-                    Notification.BigTextStyle bigTextStyle, CharSequence cs) {
-                return bigTextStyle.bigText(cs);
+                static Parcelable castToParcelable(android.app.Person person) {
+                    return person;
+                }
             }
         }
 
@@ -4625,19 +4428,16 @@ public class NotificationCompat {
         static class Api24Impl {
             private Api24Impl() { }
 
-            @DoNotInline
             static Notification.MessagingStyle createMessagingStyle(CharSequence userDisplayName) {
                 return new Notification.MessagingStyle(userDisplayName);
             }
 
-            @DoNotInline
             static Notification.MessagingStyle addMessage(
                     Notification.MessagingStyle messagingStyle,
                     Notification.MessagingStyle.Message message) {
                 return messagingStyle.addMessage(message);
             }
 
-            @DoNotInline
             static Notification.MessagingStyle setConversationTitle(
                     Notification.MessagingStyle messagingStyle, CharSequence conversationTitle) {
                 return messagingStyle.setConversationTitle(conversationTitle);
@@ -4653,7 +4453,6 @@ public class NotificationCompat {
         static class Api26Impl {
             private Api26Impl() { }
 
-            @DoNotInline
             static Notification.MessagingStyle addHistoricMessage(
                     Notification.MessagingStyle messagingStyle,
                     Notification.MessagingStyle.Message message) {
@@ -4671,12 +4470,10 @@ public class NotificationCompat {
         static class Api28Impl {
             private Api28Impl() { }
 
-            @DoNotInline
             static Notification.MessagingStyle createMessagingStyle(android.app.Person user) {
                 return new Notification.MessagingStyle(user);
             }
 
-            @DoNotInline
             static Notification.MessagingStyle setGroupConversation(
                     Notification.MessagingStyle messagingStyle, boolean isGroupConversation) {
                 return messagingStyle.setGroupConversation(isGroupConversation);
@@ -4712,7 +4509,6 @@ public class NotificationCompat {
                 "androidx.core.app.NotificationCompat$CallStyle";
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Retention(RetentionPolicy.SOURCE)
@@ -4933,7 +4729,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -4945,7 +4740,6 @@ public class NotificationCompat {
 
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -4981,7 +4775,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -4994,15 +4787,16 @@ public class NotificationCompat {
             extras.putBoolean(EXTRA_CALL_IS_VIDEO, mIsVideo);
             if (mPerson != null) {
                 if (Build.VERSION.SDK_INT >= 28) {
-                    extras.putParcelable(EXTRA_CALL_PERSON, mPerson.toAndroidPerson());
+                    extras.putParcelable(EXTRA_CALL_PERSON,
+                            Api28Impl.castToParcelable(mPerson.toAndroidPerson()));
                 } else {
                     extras.putParcelable(EXTRA_CALL_PERSON_COMPAT, mPerson.toBundle());
                 }
             }
             if (mVerificationIcon != null) {
                 if (Build.VERSION.SDK_INT >= 23) {
-                    extras.putParcelable(EXTRA_VERIFICATION_ICON, mVerificationIcon.toIcon(
-                            mBuilder.mContext));
+                    extras.putParcelable(EXTRA_VERIFICATION_ICON, Api23Impl.castToParcelable(
+                            mVerificationIcon.toIcon(mBuilder.mContext)));
                 } else {
                     extras.putParcelable(EXTRA_VERIFICATION_ICON_COMPAT,
                             mVerificationIcon.toBundle());
@@ -5021,7 +4815,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5031,7 +4824,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5059,10 +4851,7 @@ public class NotificationCompat {
                         }
                 }
                 if (style != null) {
-                    // Before applying the style, we clear the actions.
-                    Api24Impl.clearActions(builderAccessor.getBuilder());
-
-                    Api16Impl.setBuilder(style, builderAccessor.getBuilder());
+                    style.setBuilder(builderAccessor.getBuilder());
                     if (mAnswerButtonColor != null) {
                         Api31Impl.setAnswerButtonColorHint(style, mAnswerButtonColor);
                     }
@@ -5110,20 +4899,6 @@ public class NotificationCompat {
                         Api28Impl.addPerson(builder, mPerson.toAndroidPerson());
                     } else if (Build.VERSION.SDK_INT >= 21) {
                         Api21Impl.addPerson(builder, mPerson.getUri());
-                    }
-                }
-
-                // Adds actions to the notification.
-                if (Build.VERSION.SDK_INT >= 20) {
-                    // Retrieves call style actions, including contextual and system actions.
-                    List<Action> actionsList = getActionsListWithSystemActions();
-                    // Clear any existing actions.
-                    if (Build.VERSION.SDK_INT >= 24) {
-                        Api24Impl.clearActions(builder);
-                    }
-                    // Adds the actions to the builder in the proper order.
-                    for (Action action : actionsList) {
-                        Api20Impl.addAction(builder, getActionFromActionCompat(action));
                     }
                 }
 
@@ -5224,7 +4999,6 @@ public class NotificationCompat {
          * the correct place.  This returns the correct result even if the system actions have
          * already been added, and even if more actions were added since then.
          *
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @NonNull
@@ -5274,65 +5048,6 @@ public class NotificationCompat {
             return resultActions;
         }
 
-        @RequiresApi(20)
-        private static Notification.Action getActionFromActionCompat(Action actionCompat) {
-            Notification.Action.Builder actionBuilder;
-            if (Build.VERSION.SDK_INT >= 23) {
-                IconCompat iconCompat = actionCompat.getIconCompat();
-                actionBuilder = Api23Impl.createActionBuilder(
-                        iconCompat == null ? null : iconCompat.toIcon(), actionCompat.getTitle(),
-                        actionCompat.getActionIntent());
-            } else {
-                IconCompat icon = actionCompat.getIconCompat();
-                int iconResId = 0;
-                if (icon != null && icon.getType() == IconCompat.TYPE_RESOURCE) {
-                    iconResId = icon.getResId();
-                }
-                actionBuilder =
-                        Api20Impl.createActionBuilder(iconResId, actionCompat.getTitle(),
-                                actionCompat.getActionIntent());
-            }
-            Bundle actionExtras;
-            if (actionCompat.getExtras() != null) {
-                actionExtras = new Bundle(actionCompat.getExtras());
-            } else {
-                actionExtras = new Bundle();
-            }
-            actionExtras.putBoolean(NotificationCompatJellybean.EXTRA_ALLOW_GENERATED_REPLIES,
-                    actionCompat.getAllowGeneratedReplies());
-            if (Build.VERSION.SDK_INT >= 24) {
-                Api24Impl.setAllowGeneratedReplies(actionBuilder,
-                        actionCompat.getAllowGeneratedReplies());
-            }
-            if (Build.VERSION.SDK_INT >= 31) {
-                Api31Impl.setAuthenticationRequired(actionBuilder,
-                        actionCompat.isAuthenticationRequired());
-            }
-            Api20Impl.addExtras(actionBuilder, actionExtras);
-            RemoteInput[] remoteInputCompats = actionCompat.getRemoteInputs();
-            if (remoteInputCompats != null) {
-                android.app.RemoteInput[] remoteInputs = RemoteInput.fromCompat(remoteInputCompats);
-                for (android.app.RemoteInput remoteInput : remoteInputs) {
-                    Api20Impl.addRemoteInput(actionBuilder, remoteInput);
-                }
-            }
-            return Api20Impl.build(actionBuilder);
-        }
-
-        /**
-         * A class for wrapping calls to {@link Notification.CallStyle} methods which
-         * were added in API 16; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         */
-        @RequiresApi(16)
-        static class Api16Impl {
-            private Api16Impl() { }
-
-            @DoNotInline
-            static void setBuilder(Notification.CallStyle style, Notification.Builder builder) {
-                style.setBuilder(builder);
-            }
-        }
 
         /**
          * A class for wrapping calls to {@link Notification.CallStyle} methods which
@@ -5344,18 +5059,10 @@ public class NotificationCompat {
             private Api20Impl() {
             }
 
-            @DoNotInline
-            static Notification.Builder addAction(Notification.Builder builder,
-                    Notification.Action action) {
-                return builder.addAction(action);
-            }
-
-            @DoNotInline
             static Notification.Action build(Notification.Action.Builder builder) {
                 return builder.build();
             }
 
-            @DoNotInline
             static Notification.Action.Builder createActionBuilder(int icon,
                     CharSequence title,
                     android.app.PendingIntent intent) {
@@ -5363,13 +5070,11 @@ public class NotificationCompat {
 
             }
 
-            @DoNotInline
             static Notification.Action.Builder addExtras(Notification.Action.Builder builder,
                     android.os.Bundle extras) {
                 return builder.addExtras(extras);
             }
 
-            @DoNotInline
             static Notification.Action.Builder addRemoteInput(Notification.Action.Builder builder,
                     android.app.RemoteInput remoteInput) {
                 return builder.addRemoteInput(remoteInput);
@@ -5386,12 +5091,10 @@ public class NotificationCompat {
             private Api21Impl() {
             }
 
-            @DoNotInline
             static Notification.Builder addPerson(Notification.Builder builder, String uri) {
                 return builder.addPerson(uri);
             }
 
-            @DoNotInline
             static Notification.Builder setCategory(Notification.Builder builder, String category) {
                 return builder.setCategory(category);
             }
@@ -5407,18 +5110,20 @@ public class NotificationCompat {
             private Api23Impl() {
             }
 
-            @DoNotInline
             static void setLargeIcon(Notification.Builder builder,
                     Icon icon) {
                 builder.setLargeIcon(icon);
             }
 
-            @DoNotInline
             static Notification.Action.Builder createActionBuilder(
-                    android.graphics.drawable.Icon icon,
+                    Icon icon,
                     CharSequence title,
-                    android.app.PendingIntent intent) {
+                    PendingIntent intent) {
                 return new Notification.Action.Builder(icon, title, intent);
+            }
+
+            static Parcelable castToParcelable(Icon icon) {
+                return icon;
             }
         }
 
@@ -5432,15 +5137,6 @@ public class NotificationCompat {
             private Api24Impl() {
             }
 
-            /**
-             * Clears actions by calling setActions() with an empty list of arguments.
-             */
-            @DoNotInline
-            static Notification.Builder clearActions(Notification.Builder builder) {
-                return builder.setActions();
-            }
-
-            @DoNotInline
             static Notification.Action.Builder setAllowGeneratedReplies(
                     Notification.Action.Builder builder, boolean allowGeneratedReplies) {
                 return builder.setAllowGeneratedReplies(allowGeneratedReplies);
@@ -5457,10 +5153,13 @@ public class NotificationCompat {
             private Api28Impl() {
             }
 
-            @DoNotInline
             static Notification.Builder addPerson(Notification.Builder builder,
                     android.app.Person person) {
                 return builder.addPerson(person);
+            }
+
+            static Parcelable castToParcelable(android.app.Person person) {
+                return person;
             }
         }
 
@@ -5474,55 +5173,46 @@ public class NotificationCompat {
             private Api31Impl() {
             }
 
-            @DoNotInline
             static Notification.CallStyle forIncomingCall(@NonNull android.app.Person person,
                     @NonNull PendingIntent declineIntent, @NonNull PendingIntent answerIntent) {
                 return Notification.CallStyle.forIncomingCall(person, declineIntent, answerIntent);
             }
 
-            @DoNotInline
             static Notification.CallStyle forOngoingCall(@NonNull android.app.Person person,
                     @NonNull PendingIntent hangUpIntent) {
                 return Notification.CallStyle.forOngoingCall(person, hangUpIntent);
             }
 
-            @DoNotInline
             static Notification.CallStyle forScreeningCall(@NonNull android.app.Person person,
                     @NonNull PendingIntent hangUpIntent, @NonNull PendingIntent answerIntent) {
                 return Notification.CallStyle.forScreeningCall(person, hangUpIntent, answerIntent);
             }
 
-            @DoNotInline
             static Notification.CallStyle setIsVideo(Notification.CallStyle callStyle,
                     boolean isVideo) {
                 return callStyle.setIsVideo(isVideo);
             }
 
-            @DoNotInline
             static Notification.CallStyle setVerificationIcon(Notification.CallStyle callStyle,
                     @Nullable Icon verificationIcon) {
                 return callStyle.setVerificationIcon(verificationIcon);
             }
 
-            @DoNotInline
             static Notification.CallStyle setVerificationText(Notification.CallStyle callStyle,
                     @Nullable CharSequence verificationText) {
                 return callStyle.setVerificationText(verificationText);
             }
 
-            @DoNotInline
             static Notification.CallStyle setAnswerButtonColorHint(Notification.CallStyle callStyle,
                     @ColorInt int color) {
                 return callStyle.setAnswerButtonColorHint(color);
             }
 
-            @DoNotInline
             static Notification.CallStyle setDeclineButtonColorHint(
                     Notification.CallStyle callStyle, @ColorInt int color) {
                 return callStyle.setDeclineButtonColorHint(color);
             }
 
-            @DoNotInline
             static Notification.Action.Builder setAuthenticationRequired(
                     Notification.Action.Builder actionBuilder, boolean authenticationRequired) {
                 return actionBuilder.setAuthenticationRequired(authenticationRequired);
@@ -5597,7 +5287,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5607,25 +5296,22 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
         public void apply(NotificationBuilderWithBuilderAccessor builder) {
-            if (Build.VERSION.SDK_INT >= 16) {
-                Notification.InboxStyle style = Api16Impl.createInboxStyle(builder.getBuilder());
-                style = Api16Impl.setBigContentTitle(style, mBigContentTitle);
-                if (mSummaryTextSet) {
-                    Api16Impl.setSummaryText(style, mSummaryText);
-                }
-                for (CharSequence text: mTexts) {
-                    Api16Impl.addLine(style, text);
-                }
+            Notification.Builder builder1 = builder.getBuilder();
+            Notification.InboxStyle style = new Notification.InboxStyle(builder1);
+            style = style.setBigContentTitle(mBigContentTitle);
+            if (mSummaryTextSet) {
+                style.setSummaryText(mSummaryText);
+            }
+            for (CharSequence text: mTexts) {
+                style.addLine(text);
             }
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5639,46 +5325,12 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @Override
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         protected void clearCompatExtraKeys(@NonNull Bundle extras) {
             super.clearCompatExtraKeys(extras);
             extras.remove(EXTRA_TEXT_LINES);
-        }
-
-        /**
-         * A class for wrapping calls to {@link Notification.InboxStyle} methods which
-         * were added in API 16; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         */
-        @RequiresApi(16)
-        static class Api16Impl {
-            private Api16Impl() { }
-
-            @DoNotInline
-            static Notification.InboxStyle createInboxStyle(Notification.Builder builder) {
-                return new Notification.InboxStyle(builder);
-            }
-
-            @DoNotInline
-            static Notification.InboxStyle setBigContentTitle(Notification.InboxStyle inboxStyle,
-                    CharSequence title) {
-                return inboxStyle.setBigContentTitle(title);
-            }
-
-            @DoNotInline
-            static Notification.InboxStyle setSummaryText(Notification.InboxStyle inboxStyle,
-                    CharSequence cs) {
-                return inboxStyle.setSummaryText(cs);
-            }
-
-            @DoNotInline
-            static Notification.InboxStyle addLine(Notification.InboxStyle inboxStyle,
-                    CharSequence cs) {
-                return inboxStyle.addLine(cs);
-            }
         }
     }
 
@@ -5721,7 +5373,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5731,7 +5382,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5740,20 +5390,18 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
         public void apply(NotificationBuilderWithBuilderAccessor builder) {
             if (Build.VERSION.SDK_INT >= 24) {
-                Api16Impl.setStyle(builder.getBuilder(),
-                        Api24Impl.createDecoratedCustomViewStyle());
+                Notification.Builder builder1 = builder.getBuilder();
+                builder1.setStyle(Api24Impl.createDecoratedCustomViewStyle());
 
             }
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5770,7 +5418,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5791,7 +5438,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         @Override
@@ -5807,6 +5453,82 @@ public class NotificationCompat {
                 return null;
             }
             return createRemoteViews(innerView, true);
+        }
+
+
+        /**
+         * A helper method to get texts from a {@link Notification}'s custom content view made by
+         * either
+         * {@link Builder#setCustomBigContentView(RemoteViews)},
+         * {@link Builder#setCustomContentView(RemoteViews)} or
+         * {@link Builder#setCustomHeadsUpContentView(RemoteViews)}.
+         *
+         * Note that this method will not look for {@link Notification#publicVersion} made by
+         * {@link Builder#setPublicVersion(Notification)}.
+         *
+         * @param context A {@link Context} that will be used to inflate the content view from
+         *                the notification.
+         * @param notification The notification from which to get texts from its content view.
+         * @return A list of text from the notification custom content view made by the above
+         * method. Note that the method only returns a list of text from one of the custom view
+         * as the above when it set, meaning when multiple custom content views has set in a
+         * notification, the returned list will base on the detail of custom content and usage as
+         * the priority: First is {@link Notification#bigContentView}, then is
+         * {@link Notification#contentView} when no big content view has set, or
+         * {@link Notification#headsUpContentView} when set. Otherwise, returns the empty list.
+         */
+        @NonNull
+        @SuppressWarnings("MixedMutabilityReturnType")
+        @RequiresApi(24)
+        public static List<CharSequence> getTextsFromContentView(@NonNull Context context,
+                @NonNull Notification notification) {
+            final String styleClassName = notification.extras.getString(EXTRA_TEMPLATE);
+            if (!Notification.DecoratedCustomViewStyle.class.getName().equals(styleClassName)) {
+                return Collections.emptyList();
+            }
+
+            if (notification.contentView == null && notification.bigContentView == null
+                    && notification.headsUpContentView == null) {
+                return Collections.emptyList();
+            }
+
+            RemoteViews contentView = notification.bigContentView != null
+                    ? notification.bigContentView : notification.contentView != null
+                    ? notification.contentView : notification.headsUpContentView;
+            final String packageName = contentView.getPackage();
+            ApplicationInfo applicationInfo;
+            Context packageContext;
+            try {
+                packageContext = context.createPackageContext(packageName, 0);
+                applicationInfo = context.getPackageManager().getApplicationInfo(packageName, 0);
+            } catch (PackageManager.NameNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+            packageContext.setTheme(applicationInfo.theme);
+            View contentLayout = contentView.apply(packageContext, null);
+
+            final ArrayList<CharSequence> texts = new ArrayList<>();
+            getTextsFromViewTraversal(contentLayout, texts);
+
+            return texts;
+        }
+
+        private static void getTextsFromViewTraversal(View v, ArrayList<CharSequence> outTexts) {
+            if (!(v instanceof ViewGroup)) {
+                return;
+            }
+            for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) {
+                View child = ((ViewGroup) v).getChildAt(i);
+                if (child instanceof TextView) {
+                    CharSequence text = ((TextView) child).getText();
+                    if (text != null && text.length() > 0) {
+                        outTexts.add(text);
+                    }
+                }
+                if (child instanceof ViewGroup) {
+                    getTextsFromViewTraversal(child, outTexts);
+                }
+            }
         }
 
         private RemoteViews createRemoteViews(RemoteViews innerView, boolean showActions) {
@@ -5864,47 +5586,8 @@ public class NotificationCompat {
             if (!tombstone) {
                 button.setOnClickPendingIntent(R.id.action_container, action.actionIntent);
             }
-            if (Build.VERSION.SDK_INT >= 15) {
-                Api15Impl.setContentDescription(button, R.id.action_container, action.title);
-            }
+            button.setContentDescription(R.id.action_container, action.title);
             return button;
-        }
-
-        /**
-         * A class for wrapping calls to {@link Notification.DecoratedCustomViewStyle} methods which
-         * were added in API 15; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         */
-        @RequiresApi(15)
-        static class Api15Impl {
-            private Api15Impl() { }
-
-            @DoNotInline
-            static void setContentDescription(RemoteViews remoteViews, int viewId,
-                    CharSequence contentDescription) {
-                remoteViews.setContentDescription(viewId, contentDescription);
-            }
-        }
-
-        /**
-         * A class for wrapping calls to {@link Notification.DecoratedCustomViewStyle} methods which
-         * were added in API 16; these calls must be wrapped to avoid performance issues.
-         * See the UnsafeNewApiCall lint rule for more details.
-         * Note that the runtime converts NewApi classes to Object during init, but only for
-         * initialized classes; if setStyle is passed style objects from newer API versions, if
-         * the type of those objects will be unknown, and a VerifyError will occur. To prevent
-         * this, we explicitly cast the provided style Object to Notification.Style.
-         */
-        @RequiresApi(16)
-        static class Api16Impl {
-            private Api16Impl() { }
-
-            @DoNotInline
-            static Notification.Builder setStyle(Notification.Builder builder,
-                    Object style) {
-                return builder.setStyle((Notification.Style) style);
-            }
-
         }
 
         /**
@@ -5916,8 +5599,7 @@ public class NotificationCompat {
         static class Api24Impl {
             private Api24Impl() { }
 
-            @DoNotInline
-            static Notification.DecoratedCustomViewStyle createDecoratedCustomViewStyle() {
+            static Notification.Style createDecoratedCustomViewStyle() {
                 return new Notification.DecoratedCustomViewStyle();
             }
 
@@ -6217,10 +5899,8 @@ public class NotificationCompat {
             /**
              * Creates a {@link Builder} from an {@link android.app.Notification.Action}.
              *
-             * @hide
              */
             @RestrictTo(LIBRARY_GROUP_PREFIX)
-            @RequiresApi(19)
             @NonNull
             public static Builder fromAndroidAction(@NonNull Notification.Action action) {
                 final Builder builder;
@@ -6252,6 +5932,9 @@ public class NotificationCompat {
                 }
                 if (Build.VERSION.SDK_INT >= 31) {
                     builder.setAuthenticationRequired(Api31Impl.isAuthenticationRequired(action));
+                }
+                if (Build.VERSION.SDK_INT >= 20) {
+                    builder.addExtras(Api20Impl.getExtras(action));
                 }
                 return builder;
             }
@@ -6485,11 +6168,13 @@ public class NotificationCompat {
             static class Api20Impl {
                 private Api20Impl() { }
 
-                @DoNotInline
                 static android.app.RemoteInput[] getRemoteInputs(Notification.Action action) {
                     return action.getRemoteInputs();
                 }
 
+                static Bundle getExtras(Notification.Action action) {
+                    return action.getExtras();
+                }
             }
 
             /**
@@ -6501,7 +6186,6 @@ public class NotificationCompat {
             static class Api23Impl {
                 private Api23Impl() { }
 
-                @DoNotInline
                 static Icon getIcon(Notification.Action action) {
                     return action.getIcon();
                 }
@@ -6516,7 +6200,6 @@ public class NotificationCompat {
             static class Api24Impl {
                 private Api24Impl() { }
 
-                @DoNotInline
                 static boolean getAllowGeneratedReplies(Notification.Action action) {
                     return action.getAllowGeneratedReplies();
                 }
@@ -6531,7 +6214,6 @@ public class NotificationCompat {
             static class Api28Impl {
                 private Api28Impl() { }
 
-                @DoNotInline
                 static int getSemanticAction(Notification.Action action) {
                     return action.getSemanticAction();
                 }
@@ -6546,7 +6228,6 @@ public class NotificationCompat {
             static class Api29Impl {
                 private Api29Impl() { }
 
-                @DoNotInline
                 static boolean isContextual(Notification.Action action) {
                     return action.isContextual();
                 }
@@ -6561,7 +6242,6 @@ public class NotificationCompat {
             static class Api31Impl {
                 private Api31Impl() { }
 
-                @DoNotInline
                 static boolean isAuthenticationRequired(Notification.Action action) {
                     return action.isAuthenticationRequired();
                 }
@@ -7077,12 +6757,12 @@ public class NotificationCompat {
             if (wearableBundle != null) {
                 final ArrayList<Parcelable> parcelables =
                         wearableBundle.getParcelableArrayList(KEY_ACTIONS);
-                if (Build.VERSION.SDK_INT >= 16 && parcelables != null) {
+                if (parcelables != null) {
                     Action[] actions = new Action[parcelables.size()];
                     for (int i = 0; i < actions.length; i++) {
                         if (Build.VERSION.SDK_INT >= 20) {
                             actions[i] = Api20Impl.getActionCompatFromAction(parcelables, i);
-                        } else if (Build.VERSION.SDK_INT >= 16) {
+                        } else {
                             actions[i] = NotificationCompatJellybean.getActionFromBundle(
                                     (Bundle) parcelables.get(i));
                         }
@@ -7127,20 +6807,16 @@ public class NotificationCompat {
             Bundle wearableBundle = new Bundle();
 
             if (!mActions.isEmpty()) {
-                if (Build.VERSION.SDK_INT >= 16) {
-                    ArrayList<Parcelable> parcelables = new ArrayList<>(mActions.size());
-                    for (Action action : mActions) {
-                        if (Build.VERSION.SDK_INT >= 20) {
-                            parcelables.add(
-                                    WearableExtender.getActionFromActionCompat(action));
-                        } else if (Build.VERSION.SDK_INT >= 16) {
-                            parcelables.add(NotificationCompatJellybean.getBundleForAction(action));
-                        }
+                ArrayList<Parcelable> parcelables = new ArrayList<>(mActions.size());
+                for (Action action : mActions) {
+                    if (Build.VERSION.SDK_INT >= 20) {
+                        parcelables.add(
+                                WearableExtender.getActionFromActionCompat(action));
+                    } else {
+                        parcelables.add(NotificationCompatJellybean.getBundleForAction(action));
                     }
-                    wearableBundle.putParcelableArrayList(KEY_ACTIONS, parcelables);
-                } else {
-                    wearableBundle.putParcelableArrayList(KEY_ACTIONS, null);
                 }
+                wearableBundle.putParcelableArrayList(KEY_ACTIONS, parcelables);
             }
             if (mFlags != DEFAULT_FLAGS) {
                 wearableBundle.putInt(KEY_FLAGS, mFlags);
@@ -7864,30 +7540,25 @@ public class NotificationCompat {
         static class Api20Impl {
             private Api20Impl() { }
 
-            @DoNotInline
             static Notification.Action.Builder createBuilder(int icon, CharSequence title,
                     PendingIntent intent) {
                 return new Notification.Action.Builder(icon, title, intent);
             }
 
-            @DoNotInline
             static Notification.Action.Builder addExtras(Notification.Action.Builder builder,
                     Bundle extras) {
                 return builder.addExtras(extras);
             }
 
-            @DoNotInline
             static Notification.Action.Builder addRemoteInput(Notification.Action.Builder builder,
                     android.app.RemoteInput remoteInput) {
                 return builder.addRemoteInput(remoteInput);
             }
 
-            @DoNotInline
             static Notification.Action build(Notification.Action.Builder builder) {
                 return builder.build();
             }
 
-            @DoNotInline
             public static Action getActionCompatFromAction(ArrayList<Parcelable> parcelables,
                     int i) {
                 // Cast to Notification.Action (added in API 19) must happen in static inner class.
@@ -7905,7 +7576,6 @@ public class NotificationCompat {
         static class Api23Impl {
             private Api23Impl() { }
 
-            @DoNotInline
             static Notification.Action.Builder createBuilder(Icon icon, CharSequence title,
                     PendingIntent intent) {
                 return new Notification.Action.Builder(icon, title, intent);
@@ -7921,7 +7591,6 @@ public class NotificationCompat {
         static class Api24Impl {
             private Api24Impl() { }
 
-            @DoNotInline
             static Notification.Action.Builder setAllowGeneratedReplies(
                     Notification.Action.Builder builder, boolean allowGeneratedReplies) {
                 return builder.setAllowGeneratedReplies(allowGeneratedReplies);
@@ -7937,7 +7606,6 @@ public class NotificationCompat {
         static class Api31Impl {
             private Api31Impl() { }
 
-            @DoNotInline
             static Notification.Action.Builder setAuthenticationRequired(
                     Notification.Action.Builder builder, boolean authenticationRequired) {
                 return builder.setAuthenticationRequired(authenticationRequired);
@@ -7975,13 +7643,11 @@ public class NotificationCompat {
      * to access values.
      */
     public static final class CarExtender implements Extender {
-        /** @hide **/
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         static final String EXTRA_CAR_EXTENDER = "android.car.EXTENSIONS";
         private static final String EXTRA_LARGE_ICON = "large_icon";
         private static final String EXTRA_CONVERSATION = "car_conversation";
         private static final String EXTRA_COLOR = "app_color";
-        /** @hide **/
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         static final String EXTRA_INVISIBLE_ACTIONS = "invisible_actions";
 
@@ -8106,7 +7772,7 @@ public class NotificationCompat {
                 Api20Impl.addExtras(builder, remoteInputCompat.getExtras());
 
                 android.app.RemoteInput remoteInput = Api20Impl.build(builder);
-                b.putParcelable(KEY_REMOTE_INPUT, remoteInput);
+                b.putParcelable(KEY_REMOTE_INPUT, Api20Impl.castToParcelable(remoteInput));
             }
             b.putParcelable(KEY_ON_REPLY, uc.getReplyPendingIntent());
             b.putParcelable(KEY_ON_READ, uc.getReadPendingIntent());
@@ -8407,63 +8073,56 @@ public class NotificationCompat {
                 // This class is not instantiable.
             }
 
-            @DoNotInline
             static android.app.RemoteInput.Builder createBuilder(String resultKey) {
                 return new android.app.RemoteInput.Builder(resultKey);
             }
 
-            @DoNotInline
             static android.app.RemoteInput build(android.app.RemoteInput.Builder builder) {
                 return builder.build();
             }
 
-            @DoNotInline
             static String getResultKey(android.app.RemoteInput remoteInput) {
                 return remoteInput.getResultKey();
             }
 
-            @DoNotInline
             static CharSequence[] getChoices(android.app.RemoteInput remoteInput) {
                 return remoteInput.getChoices();
             }
 
-            @DoNotInline
             static android.app.RemoteInput.Builder setChoices(
                     android.app.RemoteInput.Builder builder, CharSequence[] choices) {
                 return builder.setChoices(choices);
             }
 
-            @DoNotInline
             static CharSequence getLabel(android.app.RemoteInput remoteInput) {
                 return remoteInput.getLabel();
             }
 
-            @DoNotInline
             static android.app.RemoteInput.Builder setLabel(android.app.RemoteInput.Builder builder,
                     CharSequence label) {
                 return builder.setLabel(label);
             }
 
-            @DoNotInline
             static boolean getAllowFreeFormInput(android.app.RemoteInput remoteInput) {
                 return remoteInput.getAllowFreeFormInput();
             }
 
-            @DoNotInline
             static android.app.RemoteInput.Builder setAllowFreeFormInput(
                     android.app.RemoteInput.Builder builder, boolean allowFreeFormInput) {
                 return builder.setAllowFreeFormInput(allowFreeFormInput);
             }
 
-            @DoNotInline
             static Bundle getExtras(android.app.RemoteInput remoteInput) {
                 return remoteInput.getExtras();
             }
 
-            @DoNotInline
             static android.app.RemoteInput.Builder addExtras(
-                    android.app.RemoteInput.Builder builder, android.os.Bundle extras) {
+                    android.app.RemoteInput.Builder builder, Bundle extras) {
                 return builder.addExtras(extras);
+            }
+
+            static Parcelable castToParcelable(android.app.RemoteInput remoteInput) {
+                return remoteInput;
             }
         }
 
@@ -8476,11 +8135,212 @@ public class NotificationCompat {
         static class Api29Impl {
             private Api29Impl() { }
 
-            @DoNotInline
             static int getEditChoicesBeforeSending(android.app.RemoteInput remoteInput) {
                 return remoteInput.getEditChoicesBeforeSending();
             }
 
+        }
+    }
+
+    /**
+     * Helper class to add Android TV extensions to notifications.
+     * <p>
+     * To create a notification with a TV extension:
+     * <ol>
+     *  <li>Create an {@link NotificationCompat.Builder}, setting any desired properties.
+     *  <li>Create a {@link TvExtender}.
+     *  <li>Set TV-specific properties using the {@code set} methods of
+     *  {@link TvExtender}.
+     *  <li>Call {@link NotificationCompat.Builder#extend(NotificationCompat.Extender)}
+     *  to apply the extension to a notification.
+     * </ol>
+     *
+     * <pre class="prettyprint">
+     * Notification notification = new NotificationCompat.Builder(context)
+     *         ...
+     *         .extend(new TvExtender()
+     *                 .setChannelId("channel id"))
+     *         .build();
+     * NotificationManagerCompat.from(mContext).notify(0, notification);
+     * </pre>
+     *
+     * <p>TV extensions can be accessed on an existing notification by using the
+     * {@code TvExtender(Notification)} constructor, and then using the {@code get} methods
+     * to access values.
+     *
+     * <p>Note that prior to {@link Build.VERSION_CODES#O} this field has no effect.
+     */
+    public static final class TvExtender implements Extender {
+        private static final String TAG = "TvExtender";
+
+        @RestrictTo(LIBRARY_GROUP_PREFIX)
+        static final String EXTRA_TV_EXTENDER = "android.tv.EXTENSIONS";
+
+        @RestrictTo(LIBRARY_GROUP_PREFIX)
+        private static final String EXTRA_FLAGS = "flags";
+
+        static final String EXTRA_CONTENT_INTENT = "content_intent";
+        static final String EXTRA_DELETE_INTENT = "delete_intent";
+        static final String EXTRA_CHANNEL_ID = "channel_id";
+        static final String EXTRA_SUPPRESS_SHOW_OVER_APPS = "suppressShowOverApps";
+
+        // Flags bitwise-ored to mFlags
+        private static final int FLAG_AVAILABLE_ON_TV = 0x1;
+
+        private int mFlags;
+        private String mChannelId;
+        private PendingIntent mContentIntent;
+        private PendingIntent mDeleteIntent;
+        private boolean mSuppressShowOverApps;
+
+        /**
+         * Create a {@link TvExtender} with default options.
+         */
+        public TvExtender() {
+            mFlags = FLAG_AVAILABLE_ON_TV;
+        }
+
+        /**
+         * Create a {@link TvExtender} from the TvExtender options of an existing Notification.
+         *
+         * @param notif The notification from which to copy options.
+         */
+        public TvExtender(@NonNull Notification notif) {
+            // TvExtender was introduced in API level 26; note that before API level 26, the extras
+            // added by TvExtender are not expected to be used; thus, we avoid setting them to save
+            // memory.
+            if (Build.VERSION.SDK_INT < 26) {
+                return;
+            }
+
+            Bundle tvBundle = notif.extras == null
+                    ? null : notif.extras.getBundle(EXTRA_TV_EXTENDER);
+            if (tvBundle != null) {
+                mFlags = tvBundle.getInt(EXTRA_FLAGS);
+                mChannelId = tvBundle.getString(EXTRA_CHANNEL_ID);
+                mSuppressShowOverApps = tvBundle.getBoolean(EXTRA_SUPPRESS_SHOW_OVER_APPS);
+                mContentIntent = (PendingIntent) tvBundle.getParcelable(EXTRA_CONTENT_INTENT);
+                mDeleteIntent = (PendingIntent) tvBundle.getParcelable(EXTRA_DELETE_INTENT);
+            }
+        }
+
+        /**
+         * Apply a TV extension to a notification that is being built. This is typically called by
+         * the
+         * {@link androidx.core.app.NotificationCompat.Builder#extend(NotificationCompat.Extender)}
+         * method of {@link NotificationCompat.Builder}.
+         */
+        @Override
+        @NonNull
+        public NotificationCompat.Builder extend(@NonNull NotificationCompat.Builder builder) {
+            // TvExtender was introduced in API level 26; note that before API level 26, the extras
+            // added by TvExtender are not expected to be used; thus, we avoid setting them to save
+            // memory.
+            if (Build.VERSION.SDK_INT < 26) {
+                return builder;
+            }
+
+            Bundle tvExtensions = new Bundle();
+
+            tvExtensions.putInt(EXTRA_FLAGS, mFlags);
+            tvExtensions.putString(EXTRA_CHANNEL_ID, mChannelId);
+            tvExtensions.putBoolean(EXTRA_SUPPRESS_SHOW_OVER_APPS, mSuppressShowOverApps);
+            if (mContentIntent != null) {
+                tvExtensions.putParcelable(EXTRA_CONTENT_INTENT, mContentIntent);
+            }
+
+            if (mDeleteIntent != null) {
+                tvExtensions.putParcelable(EXTRA_DELETE_INTENT, mDeleteIntent);
+            }
+
+            // Extras was added in API level 19.
+            builder.getExtras().putBundle(EXTRA_TV_EXTENDER, tvExtensions);
+            return builder;
+        }
+
+        /**
+         * Returns true if this notification should be shown on TV. This method return true
+         * if the notification was extended with a TvExtender.
+         */
+        public boolean isAvailableOnTv() {
+            return (mFlags & FLAG_AVAILABLE_ON_TV) != 0;
+        }
+
+        /**
+         * Specifies the channel the notification should be delivered on when shown on TV.
+         * It can be different from the channel that the notification is delivered to when
+         * posting on a non-TV device.
+         *
+         * @param channelId The channelId to use in the tv notification.
+         * @return The object for method chaining.
+         */
+        public @NonNull TvExtender setChannelId(@Nullable String channelId) {
+            mChannelId = channelId;
+            return this;
+        }
+
+        /**
+         * Returns the id of the channel this notification posts to on TV.
+         */
+        public @Nullable String getChannelId() {
+            return mChannelId;
+        }
+
+        /**
+         * Supplies a {@link PendingIntent} to be sent when the notification is selected on TV.
+         * If provided, it is used instead of the content intent specified
+         * at the level of Notification.
+         */
+        public @NonNull TvExtender setContentIntent(@Nullable PendingIntent intent) {
+            mContentIntent = intent;
+            return this;
+        }
+
+        /**
+         * Returns the TV-specific content intent.  If this method returns null, the
+         * main content intent on the notification should be used.
+         *
+         * @see {@link Notification#contentIntent}
+         */
+        public @Nullable PendingIntent getContentIntent() {
+            return mContentIntent;
+        }
+
+        /**
+         * Supplies a {@link PendingIntent} to send when the notification is cleared explicitly
+         * by the user on TV.  If provided, it is used instead of the delete intent specified
+         * at the level of Notification.
+         */
+        public @NonNull TvExtender setDeleteIntent(@Nullable PendingIntent intent) {
+            mDeleteIntent = intent;
+            return this;
+        }
+
+        /**
+         * Returns the TV-specific delete intent.  If this method returns null, the
+         * main delete intent on the notification should be used.
+         *
+         * @see {@link Notification#deleteIntent}
+         */
+        public @Nullable PendingIntent getDeleteIntent() {
+            return mDeleteIntent;
+        }
+
+        /**
+         * Specifies whether this notification should suppress showing a message over top of apps
+         * outside of the launcher.
+         */
+        public @NonNull TvExtender setSuppressShowOverApps(boolean suppress) {
+            mSuppressShowOverApps = suppress;
+            return this;
+        }
+
+        /**
+         * Returns true if this notification should not show messages over top of apps
+         * outside of the launcher.
+         */
+        public boolean isSuppressShowOverApps() {
+            return mSuppressShowOverApps;
         }
     }
 
@@ -8629,7 +8489,6 @@ public class NotificationCompat {
             return (mFlags & FLAG_SUPPRESS_NOTIFICATION) != 0;
         }
 
-        /** @hide */
         @RestrictTo(LIBRARY_GROUP_PREFIX)
         public void setFlags(int flags) {
             mFlags = flags;
@@ -8885,7 +8744,6 @@ public class NotificationCompat {
              * on this builder.</p>
              */
             @NonNull
-            @SuppressLint("SyntheticAccessor")
             public BubbleMetadata build() {
                 if (mShortcutId == null && mPendingIntent == null) {
                     throw new NullPointerException(
@@ -9107,16 +8965,13 @@ public class NotificationCompat {
      * Gets the {@link Notification#extras} field from a notification in a backwards
      * compatible manner. Extras field was supported from JellyBean (Api level 16)
      * forwards. This function will return {@code null} on older api levels.
+     * @deprecated Call {@link Notification#extras} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "notification.extras")
     @Nullable
     public static Bundle getExtras(@NonNull Notification notification) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            return notification.extras;
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            return NotificationCompatJellybean.getExtras(notification);
-        } else {
-            return null;
-        }
+        return notification.extras;
     }
 
     /**
@@ -9124,13 +8979,7 @@ public class NotificationCompat {
      * manner. Actions were supported from JellyBean (Api level 16) forwards.
      */
     public static int getActionCount(@NonNull Notification notification) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            return notification.actions != null ? notification.actions.length : 0;
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            return NotificationCompatJellybean.getActionCount(notification);
-        } else {
-            return 0;
-        }
+        return notification.actions != null ? notification.actions.length : 0;
     }
 
     /**
@@ -9143,7 +8992,7 @@ public class NotificationCompat {
     public static @Nullable Action getAction(@NonNull Notification notification, int actionIndex) {
         if (Build.VERSION.SDK_INT >= 20) {
             return getActionCompatFromAction(notification.actions[actionIndex]);
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             Notification.Action action = notification.actions[actionIndex];
             Bundle actionExtras = null;
             SparseArray<Bundle> actionExtrasMap = notification.extras.getSparseParcelableArray(
@@ -9153,10 +9002,6 @@ public class NotificationCompat {
             }
             return NotificationCompatJellybean.readAction(action.icon, action.title,
                     action.actionIntent, actionExtras);
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            return NotificationCompatJellybean.getAction(notification, actionIndex);
-        } else {
-            return null;
         }
     }
 
@@ -9251,19 +9096,17 @@ public class NotificationCompat {
     @RequiresApi(21)
     public static @NonNull List<Action> getInvisibleActions(@NonNull Notification notification) {
         ArrayList<Action> result = new ArrayList<>();
-        if (Build.VERSION.SDK_INT >= 19) {
-            Bundle carExtenderBundle =
-                    notification.extras.getBundle(CarExtender.EXTRA_CAR_EXTENDER);
-            if (carExtenderBundle == null) {
-                return result;
-            }
+        Bundle carExtenderBundle =
+                notification.extras.getBundle(CarExtender.EXTRA_CAR_EXTENDER);
+        if (carExtenderBundle == null) {
+            return result;
+        }
 
-            Bundle listBundle = carExtenderBundle.getBundle(CarExtender.EXTRA_INVISIBLE_ACTIONS);
-            if (listBundle != null) {
-                for (int i = 0; i < listBundle.size(); i++) {
-                    result.add(NotificationCompatJellybean.getActionFromBundle(
-                            listBundle.getBundle(Integer.toString(i))));
-                }
+        Bundle listBundle = carExtenderBundle.getBundle(CarExtender.EXTRA_INVISIBLE_ACTIONS);
+        if (listBundle != null) {
+            for (int i = 0; i < listBundle.size(); i++) {
+                result.add(NotificationCompatJellybean.getActionFromBundle(
+                        listBundle.getBundle(Integer.toString(i))));
             }
         }
         return result;
@@ -9285,7 +9128,7 @@ public class NotificationCompat {
                     result.add(Person.fromAndroidPerson(person));
                 }
             }
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             final String[] peopleArray = notification.extras.getStringArray(EXTRA_PEOPLE);
             if (peopleArray != null && peopleArray.length != 0) {
                 for (String personUri : peopleArray) {
@@ -9297,25 +9140,21 @@ public class NotificationCompat {
     }
 
     /** Returns the content title provided to {@link Builder#setContentTitle(CharSequence)}. */
-    @RequiresApi(19)
     public static @Nullable CharSequence getContentTitle(@NonNull Notification notification) {
         return notification.extras.getCharSequence(EXTRA_TITLE);
     }
 
     /** Returns the content text provided to {@link Builder#setContentText(CharSequence)}. */
-    @RequiresApi(19)
     public static @Nullable CharSequence getContentText(@NonNull Notification notification) {
         return notification.extras.getCharSequence(EXTRA_TEXT);
     }
 
     /** Returns the content info provided to {@link Builder#setContentInfo(CharSequence)}. */
-    @RequiresApi(19)
     public static @Nullable CharSequence getContentInfo(@NonNull Notification notification) {
         return notification.extras.getCharSequence(EXTRA_INFO_TEXT);
     }
 
     /** Returns the sub text provided to {@link Builder#setSubText(CharSequence)}. */
-    @RequiresApi(19)
     public static @Nullable CharSequence getSubText(@NonNull Notification notification) {
         return notification.extras.getCharSequence(EXTRA_SUB_TEXT);
     }
@@ -9342,13 +9181,8 @@ public class NotificationCompat {
     public static boolean getLocalOnly(@NonNull Notification notification) {
         if (Build.VERSION.SDK_INT >= 20) {
             return (notification.flags & Notification.FLAG_LOCAL_ONLY) != 0;
-        } else if (Build.VERSION.SDK_INT >= 19) {
-            return notification.extras.getBoolean(NotificationCompatExtras.EXTRA_LOCAL_ONLY);
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            return NotificationCompatJellybean.getExtras(notification).getBoolean(
-                    NotificationCompatExtras.EXTRA_LOCAL_ONLY);
         } else {
-            return false;
+            return notification.extras.getBoolean(NotificationCompatExtras.EXTRA_LOCAL_ONLY);
         }
     }
 
@@ -9359,18 +9193,12 @@ public class NotificationCompat {
     public static @Nullable String getGroup(@NonNull Notification notification) {
         if (Build.VERSION.SDK_INT >= 20) {
             return Api20Impl.getGroup(notification);
-        } else if (Build.VERSION.SDK_INT >= 19) {
-            return notification.extras.getString(NotificationCompatExtras.EXTRA_GROUP_KEY);
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            return NotificationCompatJellybean.getExtras(notification).getString(
-                    NotificationCompatExtras.EXTRA_GROUP_KEY);
         } else {
-            return null;
+            return notification.extras.getString(NotificationCompatExtras.EXTRA_GROUP_KEY);
         }
     }
 
     /** Get the value provided to {@link Builder#setShowWhen(boolean)} */
-    @RequiresApi(19)
     public static boolean getShowWhen(@NonNull Notification notification) {
         // NOTE: This field can be set since API 17, but is impossible to extract from the
         // constructed Notification until API 19 when it was moved to the extras.
@@ -9378,7 +9206,6 @@ public class NotificationCompat {
     }
 
     /** Get the value provided to {@link Builder#setUsesChronometer(boolean)} */
-    @RequiresApi(19)
     public static boolean getUsesChronometer(@NonNull Notification notification) {
         // NOTE: This field can be set since API 16, but is impossible to extract from the
         // constructed Notification until API 19 when it was moved to the extras.
@@ -9427,7 +9254,6 @@ public class NotificationCompat {
         }
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     static boolean getHighPriority(@NonNull Notification notification) {
         return (notification.flags & Notification.FLAG_HIGH_PRIORITY) != 0;
@@ -9442,13 +9268,8 @@ public class NotificationCompat {
     public static boolean isGroupSummary(@NonNull Notification notification) {
         if (Build.VERSION.SDK_INT >= 20) {
             return (notification.flags & Notification.FLAG_GROUP_SUMMARY) != 0;
-        } else if (Build.VERSION.SDK_INT >= 19) {
-            return notification.extras.getBoolean(NotificationCompatExtras.EXTRA_GROUP_SUMMARY);
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            return NotificationCompatJellybean.getExtras(notification).getBoolean(
-                    NotificationCompatExtras.EXTRA_GROUP_SUMMARY);
         } else {
-            return false;
+            return notification.extras.getBoolean(NotificationCompatExtras.EXTRA_GROUP_SUMMARY);
         }
     }
 
@@ -9467,13 +9288,8 @@ public class NotificationCompat {
     public static @Nullable String getSortKey(@NonNull Notification notification) {
         if (Build.VERSION.SDK_INT >= 20) {
             return Api20Impl.getSortKey(notification);
-        } else if (Build.VERSION.SDK_INT >= 19) {
-            return notification.extras.getString(NotificationCompatExtras.EXTRA_SORT_KEY);
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            return NotificationCompatJellybean.getExtras(notification).getString(
-                    NotificationCompatExtras.EXTRA_SORT_KEY);
         } else {
-            return null;
+            return notification.extras.getString(NotificationCompatExtras.EXTRA_SORT_KEY);
         }
     }
 
@@ -9580,6 +9396,36 @@ public class NotificationCompat {
         }
     }
 
+    /**
+     * Reduces the size of a provided {@code icon} if it's larger than the maximum allowed
+     * for a notification large icon; returns the resized icon. Note that the framework does this
+     * scaling automatically starting from API 27.
+     */
+    public static @Nullable Bitmap reduceLargeIconSize(@NonNull Context context,
+            @Nullable Bitmap icon) {
+        if (icon == null || Build.VERSION.SDK_INT >= 27) {
+            return icon;
+        }
+
+        Resources res = context.getResources();
+        int maxWidth =
+                res.getDimensionPixelSize(R.dimen.compat_notification_large_icon_max_width);
+        int maxHeight =
+                res.getDimensionPixelSize(R.dimen.compat_notification_large_icon_max_height);
+        if (icon.getWidth() <= maxWidth && icon.getHeight() <= maxHeight) {
+            return icon;
+        }
+
+        double scale = Math.min(
+                maxWidth / (double) Math.max(1, icon.getWidth()),
+                maxHeight / (double) Math.max(1, icon.getHeight()));
+        return Bitmap.createScaledBitmap(
+                icon,
+                (int) Math.ceil(icon.getWidth() * scale),
+                (int) Math.ceil(icon.getHeight() * scale),
+                true /* filtered */);
+    }
+
     /** @deprecated This type should not be instantiated as it contains only static methods. */
     @Deprecated
     @SuppressWarnings("PrivateConstructorForUtilityClass")
@@ -9595,47 +9441,38 @@ public class NotificationCompat {
     static class Api20Impl {
         private Api20Impl() { }
 
-        @DoNotInline
         static boolean getAllowFreeFormInput(android.app.RemoteInput remoteInput) {
             return remoteInput.getAllowFreeFormInput();
         }
 
-        @DoNotInline
         static CharSequence[] getChoices(android.app.RemoteInput remoteInput) {
             return remoteInput.getChoices();
         }
 
-        @DoNotInline
         static CharSequence getLabel(android.app.RemoteInput remoteInput) {
             return remoteInput.getLabel();
         }
 
-        @DoNotInline
         static String getResultKey(android.app.RemoteInput remoteInput) {
             return remoteInput.getResultKey();
         }
 
-        @DoNotInline
         static android.app.RemoteInput[] getRemoteInputs(Notification.Action action) {
             return action.getRemoteInputs();
         }
 
-        @DoNotInline
         static String getSortKey(Notification notification) {
             return notification.getSortKey();
         }
 
-        @DoNotInline
         static String getGroup(Notification notification) {
             return notification.getGroup();
         }
 
-        @DoNotInline
         static Bundle getExtras(Notification.Action action) {
             return action.getExtras();
         }
 
-        @DoNotInline
         static Bundle getExtras(android.app.RemoteInput remoteInput) {
             return remoteInput.getExtras();
         }
@@ -9650,7 +9487,6 @@ public class NotificationCompat {
     static class Api23Impl {
         private Api23Impl() { }
 
-        @DoNotInline
         static Icon getIcon(Notification.Action action) {
             return action.getIcon();
         }
@@ -9665,7 +9501,6 @@ public class NotificationCompat {
     static class Api24Impl {
         private Api24Impl() { }
 
-        @DoNotInline
         static boolean getAllowGeneratedReplies(Notification.Action action) {
             return action.getAllowGeneratedReplies();
         }
@@ -9681,32 +9516,26 @@ public class NotificationCompat {
     static class Api26Impl {
         private Api26Impl() { }
 
-        @DoNotInline
         static int getGroupAlertBehavior(Notification notification) {
             return notification.getGroupAlertBehavior();
         }
 
-        @DoNotInline
         static CharSequence getSettingsText(Notification notification) {
             return notification.getSettingsText();
         }
 
-        @DoNotInline
         static String getShortcutId(Notification notification) {
             return notification.getShortcutId();
         }
 
-        @DoNotInline
         static int getBadgeIconType(Notification notification) {
             return notification.getBadgeIconType();
         }
 
-        @DoNotInline
         static long getTimeoutAfter(Notification notification) {
             return notification.getTimeoutAfter();
         }
 
-        @DoNotInline
         static String getChannelId(Notification notification) {
             return notification.getChannelId();
         }
@@ -9721,7 +9550,6 @@ public class NotificationCompat {
     static class Api28Impl {
         private Api28Impl() { }
 
-        @DoNotInline
         static int getSemanticAction(Notification.Action action) {
             return action.getSemanticAction();
         }
@@ -9736,27 +9564,22 @@ public class NotificationCompat {
     static class Api29Impl {
         private Api29Impl() { }
 
-        @DoNotInline
         static boolean getAllowSystemGeneratedContextualActions(Notification notification) {
             return notification.getAllowSystemGeneratedContextualActions();
         }
 
-        @DoNotInline
         static LocusId getLocusId(Notification notification) {
             return notification.getLocusId();
         }
 
-        @DoNotInline
         static boolean isContextual(Notification.Action action) {
             return action.isContextual();
         }
 
-        @DoNotInline
         static int getEditChoicesBeforeSending(android.app.RemoteInput remoteInput) {
             return remoteInput.getEditChoicesBeforeSending();
         }
 
-        @DoNotInline
         static Notification.BubbleMetadata getBubbleMetadata(Notification notification) {
             return notification.getBubbleMetadata();
         }
@@ -9771,7 +9594,6 @@ public class NotificationCompat {
     static class Api31Impl {
         private Api31Impl() { }
 
-        @DoNotInline
         static boolean isAuthenticationRequired(Notification.Action action) {
             return action.isAuthenticationRequired();
         }

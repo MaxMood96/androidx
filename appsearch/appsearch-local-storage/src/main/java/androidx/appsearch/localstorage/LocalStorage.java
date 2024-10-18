@@ -26,6 +26,7 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.annotation.WorkerThread;
 import androidx.appsearch.annotation.Document;
+import androidx.appsearch.app.AppSearchEnvironmentFactory;
 import androidx.appsearch.app.AppSearchSession;
 import androidx.appsearch.app.GlobalSearchSession;
 import androidx.appsearch.exceptions.AppSearchException;
@@ -39,7 +40,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * An AppSearch storage system which stores data locally in the app's storage space using a bundled
@@ -56,8 +56,6 @@ import java.util.concurrent.Executors;
 public class LocalStorage {
     private static final String TAG = "AppSearchLocalStorage";
 
-    private static final String ICING_LIB_ROOT_DIR = "appsearch";
-
     /** Contains information about how to create the search session. */
     public static final class SearchContext {
         final Context mContext;
@@ -72,6 +70,14 @@ public class LocalStorage {
             mDatabaseName = Preconditions.checkNotNull(databaseName);
             mExecutor = Preconditions.checkNotNull(executor);
             mLogger = logger;
+        }
+
+        /**
+         * Returns the {@link Context} associated with the {@link AppSearchSession}
+         */
+        @NonNull
+        public Context getContext() {
+            return mContext;
         }
 
         /**
@@ -147,7 +153,7 @@ public class LocalStorage {
              * <p>If no logger is provided, nothing would be returned/logged. There is no default
              * logger implementation in AppSearch.
              *
-             * @hide
+             * @exportToFramework:hide
              */
             @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
             @NonNull
@@ -167,12 +173,7 @@ public class LocalStorage {
         }
     }
 
-    /**
-     * Contains information relevant to creating a global search session.
-     *
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    /** Contains information relevant to creating a global search session. */
     public static final class GlobalSearchContext {
         final Context mContext;
         final Executor mExecutor;
@@ -184,6 +185,14 @@ public class LocalStorage {
             mContext = Preconditions.checkNotNull(context);
             mExecutor = Preconditions.checkNotNull(executor);
             mLogger = logger;
+        }
+
+        /**
+         * Returns the {@link Context} associated with the {@link GlobalSearchSession}
+         */
+        @NonNull
+        public Context getContext() {
+            return mContext;
         }
 
         /**
@@ -232,7 +241,7 @@ public class LocalStorage {
              * <p>If no logger is provided, nothing would be returned/logged. There is no default
              * logger implementation in AppSearch.
              *
-             * @hide
+             * @exportToFramework:hide
              */
             @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
             @NonNull
@@ -254,7 +263,8 @@ public class LocalStorage {
 
     // AppSearch multi-thread execution is guarded by Read & Write Lock in AppSearchImpl, all
     // mutate requests will need to gain write lock and query requests need to gain read lock.
-    static final Executor EXECUTOR = Executors.newCachedThreadPool();
+    static final Executor EXECUTOR = AppSearchEnvironmentFactory.getEnvironmentInstance()
+            .createCachedThreadPoolExecutor();
 
     private static volatile LocalStorage sInstance;
 
@@ -283,12 +293,13 @@ public class LocalStorage {
     /**
      * Opens a new {@link GlobalSearchSession} on this storage.
      *
+     * <p>The {@link GlobalSearchSession} opened from this {@link LocalStorage} allows the user to
+     * search across all local databases within the {@link LocalStorage} of this app, however
+     * cross-app search is not possible with {@link LocalStorage}.
+     *
      * <p>This process requires a native search library. If it's not created, the initialization
      * process will create one.
-     *
-     * @hide
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull
     public static ListenableFuture<GlobalSearchSession> createGlobalSearchSessionAsync(
             @NonNull GlobalSearchContext context) {
@@ -330,7 +341,8 @@ public class LocalStorage {
             @Nullable AppSearchLogger logger)
             throws AppSearchException {
         Preconditions.checkNotNull(context);
-        File icingDir = new File(context.getFilesDir(), ICING_LIB_ROOT_DIR);
+        File icingDir = AppSearchEnvironmentFactory.getEnvironmentInstance()
+                .getAppSearchDir(context, /* userHandle= */ null);
 
         long totalLatencyStartMillis = SystemClock.elapsedRealtime();
         InitializeStats.Builder initStatsBuilder = null;
@@ -343,10 +355,15 @@ public class LocalStorage {
         AppSearchImpl.syncLoggingLevelToIcing();
         mAppSearchImpl = AppSearchImpl.create(
                 icingDir,
-                new UnlimitedLimitConfig(),
+                new AppSearchConfigImpl(
+                        new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig(),
+                        /* storeParentInfoAsSyntheticProperty= */ false,
+                        /* shouldRetrieveParentInfo= */ true
+                ),
                 initStatsBuilder,
-                new JetpackOptimizeStrategy(),
-                /*visibilityChecker=*/null);
+                /*visibilityChecker=*/ null,
+                new JetpackOptimizeStrategy());
 
         if (logger != null) {
             initStatsBuilder.setTotalLatencyMillis(

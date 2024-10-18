@@ -24,6 +24,7 @@ android {
     buildFeatures {
         viewBinding true
     }
+    compileSdk 35
     namespace "androidx.metrics.performance.janktest"
 }
 
@@ -32,9 +33,8 @@ dependencies {
     implementation project(':recyclerview:recyclerview')
     implementation project(':navigation:navigation-fragment-ktx')
     implementation project(':navigation:navigation-ui-ktx')
-    implementation project(':appcompat:appcompat')
+    implementation("androidx.appcompat:appcompat:1.1.0")
     implementation project(path: ':metrics:metrics-performance')
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.1'
-    implementation 'androidx.multidex:multidex:2.0.1'
 }

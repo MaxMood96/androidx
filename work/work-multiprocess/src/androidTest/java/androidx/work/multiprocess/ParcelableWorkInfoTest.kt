@@ -24,10 +24,10 @@ import androidx.work.WorkInfo
 import androidx.work.multiprocess.parcelable.ParcelConverters
 import androidx.work.multiprocess.parcelable.ParcelableWorkInfo
 import androidx.work.multiprocess.parcelable.ParcelableWorkInfos
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 public class ParcelableWorkInfoTest {
@@ -42,15 +42,16 @@ public class ParcelableWorkInfoTest {
             return
         }
 
-        val workInfo = WorkInfo(
-            UUID.randomUUID(),
-            WorkInfo.State.ENQUEUED,
-            setOf("tag1", "tag2"),
-            Data.EMPTY,
-            Data.EMPTY,
-            1,
-            1,
-        )
+        val workInfo =
+            WorkInfo(
+                UUID.randomUUID(),
+                WorkInfo.State.ENQUEUED,
+                setOf("tag1", "tag2"),
+                Data.EMPTY,
+                Data.EMPTY,
+                1,
+                1,
+            )
         assertOn(workInfo)
     }
 
@@ -62,20 +63,18 @@ public class ParcelableWorkInfoTest {
             return
         }
 
-        val data = Data.Builder()
-            .put("test", "testString")
-            .put("int", 10)
-            .build()
+        val data = Data.Builder().put("test", "testString").put("int", 10).build()
 
-        val workInfo = WorkInfo(
-            UUID.randomUUID(),
-            WorkInfo.State.ENQUEUED,
-            setOf("tag1", "tag2"),
-            data,
-            Data.EMPTY,
-            1,
-            3,
-        )
+        val workInfo =
+            WorkInfo(
+                UUID.randomUUID(),
+                WorkInfo.State.ENQUEUED,
+                setOf("tag1", "tag2"),
+                data,
+                Data.EMPTY,
+                1,
+                3,
+            )
         assertOn(workInfo)
     }
 
@@ -87,20 +86,18 @@ public class ParcelableWorkInfoTest {
             return
         }
 
-        val data = Data.Builder()
-            .put("test", "testString")
-            .put("int", 10)
-            .build()
+        val data = Data.Builder().put("test", "testString").put("int", 10).build()
 
-        val workInfo = WorkInfo(
-            UUID.randomUUID(),
-            WorkInfo.State.ENQUEUED,
-            setOf("tag1", "tag2"),
-            data,
-            Data.EMPTY,
-            1,
-            0,
-        )
+        val workInfo =
+            WorkInfo(
+                UUID.randomUUID(),
+                WorkInfo.State.ENQUEUED,
+                setOf("tag1", "tag2"),
+                data,
+                Data.EMPTY,
+                1,
+                0,
+            )
 
         assertOn(listOf(workInfo, workInfo))
     }
@@ -126,9 +123,7 @@ public class ParcelableWorkInfoTest {
     }
 
     private fun equal(first: List<WorkInfo>, second: List<WorkInfo>) {
-        first.forEachIndexed { index, workInfo ->
-            equal(workInfo, second[index])
-        }
+        first.forEachIndexed { index, workInfo -> equal(workInfo, second[index]) }
     }
 
     private fun equal(first: WorkInfo, second: WorkInfo) {

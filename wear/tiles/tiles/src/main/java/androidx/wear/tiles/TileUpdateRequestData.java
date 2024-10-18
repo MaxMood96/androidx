@@ -22,12 +22,11 @@ import androidx.annotation.RestrictTo;
 /**
  * Holder for parameters, used when a Tile update request is triggered. This is currently a
  * placeholder to allow for future expansion, and should be filled in with an empty byte array.
- *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class TileUpdateRequestData extends ProtoParcelable {
     public static final int VERSION_PLACEHOLDER = 1;
+
     public static final Creator<TileUpdateRequestData> CREATOR =
             newCreator(TileUpdateRequestData.class, TileUpdateRequestData::new);
 

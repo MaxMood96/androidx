@@ -14,19 +14,67 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
+    id("kotlin-android")
     id("com.android.library")
 }
 
 dependencies {
     annotationProcessor(libs.nullaway)
-    // Add dependencies here
+    api("androidx.annotation:annotation:1.8.1")
+    api(project(":wear:protolayout:protolayout"))
+
+    implementation(project(":wear:protolayout:protolayout-material-core"))
+    implementation(project(":wear:protolayout:protolayout-proto"))
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
+
+    lintChecks(project(":wear:protolayout:protolayout-lint"))
+    lintPublish(project(":wear:protolayout:protolayout-lint"))
+
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testRules)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation("androidx.core:core:1.7.0")
+    androidTestImplementation(project(":test:screenshot:screenshot"))
+    androidTestImplementation(project(":wear:protolayout:protolayout-renderer"))
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockitoCore4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.testExtJunit)
+    testImplementation(libs.testExtTruth)
+    testImplementation(libs.testCore)
+    testImplementation(libs.testRunner)
+    testImplementation(libs.testRules)
+    testImplementation(libs.truth)
 }
 
 android {
+    defaultConfig {
+        minSdkVersion 26
+    }
+
+    sourceSets {
+        androidTest.assets.srcDirs += project.rootDir.absolutePath + "/../../golden/wear/wear-protolayout-material"
+    }
+
+    defaultConfig {
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
     namespace "androidx.wear.protolayout.material"
 }
 

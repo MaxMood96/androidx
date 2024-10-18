@@ -49,7 +49,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.DoNotInline;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntDef;
@@ -117,7 +116,6 @@ public class IconCompat extends CustomVersionedParcelable {
     public static final int TYPE_URI_ADAPTIVE_BITMAP = Icon.TYPE_URI_ADAPTIVE_BITMAP;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @IntDef({TYPE_UNKNOWN, TYPE_BITMAP, TYPE_RESOURCE, TYPE_DATA, TYPE_URI, TYPE_ADAPTIVE_BITMAP,
@@ -152,7 +150,6 @@ public class IconCompat extends CustomVersionedParcelable {
     static final String EXTRA_STRING1 = "string1";
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @ParcelField(value = 1,
@@ -171,14 +168,12 @@ public class IconCompat extends CustomVersionedParcelable {
     Object          mObj1;
 
     /**
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
     @ParcelField(value = 2, defaultValue = "null")
     public byte[]          mData = null;
     /**
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
@@ -188,7 +183,6 @@ public class IconCompat extends CustomVersionedParcelable {
     // TYPE_RESOURCE: resId
     // TYPE_DATA: data offset
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @ParcelField(value = 4, defaultValue = "0")
@@ -196,14 +190,12 @@ public class IconCompat extends CustomVersionedParcelable {
 
     // TYPE_DATA: data length
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @ParcelField(value = 5, defaultValue = "0")
     public int             mInt2 = 0;
 
     /**
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
@@ -214,7 +206,6 @@ public class IconCompat extends CustomVersionedParcelable {
     @NonParcelField
     PorterDuff.Mode mTintMode = DEFAULT_TINT_MODE;
     /**
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
@@ -222,7 +213,6 @@ public class IconCompat extends CustomVersionedParcelable {
     public String mTintModeStr = null;
 
     /**
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
@@ -243,7 +233,6 @@ public class IconCompat extends CustomVersionedParcelable {
     }
 
     /**
-     * @hide
      */
     @NonNull
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -370,7 +359,6 @@ public class IconCompat extends CustomVersionedParcelable {
 
     /**
      * Used for VersionedParcelable.
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public IconCompat() {
@@ -446,7 +434,6 @@ public class IconCompat extends CustomVersionedParcelable {
      * Note: This bitmap may not be available in the future, and it is
      * up to the caller to ensure safety if this bitmap is re-used and/or persisted.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Nullable
@@ -546,7 +533,6 @@ public class IconCompat extends CustomVersionedParcelable {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public void checkResource(@NonNull Context context) {
@@ -658,7 +644,6 @@ public class IconCompat extends CustomVersionedParcelable {
     /**
      * Create an input stream for bitmap by resolving corresponding content uri.
      *
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY_GROUP)
@@ -706,7 +691,6 @@ public class IconCompat extends CustomVersionedParcelable {
 
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @SuppressWarnings("deprecation")
@@ -988,7 +972,6 @@ public class IconCompat extends CustomVersionedParcelable {
 
     /**
      * Creates an IconCompat from an Icon.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @RequiresApi(23)
@@ -1000,7 +983,6 @@ public class IconCompat extends CustomVersionedParcelable {
     /**
      * Creates an IconCompat from an Icon, or returns null if the given Icon is created from
      * resource 0.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @RequiresApi(23)
@@ -1065,22 +1047,18 @@ public class IconCompat extends CustomVersionedParcelable {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static String getResPackage(Object icon) {
             return ((Icon) icon).getResPackage();
         }
 
-        @DoNotInline
         static int getType(Object icon) {
             return ((Icon) icon).getType();
         }
 
-        @DoNotInline
         static int getResId(Object icon) {
             return ((Icon) icon).getResId();
         }
 
-        @DoNotInline
         static Uri getUri(Object icon) {
             return ((Icon) icon).getUri();
         }
@@ -1092,13 +1070,11 @@ public class IconCompat extends CustomVersionedParcelable {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Drawable createAdaptiveIconDrawable(Drawable backgroundDrawable,
                 Drawable foregroundDrawable) {
             return new AdaptiveIconDrawable(backgroundDrawable, foregroundDrawable);
         }
 
-        @DoNotInline
         static Icon createWithAdaptiveBitmap(Bitmap bits) {
             return Icon.createWithAdaptiveBitmap(bits);
         }
@@ -1110,7 +1086,6 @@ public class IconCompat extends CustomVersionedParcelable {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Icon createWithAdaptiveBitmapContentUri(Uri uri) {
             return Icon.createWithAdaptiveBitmapContentUri(uri);
         }
@@ -1255,7 +1230,6 @@ public class IconCompat extends CustomVersionedParcelable {
          * Returns {@code null} if the uri cannot be gotten.
          */
         @Nullable
-        @DoNotInline
         static Uri getUri(@NonNull Object icon) {
             if (Build.VERSION.SDK_INT >= 28) {
                 return Api28Impl.getUri(icon);
@@ -1275,7 +1249,6 @@ public class IconCompat extends CustomVersionedParcelable {
             }
         }
 
-        @DoNotInline
         static Icon toIcon(IconCompat iconCompat, Context context) {
             Icon icon;
             switch (iconCompat.mType) {
@@ -1337,7 +1310,6 @@ public class IconCompat extends CustomVersionedParcelable {
             return icon;
         }
 
-        @DoNotInline
         static Drawable loadDrawable(Icon icon, Context context) {
             return icon.loadDrawable(context);
         }

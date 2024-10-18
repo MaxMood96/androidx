@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 
-import androidx.build.KmpPlatformsKt
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
+import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
     id("AndroidXPlugin")
 }
-
-def macEnabled = KmpPlatformsKt.enableMac(project)
-def linuxEnabled = KmpPlatformsKt.enableLinux(project)
 
 androidXMultiplatform {
     jvm {
@@ -36,9 +40,15 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
+    watchosDeviceArm64()
+    watchos()
+    tvos()
+    mingwX64()
+
+    defaultPlatform(PlatformIdentifier.JVM)
 
     sourceSets {
-        all {
+        configureEach {
             languageSettings.optIn("kotlin.RequiresOptIn")
             languageSettings.optIn("kotlin.contracts.ExperimentalContracts")
         }
@@ -46,6 +56,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
+                api("androidx.annotation:annotation:1.9.0")
             }
         }
 
@@ -54,12 +65,7 @@ androidXMultiplatform {
                 implementation(libs.kotlinTest)
                 implementation(libs.kotlinTestAnnotationsCommon)
                 implementation(libs.kotlinCoroutinesCore)
-            }
-        }
-
-        jvmMain {
-            dependencies {
-                api("androidx.annotation:annotation:1.3.0")
+                implementation(libs.kotlinCoroutinesTest)
             }
         }
 
@@ -71,42 +77,44 @@ androidXMultiplatform {
             }
         }
 
-        if (macEnabled || linuxEnabled) {
-            nativeMain {
-                dependsOn(commonMain)
-            }
-
-            nativeTest {
-                dependsOn(commonTest)
-            }
+        nativeMain {
+            dependsOn(commonMain)
         }
 
-        if (macEnabled) {
-            darwinMain {
-                dependsOn(nativeMain)
-            }
+        nativeTest {
+            dependsOn(commonTest)
         }
 
-        if (linuxEnabled) {
-            linuxMain {
-                dependsOn(nativeMain)
-            }
+        unixMain {
+            dependsOn(nativeMain)
         }
 
-        targets.withType(KotlinNativeTarget.class) {
-            binaries.all {
-                binaryOptions["memoryModel"] = "experimental"
-            }
+        darwinMain {
+            dependsOn(unixMain)
         }
 
-        targets.all { target ->
+        linuxMain {
+            dependsOn(unixMain)
+        }
+
+        mingwMain {
+            dependsOn(nativeMain)
+        }
+
+
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     def konanTargetFamily = target.konanTarget.family
-                    if (konanTargetFamily == Family.OSX || konanTargetFamily == Family.IOS) {
+                    if (konanTargetFamily == Family.OSX ||
+                            konanTargetFamily == Family.IOS ||
+                            konanTargetFamily == Family.WATCHOS ||
+                            konanTargetFamily == Family.TVOS) {
                         dependsOn(darwinMain)
                     } else if (konanTargetFamily == Family.LINUX) {
                         dependsOn(linuxMain)
+                    } else if (konanTargetFamily == Family.MINGW) {
+                        dependsOn(mingwMain)
                     } else {
                         throw new GradleException("unknown native target ${target}")
                     }
@@ -131,13 +139,15 @@ dependencies {
     // collection-ktx transitively, which would lead to duplicate definition since the -ktx
     // extensions were moved into the main artifact.
     constraints {
-        jvmMainImplementation("androidx.collection:collection-ktx:1.3.0-alpha01")
+        jvmMainImplementation("androidx.collection:collection-ktx:1.4.2")
     }
 }
 
 androidx {
-    name = "Android Support Library collections"
+    name = "collections"
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
     description = "Standalone efficient collections."
+    metalavaK2UastEnabled = false
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

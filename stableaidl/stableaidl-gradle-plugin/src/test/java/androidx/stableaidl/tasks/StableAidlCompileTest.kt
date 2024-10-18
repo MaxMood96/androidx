@@ -22,7 +22,6 @@ import com.android.build.gradle.internal.fixtures.FakeGradleExecOperations
 import com.android.build.gradle.internal.fixtures.FakeGradleWorkExecutor
 import com.android.build.gradle.internal.fixtures.FakeInjectableService
 import com.google.common.truth.Truth
-import java.io.File
 import kotlin.reflect.jvm.javaMethod
 import org.gradle.api.DefaultTask
 import org.gradle.testfixtures.ProjectBuilder
@@ -36,31 +35,27 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class StableAidlCompileTest {
-    @get:Rule
-    val temporaryFolder = TemporaryFolder()
+    @get:Rule val temporaryFolder = TemporaryFolder()
 
     private val execOperations = FakeGradleExecOperations()
 
     private lateinit var workers: WorkerExecutor
     private lateinit var instantiatorTask: DefaultTask
 
-    private fun createFile(name: String, parent: File): File {
-        val newFile = parent.resolve(name)
-        newFile.createNewFile()
-        return newFile
-    }
-
     @Before
     fun setup() {
         with(ProjectBuilder.builder().withProjectDir(temporaryFolder.newFolder()).build()) {
-            workers = FakeGradleWorkExecutor(
-                objects, temporaryFolder.newFolder(), listOf(
-                    FakeInjectableService(
-                        FakeNoOpWorkAction::execOperations.getter.javaMethod!!,
-                        execOperations
+            workers =
+                FakeGradleWorkExecutor(
+                    objects,
+                    temporaryFolder.newFolder(),
+                    listOf(
+                        FakeInjectableService(
+                            FakeNoOpWorkAction::execOperations.getter.javaMethod!!,
+                            execOperations
+                        )
                     )
                 )
-            )
             instantiatorTask = tasks.create("task", DefaultTask::class.java)
         }
     }
@@ -87,6 +82,7 @@ class StableAidlCompileTest {
             null,
             listOf("-x"),
             listOf(sourceFolder),
+            listOf(),
             listOf()
         )
 
@@ -96,18 +92,16 @@ class StableAidlCompileTest {
         for (processInfo in execOperations.capturedExecutions) {
             Truth.assertThat(processInfo.executable).isEqualTo(fakeExe.canonicalPath)
 
-            Truth.assertThat(processInfo.args).containsAtLeast(
-                // TODO: Remove when the framework has been fully annotated.
-                // "-p" + fakeFramework.canonicalPath,
-                "-o" + outputDir.absolutePath,
-                "-x"
-            )
+            Truth.assertThat(processInfo.args)
+                .containsAtLeast(
+                    // TODO: Remove when the framework has been fully annotated.
+                    // "-p" + fakeFramework.canonicalPath,
+                    "-o" + outputDir.absolutePath,
+                    "-x"
+                )
 
-            Truth.assertThat(processInfo.args).containsAnyOf(
-                file1.absolutePath,
-                file2.absolutePath,
-                file3.absolutePath
-            )
+            Truth.assertThat(processInfo.args)
+                .containsAnyOf(file1.absolutePath, file2.absolutePath, file3.absolutePath)
 
             Truth.assertThat(processInfo.args).doesNotContain(noise.absolutePath)
         }

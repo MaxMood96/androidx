@@ -14,7 +14,15 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.Publish
+import androidx.build.RunApiTasks
 
 plugins {
     id("AndroidXPlugin")
@@ -24,18 +32,24 @@ plugins {
 dependencies {
     implementation(project(":slice:slice-core"))
     api("androidx.remotecallback:remotecallback:1.0.0-alpha02")
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     implementation("androidx.core:core:1.1.0")
-    implementation("androidx.collection:collection:1.1.0")
+    implementation("androidx.collection:collection:1.4.2")
 }
 
 androidx {
-    name = "Slice builders"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "Slice Builders"
+    publish = Publish.SNAPSHOT_ONLY // Library is deprecated pending removal.
+    runApiTasks = new RunApiTasks.Yes() // Pending removal, but keep API files for now.
     mavenVersion = LibraryVersions.SLICE
     inceptionYear = "2017"
     description = "A set of builders to create templates using SliceProvider APIs"
     failOnDeprecationWarnings = false
+
+    deviceTests {
+        // Pending removal, don't run tests.
+        enabled = false
+    }
 }
 
 android {

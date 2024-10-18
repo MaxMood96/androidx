@@ -16,47 +16,75 @@
 
 package androidx.wear.protolayout.expression.pipeline;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
 
+import java.util.List;
+
 /**
- * An object representing a dynamic type that is being evaluated by {@link
+ * An object representing a dynamic type that is being prepared for evaluation by {@link
  * DynamicTypeEvaluator#bind}.
+ *
+ * <p>In order for evaluation and sending values to start, {@link #startEvaluation()} needs to be
+ * called.
+ *
+ * <p>To stop the evaluation, this object should be closed with {@link #close()}.
  */
 public interface BoundDynamicType extends AutoCloseable {
     /**
+     * Starts evaluating this dynamic type that was previously bound with any of the {@link
+     * DynamicTypeEvaluator#bind} methods.
+     *
+     * <p>It's the callers responsibility to destroy those dynamic types after use, with {@link
+     * BoundDynamicType#close()}.
+     */
+    @UiThread
+    void startEvaluation();
+
+    /**
      * Sets the visibility to all animations in this dynamic type. They can be triggered when
      * visible.
-     *
-     * @hide
      */
     @UiThread
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     void setAnimationVisibility(boolean visible);
 
-    /**
-     * Returns the number of currently running animations in this dynamic type.
-     *
-     * @hide
-     */
+    /** Returns the number of currently running animations in this dynamic type. */
     @UiThread
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    int getRunningOrStartedAnimationCount();
+    @VisibleForTesting
+    int getRunningAnimationCount();
 
     /** Destroys this dynamic type and it shouldn't be used after this. */
     @UiThread
     @Override
     void close();
 
+    /** Returns the number of dynamic nodes that this dynamic type contains. */
+    @UiThread
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @VisibleForTesting
+    int getDynamicNodeCount();
+
     /**
-     * Returns the number of dynamic nodes that this dynamic type contains.
-     *
-     * @hide
+     * Returns the cost of dynamic nodes that this dynamic type contains. See {@link
+     * DynamicDataNode#getCost()} for more details on node cost.
      */
     @UiThread
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    int getDynamicNodeCount();
+    @VisibleForTesting
+    int getDynamicNodeCost();
+
+    /**
+     * Retrieves a list of {@link DynamicTypeAnimator} objects associated with this dynamic type.
+     *
+     * @return A list of {@link DynamicTypeAnimator} objects representing animations within this
+     *     layout. The list may be empty if there are no animations.
+     *     <p>This method is intended for internal use by ui-tooling libraries
+     */
+    @NonNull
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    List<DynamicTypeAnimator> getAnimations();
 }

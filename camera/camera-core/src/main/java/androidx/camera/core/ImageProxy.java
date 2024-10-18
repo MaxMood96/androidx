@@ -27,12 +27,10 @@ import android.media.Image;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import java.nio.ByteBuffer;
 
 /** An image proxy which has a similar interface as {@link android.media.Image}. */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface ImageProxy extends AutoCloseable {
     /**
      * Closes the underlying {@link android.media.Image}.
@@ -142,9 +140,9 @@ public interface ImageProxy extends AutoCloseable {
     /**
      * Converts {@link ImageProxy} to {@link Bitmap}.
      *
-     * <p>The supported {@link ImageProxy} format is {@link ImageFormat#YUV_420_888} or
-     * {@link PixelFormat#RGBA_8888}. If format is invalid, an {@link IllegalArgumentException}
-     * will be thrown. If the conversion to bimap failed, an
+     * <p>The supported {@link ImageProxy} format is {@link ImageFormat#YUV_420_888},
+     * {@link ImageFormat#JPEG} or {@link PixelFormat#RGBA_8888}. If format is invalid, an
+     * {@link IllegalArgumentException} will be thrown. If the conversion to bimap failed, an
      * {@link UnsupportedOperationException} will be thrown.
      *
      * @return {@link Bitmap} instance.

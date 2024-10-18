@@ -1055,7 +1055,6 @@ public class GuidedActionsStylist implements FragmentAnimationProvider {
 
     /**
      * Sets listener for reporting view being edited.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public void setEditListener(@NonNull EditListener listener) {
@@ -1583,12 +1582,10 @@ public class GuidedActionsStylist implements FragmentAnimationProvider {
             // This class is not instantiable.
         }
 
-        @androidx.annotation.DoNotInline
         static void setAutofillHints(View view, String... autofillHints) {
             view.setAutofillHints(autofillHints);
         }
 
-        @androidx.annotation.DoNotInline
         static void setImportantForAutofill(
                 View view,
                 @SuppressWarnings("SameParameterValue") int mode

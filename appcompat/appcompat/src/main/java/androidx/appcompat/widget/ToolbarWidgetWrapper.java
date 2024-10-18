@@ -56,7 +56,6 @@ import androidx.core.view.ViewPropertyAnimatorListenerAdapter;
  * {@link WindowDecorActionBar WindowDecorActionBar} can behave
  * in the same way.</p>
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class ToolbarWidgetWrapper implements DecorToolbar {
@@ -651,7 +650,7 @@ public class ToolbarWidgetWrapper implements DecorToolbar {
 
     @Override
     public void setBackgroundDrawable(Drawable d) {
-        ViewCompat.setBackground(mToolbar, d);
+        mToolbar.setBackground(d);
     }
 
     @Override

@@ -19,7 +19,6 @@ package androidx.camera.core;
 import android.util.Rational;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 
 /**
@@ -50,7 +49,6 @@ import androidx.annotation.RestrictTo;
  * The metering rectangle defined by the {@link MeteringPoint} has the same shape as the sensor
  * array.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class MeteringPoint {
     private float mNormalizedX;
     private float mNormalizedY;
@@ -83,7 +81,6 @@ public class MeteringPoint {
      * center X of the region in current normalized surface coordinate system. (ranging from 0 to
      * 1).
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public float getX() {
@@ -94,7 +91,6 @@ public class MeteringPoint {
      * center Y of the region in current normalized surface coordinate system. (ranging from 0 to
      * 1).
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public float getY() {
@@ -134,7 +130,6 @@ public class MeteringPoint {
      * in {@link ImageAnalysis}. If surfaceAspectRatio is null, then Preview aspect ratio will be
      * used. Otherwise, use the specified surfaceAspectRatio.
      *
-     * @hide
      */
     @Nullable
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)

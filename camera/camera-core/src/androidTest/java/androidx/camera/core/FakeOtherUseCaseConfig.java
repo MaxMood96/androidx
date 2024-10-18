@@ -17,7 +17,6 @@
 package androidx.camera.core;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.CaptureConfig;
 import androidx.camera.core.impl.Config;
@@ -27,11 +26,11 @@ import androidx.camera.core.impl.MutableOptionsBundle;
 import androidx.camera.core.impl.OptionsBundle;
 import androidx.camera.core.impl.SessionConfig;
 import androidx.camera.core.impl.UseCaseConfig;
+import androidx.camera.core.impl.UseCaseConfigFactory;
 
 import java.util.UUID;
 
 /** A fake configuration for {@link FakeOtherUseCase}. */
-@RequiresApi(21)
 public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
 
     private final Config mConfig;
@@ -46,16 +45,20 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
         return mConfig;
     }
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public int getSurfaceOccupancyPriority(int valueIfMissing) {
         return retrieveOption(OPTION_SURFACE_OCCUPANCY_PRIORITY, valueIfMissing);
     }
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public int getSurfaceOccupancyPriority() {
         return retrieveOption(OPTION_SURFACE_OCCUPANCY_PRIORITY);
+    }
+
+    @NonNull
+    @Override
+    public UseCaseConfigFactory.CaptureType getCaptureType() {
+        return UseCaseConfigFactory.CaptureType.PREVIEW;
     }
 
     @Override
@@ -95,7 +98,6 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
 
         // Implementations of TargetConfig.Builder default methods
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Override
         @NonNull
@@ -120,7 +122,6 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
 
         // Implementations of UseCaseConfig.Builder default methods
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Override
         @NonNull
@@ -129,7 +130,6 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
             return this;
         }
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Override
         @NonNull
@@ -138,7 +138,6 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
             return this;
         }
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Override
         @NonNull
@@ -148,7 +147,6 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
             return this;
         }
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Override
         @NonNull
@@ -158,7 +156,6 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
             return this;
         }
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Override
         @NonNull
@@ -167,25 +164,6 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
             return this;
         }
 
-        /** @hide */
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        @Override
-        @NonNull
-        public Builder setCameraSelector(@NonNull CameraSelector cameraSelector) {
-            getMutableConfig().insertOption(OPTION_CAMERA_SELECTOR, cameraSelector);
-            return this;
-        }
-
-        /** @hide */
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        @Override
-        @NonNull
-        public Builder setUseCaseEventCallback(@NonNull UseCase.EventCallback eventCallback) {
-            getMutableConfig().insertOption(OPTION_USE_CASE_EVENT_CALLBACK, eventCallback);
-            return this;
-        }
-
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @NonNull
         @Override
@@ -194,12 +172,18 @@ public class FakeOtherUseCaseConfig implements UseCaseConfig<FakeOtherUseCase> {
             return this;
         }
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @NonNull
         @Override
         public Builder setHighResolutionDisabled(boolean disabled) {
             getMutableConfig().insertOption(OPTION_HIGH_RESOLUTION_DISABLED, disabled);
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public Builder setCaptureType(@NonNull UseCaseConfigFactory.CaptureType captureType) {
+            getMutableConfig().insertOption(OPTION_CAPTURE_TYPE, captureType);
             return this;
         }
     }

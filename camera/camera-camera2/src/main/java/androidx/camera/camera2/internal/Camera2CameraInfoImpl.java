@@ -16,19 +16,22 @@
 
 package androidx.camera.camera2.internal;
 
+import static android.hardware.camera2.CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES;
+import static android.hardware.camera2.CameraMetadata.CONTROL_VIDEO_STABILIZATION_MODE_ON;
+import static android.hardware.camera2.CameraMetadata.CONTROL_VIDEO_STABILIZATION_MODE_PREVIEW_STABILIZATION;
+import static android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA;
 import static android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_PRIVATE_REPROCESSING;
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME;
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN;
 
 import static androidx.camera.camera2.internal.ZslUtil.isCapabilitySupported;
 
-import static java.util.Objects.requireNonNull;
-
+import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraMetadata;
-import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Build;
 import android.util.Pair;
+import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 
@@ -37,25 +40,28 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.CameraAccessExceptionCompat;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
 import androidx.camera.camera2.internal.compat.StreamConfigurationMapCompat;
+import androidx.camera.camera2.internal.compat.params.DynamicRangesCompat;
 import androidx.camera.camera2.internal.compat.quirk.CameraQuirks;
 import androidx.camera.camera2.internal.compat.quirk.DeviceQuirks;
 import androidx.camera.camera2.internal.compat.quirk.ZslDisablerQuirk;
 import androidx.camera.camera2.internal.compat.workaround.FlashAvailabilityChecker;
 import androidx.camera.camera2.interop.Camera2CameraInfo;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraState;
+import androidx.camera.core.DynamicRange;
 import androidx.camera.core.ExposureState;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.Logger;
 import androidx.camera.core.ZoomState;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraInfoInternal;
+import androidx.camera.core.impl.DynamicRanges;
 import androidx.camera.core.impl.EncoderProfilesProvider;
 import androidx.camera.core.impl.ImageOutputConfig.RotationValue;
 import androidx.camera.core.impl.Quirks;
@@ -69,11 +75,13 @@ import androidx.lifecycle.Observer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
@@ -88,7 +96,6 @@ import java.util.concurrent.Executor;
  * to the {@link Camera2CameraControlImpl}.
  */
 @OptIn(markerClass = ExperimentalCamera2Interop.class)
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class Camera2CameraInfoImpl implements CameraInfoInternal {
 
     private static final String TAG = "Camera2CameraInfo";
@@ -119,11 +126,14 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
     @NonNull
     private final CameraManagerCompat mCameraManager;
 
+    @Nullable
+    private Set<CameraInfo> mPhysicalCameraInfos;
+
     /**
      * Constructs an instance. Before {@link #linkWithCameraControl(Camera2CameraControlImpl)} is
      * called, camera control related API (torch/exposure/zoom) will return default values.
      */
-    Camera2CameraInfoImpl(@NonNull String cameraId,
+    public Camera2CameraInfoImpl(@NonNull String cameraId,
             @NonNull CameraManagerCompat cameraManager) throws CameraAccessExceptionCompat {
         mCameraId = Preconditions.checkNotNull(cameraId);
         mCameraManager = cameraManager;
@@ -131,7 +141,8 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
         mCameraCharacteristicsCompat = cameraManager.getCameraCharacteristicsCompat(mCameraId);
         mCamera2CameraInfo = new Camera2CameraInfo(this);
         mCameraQuirks = CameraQuirks.get(cameraId, mCameraCharacteristicsCompat);
-        mCamera2EncoderProfilesProvider = new Camera2EncoderProfilesProvider(cameraId);
+        mCamera2EncoderProfilesProvider = new Camera2EncoderProfilesProvider(cameraId,
+                mCameraQuirks);
         mCameraStateLiveData = new RedirectableLiveData<>(
                 CameraState.create(CameraState.Type.CLOSED));
     }
@@ -385,6 +396,8 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
         }
     }
 
+    @SuppressLint("NullAnnotationGroup")
+    @OptIn(markerClass = androidx.camera.core.ExperimentalZeroShutterLag.class)
     @Override
     public boolean isZslSupported() {
         return Build.VERSION.SDK_INT >= 23 && isPrivateReprocessingSupported()
@@ -395,6 +408,12 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
     public boolean isPrivateReprocessingSupported() {
         return isCapabilitySupported(mCameraCharacteristicsCompat,
                 REQUEST_AVAILABLE_CAPABILITIES_PRIVATE_REPROCESSING);
+    }
+
+    @Override
+    public boolean isLogicalMultiCameraSupported() {
+        return isCapabilitySupported(mCameraCharacteristicsCompat,
+                REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA);
     }
 
     /** {@inheritDoc} */
@@ -421,13 +440,54 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
 
     @NonNull
     @Override
-    public List<Size> getSupportedResolutions(int format) {
-        StreamConfigurationMap map = requireNonNull(mCameraCharacteristicsCompat.get(
-                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP));
+    public Set<Integer> getSupportedOutputFormats() {
         StreamConfigurationMapCompat mapCompat =
-                StreamConfigurationMapCompat.toStreamConfigurationMapCompat(map);
+                mCameraCharacteristicsCompat.getStreamConfigurationMapCompat();
+        int[] formats = mapCompat.getOutputFormats();
+        if (formats == null) {
+            return new HashSet<>();
+        }
+
+        Set<Integer> result = new HashSet<>();
+        for (int format : formats) {
+            result.add(format);
+        }
+        return result;
+    }
+
+    @NonNull
+    @Override
+    public List<Size> getSupportedResolutions(int format) {
+        StreamConfigurationMapCompat mapCompat =
+                mCameraCharacteristicsCompat.getStreamConfigurationMapCompat();
         Size[] size = mapCompat.getOutputSizes(format);
         return size != null ? Arrays.asList(size) : Collections.emptyList();
+    }
+
+    @NonNull
+    @Override
+    public List<Size> getSupportedHighResolutions(int format) {
+        StreamConfigurationMapCompat mapCompat =
+                mCameraCharacteristicsCompat.getStreamConfigurationMapCompat();
+        Size[] size = mapCompat.getHighResolutionOutputSizes(format);
+        return size != null ? Arrays.asList(size) : Collections.emptyList();
+    }
+
+    @NonNull
+    @Override
+    public Set<DynamicRange> getSupportedDynamicRanges() {
+        DynamicRangesCompat dynamicRangesCompat = DynamicRangesCompat.fromCameraCharacteristics(
+                mCameraCharacteristicsCompat);
+
+        return dynamicRangesCompat.getSupportedDynamicRanges();
+    }
+
+    @NonNull
+    @Override
+    public Set<DynamicRange> querySupportedDynamicRanges(
+            @NonNull Set<DynamicRange> candidateDynamicRanges) {
+        return DynamicRanges.findAllPossibleMatches(candidateDynamicRanges,
+                getSupportedDynamicRanges());
     }
 
     @Override
@@ -474,12 +534,78 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
         return mCameraQuirks;
     }
 
+    @NonNull
+    @Override
+    public Set<Range<Integer>> getSupportedFrameRateRanges() {
+        Range<Integer>[] availableTargetFpsRanges =
+                mCameraCharacteristicsCompat.get(
+                        CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+        if (availableTargetFpsRanges != null) {
+            return new HashSet<>(Arrays.asList(availableTargetFpsRanges));
+        } else {
+            return Collections.emptySet();
+        }
+    }
+
+    @Override
+    public boolean isVideoStabilizationSupported() {
+        int[] availableVideoStabilizationModes =
+                mCameraCharacteristicsCompat.get(
+                        CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);
+        if (availableVideoStabilizationModes != null) {
+            for (int mode : availableVideoStabilizationModes) {
+                if (mode == CONTROL_VIDEO_STABILIZATION_MODE_ON) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isPreviewStabilizationSupported() {
+        int[] availableVideoStabilizationModes =
+                mCameraCharacteristicsCompat.get(
+                        CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);
+        if (availableVideoStabilizationModes != null) {
+            for (int mode : availableVideoStabilizationModes) {
+                if (mode == CONTROL_VIDEO_STABILIZATION_MODE_PREVIEW_STABILIZATION) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * Gets the implementation of {@link Camera2CameraInfo}.
      */
     @NonNull
     public Camera2CameraInfo getCamera2CameraInfo() {
         return mCamera2CameraInfo;
+    }
+
+    @NonNull
+    @Override
+    public Object getCameraCharacteristics() {
+        return mCameraCharacteristicsCompat.toCameraCharacteristics();
+    }
+
+    @Nullable
+    @Override
+    public Object getPhysicalCameraCharacteristics(@NonNull String physicalCameraId) {
+        try {
+            if (!mCameraCharacteristicsCompat.getPhysicalCameraIds().contains(physicalCameraId)) {
+                return null;
+            }
+            return mCameraManager.getCameraCharacteristicsCompat(physicalCameraId)
+                    .toCameraCharacteristics();
+        } catch (CameraAccessExceptionCompat e) {
+            Logger.e(TAG,
+                    "Failed to get CameraCharacteristics for cameraId " + physicalCameraId,
+                    e);
+        }
+        return null;
     }
 
     /**
@@ -510,6 +636,29 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
             }
         }
         return map;
+    }
+
+    @NonNull
+    @Override
+    public Set<CameraInfo> getPhysicalCameraInfos() {
+        if (mPhysicalCameraInfos == null) {
+            mPhysicalCameraInfos = new HashSet<>();
+            for (String physicalCameraId : mCameraCharacteristicsCompat.getPhysicalCameraIds()) {
+                try {
+                    CameraInfo physicalCameraInfo = new Camera2PhysicalCameraInfoImpl(
+                            physicalCameraId,
+                            mCameraManager);
+                    mPhysicalCameraInfos.add(physicalCameraInfo);
+                } catch (CameraAccessExceptionCompat e) {
+                    Logger.e(TAG,
+                            "Failed to get CameraCharacteristics for cameraId " + physicalCameraId,
+                            e);
+                    return Collections.emptySet();
+                }
+            }
+        }
+
+        return mPhysicalCameraInfos;
     }
 
     /**

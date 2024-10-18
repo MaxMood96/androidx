@@ -23,38 +23,31 @@ import java.lang.StringBuilder
 /**
  * A request for a deep link in a [NavDestination].
  *
- * NavDeepLinkRequest are used to check if a [NavDeepLink] exists for a
- * [NavDestination] and to navigate to a [NavDestination] with a matching
- * [NavDeepLink].
+ * NavDeepLinkRequest are used to check if a [NavDeepLink] exists for a [NavDestination] and to
+ * navigate to a [NavDestination] with a matching [NavDeepLink].
  */
-public open class NavDeepLinkRequest {
-    public open val uri: Uri?
-    public open val action: String?
-    public open val mimeType: String?
-    /** @suppress */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    constructor(
-        /**
-         * The uri from the NavDeepLinkRequest.
-         *
-         * @see NavDeepLink.uriPattern
-         */
-        uri: Uri?,
-        /**
-         * The action from the NavDeepLinkRequest.
-         *
-         * @see NavDeepLink.action
-         */
-        action: String?,
-        /**
-         * The mimeType from the NavDeepLinkRequest.
-         *
-         * @see NavDeepLink.mimeType
-         */
-        mimeType: String?
-    ) { this.uri = uri; this.action = action; this.mimeType = mimeType }
-
-    /** @suppress */
+public open class NavDeepLinkRequest
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+constructor(
+    /**
+     * The uri from the NavDeepLinkRequest.
+     *
+     * @see NavDeepLink.uriPattern
+     */
+    public open val uri: Uri?,
+    /**
+     * The action from the NavDeepLinkRequest.
+     *
+     * @see NavDeepLink.action
+     */
+    public open val action: String?,
+    /**
+     * The mimeType from the NavDeepLinkRequest.
+     *
+     * @see NavDeepLink.mimeType
+     */
+    public open val mimeType: String?,
+) {
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public constructor(intent: Intent) : this(intent.data, intent.action, intent.type)
 
@@ -78,9 +71,7 @@ public open class NavDeepLinkRequest {
         return sb.toString()
     }
 
-    /**
-     * A builder for constructing [NavDeepLinkRequest] instances.
-     */
+    /** A builder for constructing [NavDeepLinkRequest] instances. */
     public class Builder private constructor() {
         private var uri: Uri? = null
         private var action: String? = null
@@ -90,7 +81,6 @@ public open class NavDeepLinkRequest {
          * Set the uri for the [NavDeepLinkRequest].
          *
          * @param uri The uri to add to the NavDeepLinkRequest
-         *
          * @return This builder.
          */
         public fun setUri(uri: Uri): Builder {
@@ -101,11 +91,9 @@ public open class NavDeepLinkRequest {
         /**
          * Set the action for the [NavDeepLinkRequest].
          *
-         * @throws IllegalArgumentException if the action is empty.
-         *
          * @param action the intent action for the NavDeepLinkRequest
-         *
          * @return This builder.
+         * @throws IllegalArgumentException if the action is empty.
          */
         public fun setAction(action: String): Builder {
             require(action.isNotEmpty()) { "The NavDeepLinkRequest cannot have an empty action." }
@@ -117,11 +105,9 @@ public open class NavDeepLinkRequest {
          * Set the mimeType for the [NavDeepLinkRequest].
          *
          * @param mimeType the mimeType for the NavDeepLinkRequest
-         *
-         * @throws IllegalArgumentException if the given mimeType does not match th3e required
-         * "type/subtype" format.
-         *
          * @return This builder.
+         * @throws IllegalArgumentException if the given mimeType does not match th3e required
+         *   "type/subtype" format.
          */
         public fun setMimeType(mimeType: String): Builder {
             val mimeTypeMatcher = mimeType.matches("^[-\\w*.]+/[-\\w+*.]+$".toRegex())
@@ -158,10 +144,9 @@ public open class NavDeepLinkRequest {
             /**
              * Creates a [NavDeepLinkRequest.Builder] with a set action.
              *
-             * @throws IllegalArgumentException if the action is empty.
-             *
              * @param action the intent action for the NavDeepLinkRequest
              * @return a [Builder] instance
+             * @throws IllegalArgumentException if the action is empty.
              */
             @JvmStatic
             public fun fromAction(action: String): Builder {

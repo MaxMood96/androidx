@@ -16,20 +16,24 @@
 
 package androidx.compose.ui.platform
 
+@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
 internal actual typealias AtomicInt = java.util.concurrent.atomic.AtomicInteger
 
 internal actual fun simpleIdentityToString(obj: Any, name: String?): String {
-    val className = name ?: if (obj::class.java.isAnonymousClass) {
-        obj::class.java.name
-    } else {
-        obj::class.java.simpleName
-    }
+    val className =
+        name
+            ?: if (obj::class.java.isAnonymousClass) {
+                obj::class.java.name
+            } else {
+                obj::class.java.simpleName
+            }
 
     return className + "@" + String.format("%07x", System.identityHashCode(obj))
 }
 
 internal actual fun Any.nativeClass(): Any = this.javaClass
 
+@PublishedApi
 internal actual inline fun <R> synchronized(lock: Any, block: () -> R): R {
     return kotlin.synchronized(lock, block)
 }

@@ -29,13 +29,14 @@ import androidx.compose.runtime.mutableStateOf
  * [value] property is written to and changed, a recomposition of any subscribed [RecomposeScope]s
  * will be scheduled. Writes to it are transacted as part of the [Snapshot] system.
  *
+ * In general for correctness: Anything that is mutable, that is read during composition or written
+ * to during composition, should be a [SnapshotMutableState].
+ *
  * @see [State]
  * @see [MutableState]
  * @see [mutableStateOf]
  */
 interface SnapshotMutableState<T> : MutableState<T> {
-    /**
-     * A policy to control how changes are handled in a mutable snapshot.
-     */
+    /** A policy to control how changes are handled in a mutable snapshot. */
     val policy: SnapshotMutationPolicy<T>
 }

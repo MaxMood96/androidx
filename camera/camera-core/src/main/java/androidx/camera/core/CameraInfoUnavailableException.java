@@ -16,20 +16,16 @@
 
 package androidx.camera.core;
 
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 
 /** An exception thrown when unable to retrieve information about a camera. */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class CameraInfoUnavailableException extends Exception {
-    /** @hide */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public CameraInfoUnavailableException(String s, Throwable e) {
         super(s, e);
     }
 
-    /** @hide */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public CameraInfoUnavailableException(String s) {
         super(s);

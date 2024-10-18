@@ -21,7 +21,6 @@ import android.hardware.camera2.CameraDevice;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.annotation.CameraExecutor;
 
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import java.util.concurrent.Executor;
  * <p> The repository also help to close the created SynchronizedCaptureSession when the camera is
  * disconnected.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class CaptureSessionRepository {
     /** Executor for all the callbacks from the {@link CameraCaptureSession}. */
     @NonNull
@@ -70,11 +68,13 @@ class CaptureSessionRepository {
                     // error state. The CameraCaptureSession.close() may not invoke the onClosed()
                     // callback so it has to finish the close process forcibly.
                     forceOnClosedCaptureSessions();
+                    dispatchOnError(error);
                     cameraClosed();
                 }
 
                 @Override
                 public void onClosed(@NonNull CameraDevice camera) {
+                    forceOnClosedCaptureSessions();
                     cameraClosed();
                 }
 
@@ -102,6 +102,19 @@ class CaptureSessionRepository {
                         sessions.addAll(mCaptureSessions);
                     }
                     mExecutor.execute(() -> forceOnClosed(sessions));
+                }
+
+                private void dispatchOnError(int error) {
+                    LinkedHashSet<SynchronizedCaptureSession> sessions = new LinkedHashSet<>();
+                    synchronized (mLock) {
+                        sessions.addAll(mCreatingCaptureSessions);
+                        sessions.addAll(mCaptureSessions);
+                    }
+                    mExecutor.execute(() -> {
+                        for (SynchronizedCaptureSession session : sessions) {
+                            session.onCameraDeviceError(error);
+                        }
+                    });
                 }
 
                 private void cameraClosed() {

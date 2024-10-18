@@ -26,6 +26,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.os.ResultReceiver;
 import android.text.TextUtils;
 import android.util.Log;
@@ -36,7 +37,6 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputContentInfo;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -374,8 +374,8 @@ public final class InputConnectionCompat {
                 // this from happening prematurely (before the receiving app has had a chance
                 // to process the content), we set the InputContentInfo object into the
                 // extras of the payload passed to OnReceiveContentListener.
-                InputContentInfo inputContentInfoFmk =
-                        (InputContentInfo) inputContentInfo.unwrap();
+                Parcelable inputContentInfoFmk =
+                        (Parcelable) inputContentInfo.unwrap();
                 extras = (opts == null) ? new Bundle() : new Bundle(opts);
                 extras.putParcelable(EXTRA_INPUT_CONTENT_INFO, inputContentInfoFmk);
             }
@@ -409,7 +409,6 @@ public final class InputConnectionCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean commitContent(InputConnection inputConnection,
                 InputContentInfo inputContentInfo, int i, Bundle bundle) {
             return inputConnection.commitContent(inputContentInfo, i, bundle);

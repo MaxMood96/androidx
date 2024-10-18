@@ -99,7 +99,6 @@ import java.util.concurrent.Future;
  * Inspector to work with SQLite databases
  */
 @SuppressWarnings({"TryFinallyCanBeTryWithResources", "SameParameterValue"})
-@SuppressLint("SyntheticAccessor")
 final class SqliteInspector extends Inspector {
     private static final String OPEN_DATABASE_COMMAND_SIGNATURE_API_11 = "openDatabase"
             + "("
@@ -183,15 +182,16 @@ final class SqliteInspector extends Inspector {
      */
     private final RoomInvalidationRegistry mRoomInvalidationRegistry;
 
-    @NonNull
-    private final SqlDelightInvalidation mSqlDelightInvalidation;
+    private final List<Invalidation> mInvalidations = new ArrayList<>();
 
     SqliteInspector(@NonNull Connection connection, @NonNull InspectorEnvironment environment) {
         super(connection);
         mEnvironment = environment;
         mIOExecutor = environment.executors().io();
         mRoomInvalidationRegistry = new RoomInvalidationRegistry(mEnvironment);
-        mSqlDelightInvalidation = SqlDelightInvalidation.create(mEnvironment);
+        mInvalidations.add(mRoomInvalidationRegistry);
+        mInvalidations.add(SqlDelightInvalidation.create(mEnvironment.artTooling()));
+        mInvalidations.add(SqlDelight2Invalidation.create(mEnvironment.artTooling()));
 
         mDatabaseRegistry = new DatabaseRegistry(
                 new DatabaseRegistry.Callback() {
@@ -277,7 +277,7 @@ final class SqliteInspector extends Inspector {
         // Check for database instances in memory
         for (SQLiteDatabase instance :
                 mEnvironment.artTooling().findInstances(SQLiteDatabase.class)) {
-            /** the race condition here will be handled by mDatabaseRegistry */
+            /* the race condition here will be handled by mDatabaseRegistry */
             if (instance.isOpen()) {
                 onDatabaseOpened(instance);
             } else {
@@ -398,7 +398,6 @@ final class SqliteInspector extends Inspector {
 
         ExitHook<SQLiteDatabase> hook =
                 new ExitHook<SQLiteDatabase>() {
-                    @SuppressLint("SyntheticAccessor")
                     @Override
                     public SQLiteDatabase onExit(SQLiteDatabase database) {
                         try {
@@ -436,9 +435,9 @@ final class SqliteInspector extends Inspector {
     }
 
     private void registerInvalidationHooks(EntryExitMatchingHookRegistry hookRegistry) {
-        /**
+        /*
          * Schedules a task using {@link mScheduledExecutor} and executes it on {@link mIOExecutor}.
-         **/
+         */
         final RequestCollapsingThrottler.DeferredExecutor deferredExecutor =
                 new RequestCollapsingThrottler.DeferredExecutor() {
                     @Override
@@ -671,8 +670,9 @@ final class SqliteInspector extends Inspector {
 
     private void triggerInvalidation(String query) {
         if (getSqlStatementType(query) != DatabaseUtils.STATEMENT_SELECT) {
-            mSqlDelightInvalidation.triggerInvalidations();
-            mRoomInvalidationRegistry.triggerInvalidations();
+            for (Invalidation invalidation : mInvalidations) {
+                invalidation.triggerInvalidations();
+            }
         }
     }
 

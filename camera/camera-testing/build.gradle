@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -25,37 +30,46 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.testCore)
-    // force runner 1.5.1 so implementation stays consistent with androidTestImplementation
+    // ensuring implementation versions stay consistent with androidTestImplementation
+    def testCoreVersion = "1.5.0"
+    def testRunnerVersion = "1.5.2"
+    def testRulesVersion = "1.5.0"
 
-    implementation(libs.testRunner)
-    implementation(libs.testRules)
-    implementation(libs.testUiautomator)
-    api("androidx.annotation:annotation:1.2.0")
-    implementation(libs.guavaListenableFuture)
-    implementation("androidx.appcompat:appcompat:1.1.0")
+    implementation("androidx.test:core:$testCoreVersion")
+    implementation("androidx.test:rules:$testRulesVersion")
+    implementation("androidx.test:runner:$testRunnerVersion")
+
+    api("androidx.annotation:annotation:1.8.1")
+    implementation(project(':camera:camera-camera2-pipe-integration'))
     api(project(":camera:camera-core"))
+    api(project(":camera:camera-lifecycle"))
+    api(project(":camera:camera-video"))
+
+    implementation("androidx.appcompat:appcompat:1.1.0")
     implementation("androidx.core:core:1.1.0")
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
     implementation("androidx.test.espresso:espresso-core:3.5.0")
     implementation("androidx.test.espresso:espresso-idling-resource:3.5.0")
+
+    implementation(libs.atomicFu)
+    implementation(libs.guavaListenableFuture)
     implementation(libs.junit)
     implementation(libs.truth)
     implementation(libs.kotlinStdlib)
     implementation(libs.kotlinCoroutinesAndroid)
+    implementation(libs.testUiautomator)
 
-    testImplementation(libs.testCore)
-    testImplementation(libs.testRunner)
+    testImplementation("androidx.test:core:$testCoreVersion")
+    testImplementation("androidx.test:runner:$testRunnerVersion")
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockitoCore4)
 
-    androidTestImplementation(libs.multidex)
     androidTestImplementation(libs.testExtJunit)
-    androidTestImplementation(libs.testCore)
-    androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.testRules)
+    androidTestImplementation("androidx.test:core:$testCoreVersion")
+    androidTestImplementation("androidx.test:rules:$testRulesVersion")
+    androidTestImplementation("androidx.test:runner:$testRunnerVersion")
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.kotlinCoroutinesAndroid)
@@ -66,7 +80,6 @@ dependencies {
 android {
     defaultConfig {
         externalNativeBuild {
-            multiDexEnabled = true
             cmake {
                 cppFlags "-std=c++17"
                 arguments "-DCMAKE_VERBOSE_MAKEFILE=ON"
@@ -91,9 +104,8 @@ android {
 }
 
 androidx {
-    name = "Jetpack Camera Testing Library"
-    type = LibraryType.INTERNAL_TEST_LIBRARY
-    publish = Publish.NONE
+    name = "Camera Testing"
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2019"
     description = "Testing components for the Jetpack Camera Library, a library providing a " +
             "consistent and reliable camera foundation that enables great camera driven " +"" +

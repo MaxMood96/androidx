@@ -19,6 +19,7 @@ package androidx.webkit;
 import android.os.Handler;
 import android.webkit.WebMessagePort;
 
+import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -33,7 +34,7 @@ import java.lang.reflect.InvocationHandler;
  * HTML5 message ports.</a>
  *
  * <p>A Message port represents one endpoint of a Message Channel. In Android
- * webview, there is no separate Message Channel object. When a message channel
+ * WebView, there is no separate Message Channel object. When a message channel
  * is created, both ports are tangled to each other and started, and then
  * returned in a MessagePort array, see {@link WebViewCompat#createWebMessageChannel}
  * for creating a message channel.
@@ -55,6 +56,7 @@ import java.lang.reflect.InvocationHandler;
  * <p>It is possible to transfer both ports of a channel to JS, for example for
  * communication between subframes.
  */
+@AnyThread
 public abstract class WebMessagePortCompat {
     /**
      * The listener for handling MessagePort events. The message callback
@@ -81,7 +83,6 @@ public abstract class WebMessagePortCompat {
     }
 
     /**
-     * @hide disallow app devs to extend this class.
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public WebMessagePortCompat() { }
@@ -93,6 +94,19 @@ public abstract class WebMessagePortCompat {
      * This method should only be called if
      * {@link WebViewFeature#isFeatureSupported(String)}
      * returns true for {@link WebViewFeature#WEB_MESSAGE_PORT_POST_MESSAGE}.
+     *
+     * <p>
+     * When posting a {@link WebMessageCompat} with type {@link WebMessageCompat#TYPE_ARRAY_BUFFER},
+     * this method should check if {@link WebViewFeature#isFeatureSupported(String)} returns true
+     * for {@link WebViewFeature#WEB_MESSAGE_ARRAY_BUFFER}. Example:
+     * <pre class="prettyprint">
+     * if (message.getType() == WebMessageCompat.TYPE_ARRAY_BUFFER) {
+     *     if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_ARRAY_BUFFER) {
+     *         // ArrayBuffer message is supported, send message here.
+     *         port.postMessage(message);
+     *     }
+     * }
+     * </pre>
      *
      * @param message  the message from Java to JS.
      *
@@ -149,7 +163,6 @@ public abstract class WebMessagePortCompat {
     /**
      * Internal getter returning the private {@link WebMessagePort} implementing this class. This is
      * only available on devices with an Android versions supporting WebMessagePorts.
-     * @hide
      */
     @RequiresApi(23)
     @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -160,7 +173,6 @@ public abstract class WebMessagePortCompat {
      * Internal getter returning the private {@link java.lang.reflect.InvocationHandler}
      * implementing this class. This is only available on devices where the support library glue in
      * the WebView APK supports {@link WebMessagePortCompat}.
-     * @hide
      */
     @NonNull
     @RestrictTo(RestrictTo.Scope.LIBRARY)

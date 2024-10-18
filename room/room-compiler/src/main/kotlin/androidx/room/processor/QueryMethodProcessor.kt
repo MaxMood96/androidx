@@ -26,7 +26,7 @@ import androidx.room.ext.isNotError
 import androidx.room.parser.ParsedQuery
 import androidx.room.parser.QueryType
 import androidx.room.parser.SqlParser
-import androidx.room.processor.ProcessorErrors.cannotMapInfoSpecifiedColumn
+import androidx.room.processor.ProcessorErrors.cannotMapSpecifiedColumn
 import androidx.room.solver.TypeAdapterExtras
 import androidx.room.solver.query.result.PojoRowAdapter
 import androidx.room.verifier.ColumnInfo
@@ -48,50 +48,56 @@ class QueryMethodProcessor(
     val context = baseContext.fork(executableElement)
 
     /**
-     * The processing of the method might happen in multiple steps if we decide to rewrite the
-     * query after the first processing. To allow it while respecting the Context, it is
-     * implemented as a sub procedure in [InternalQueryProcessor].
+     * The processing of the method might happen in multiple steps if we decide to rewrite the query
+     * after the first processing. To allow it while respecting the Context, it is implemented as a
+     * sub procedure in [InternalQueryProcessor].
      */
     fun process(): QueryMethod {
         val annotation = executableElement.getAnnotation(Query::class)?.value
         context.checker.check(
-            annotation != null, executableElement,
+            annotation != null,
+            executableElement,
             ProcessorErrors.MISSING_QUERY_ANNOTATION
         )
 
         /**
-         * Run the first process without reporting any errors / warnings as we might be able to
-         * fix them for the developer.
+         * Run the first process without reporting any errors / warnings as we might be able to fix
+         * them for the developer.
          */
-        val (initialResult, logs) = context.collectLogs {
-            InternalQueryProcessor(
-                context = it,
-                executableElement = executableElement,
-                dbVerifier = dbVerifier,
-                containing = containing
-            ).processQuery(annotation?.value)
-        }
+        val (initialResult, logs) =
+            context.collectLogs {
+                InternalQueryProcessor(
+                        context = it,
+                        executableElement = executableElement,
+                        dbVerifier = dbVerifier,
+                        containing = containing
+                    )
+                    .processQuery(annotation?.value)
+            }
         // check if want to swap the query for a better one
-        val finalResult = if (initialResult is ReadQueryMethod) {
-            val resultAdapter = initialResult.queryResultBinder.adapter
-            val originalQuery = initialResult.query
-            val finalQuery = resultAdapter?.let {
-                context.queryRewriter.rewrite(originalQuery, resultAdapter)
-            } ?: originalQuery
-            if (finalQuery != originalQuery) {
-                // ok parse again
-                return InternalQueryProcessor(
-                    context = context,
-                    executableElement = executableElement,
-                    dbVerifier = dbVerifier,
-                    containing = containing
-                ).processQuery(finalQuery.original)
+        val finalResult =
+            if (initialResult is ReadQueryMethod) {
+                val resultAdapter = initialResult.queryResultBinder.adapter
+                val originalQuery = initialResult.query
+                val finalQuery =
+                    resultAdapter?.let {
+                        context.queryRewriter.rewrite(originalQuery, resultAdapter)
+                    } ?: originalQuery
+                if (finalQuery != originalQuery) {
+                    // ok parse again
+                    return InternalQueryProcessor(
+                            context = context,
+                            executableElement = executableElement,
+                            dbVerifier = dbVerifier,
+                            containing = containing
+                        )
+                        .processQuery(finalQuery.original)
+                } else {
+                    initialResult
+                }
             } else {
                 initialResult
             }
-        } else {
-            initialResult
-        }
         if (finalResult == initialResult) {
             // if we didn't rewrite it, send all logs to the calling context.
             logs.writeTo(context)
@@ -110,48 +116,63 @@ private class InternalQueryProcessor(
         val delegate = MethodProcessorDelegate.createFor(context, containing, executableElement)
         val returnType = delegate.extractReturnType()
 
+        val returnsDeferredType = delegate.returnsDeferredType()
+        val isSuspendFunction = delegate.executableElement.isSuspendFunction()
         context.checker.check(
-            !delegate.isSuspendAndReturnsDeferredType(),
+            !isSuspendFunction || !returnsDeferredType,
             executableElement,
             ProcessorErrors.suspendReturnsDeferredType(returnType.rawType.typeName.toString())
         )
 
-        val query = if (input != null) {
-            val query = SqlParser.parse(input)
-            context.checker.check(
-                query.errors.isEmpty(), executableElement,
-                query.errors.joinToString("\n")
-            )
-            validateQuery(query)
-            context.checker.check(
-                returnType.isNotError(),
-                executableElement, ProcessorErrors.CANNOT_RESOLVE_RETURN_TYPE,
-                executableElement
-            )
-            query
-        } else {
-            ParsedQuery.MISSING
-        }
+        val query =
+            if (!isSuspendFunction && !returnsDeferredType && !context.isAndroidOnlyTarget()) {
+                // A blocking function that does not return a deferred return type is not allowed
+                // if the target platforms include non-Android targets.
+                context.logger.e(
+                    executableElement,
+                    ProcessorErrors.INVALID_BLOCKING_DAO_FUNCTION_NON_ANDROID
+                )
+                // Early return so we don't generate redundant code.
+                ParsedQuery.MISSING
+            } else if (input != null) {
+                val query = SqlParser.parse(input)
+                context.checker.check(
+                    query.errors.isEmpty(),
+                    executableElement,
+                    query.errors.joinToString("\n")
+                )
+                validateQuery(query)
+                context.checker.check(
+                    returnType.isNotError(),
+                    executableElement,
+                    ProcessorErrors.CANNOT_RESOLVE_RETURN_TYPE,
+                    executableElement
+                )
+                query
+            } else {
+                ParsedQuery.MISSING
+            }
 
         context.checker.notUnbound(
-            returnType, executableElement,
+            returnType,
+            executableElement,
             ProcessorErrors.CANNOT_USE_UNBOUND_GENERICS_IN_QUERY_METHODS
         )
 
         val isPreparedQuery = PREPARED_TYPES.contains(query.type)
-        val queryMethod = if (isPreparedQuery) {
-            getPreparedQueryMethod(delegate, returnType, query)
-        } else {
-            getQueryMethod(delegate, returnType, query)
-        }
+        val queryMethod =
+            if (isPreparedQuery) {
+                getPreparedQueryMethod(delegate, returnType, query)
+            } else {
+                getQueryMethod(delegate, returnType, query)
+            }
 
         return processQueryMethod(queryMethod)
     }
 
     private fun processQueryMethod(queryMethod: QueryMethod): QueryMethod {
-        val missing = queryMethod.sectionToParamMapping
-            .filter { it.second == null }
-            .map { it.first.text }
+        val missing =
+            queryMethod.sectionToParamMapping.filter { it.second == null }.map { it.first.text }
         if (missing.isNotEmpty()) {
             context.logger.e(
                 executableElement,
@@ -159,9 +180,10 @@ private class InternalQueryProcessor(
             )
         }
 
-        val unused = queryMethod.parameters.filterNot { param ->
-            queryMethod.sectionToParamMapping.any { it.second == param }
-        }.map(QueryParameter::sqlName)
+        val unused =
+            queryMethod.parameters
+                .filterNot { param -> queryMethod.sectionToParamMapping.any { it.second == param } }
+                .map(QueryParameter::sqlName)
 
         if (unused.isNotEmpty()) {
             context.logger.e(executableElement, ProcessorErrors.unusedQueryMethodParameter(unused))
@@ -208,16 +230,18 @@ private class InternalQueryProcessor(
         )
     }
 
+    @Suppress("DEPRECATION") // Due to MapInfo usage
     private fun getQueryMethod(
         delegate: MethodProcessorDelegate,
         returnType: XType,
         query: ParsedQuery
     ): QueryMethod {
-        val resultBinder = delegate.findResultBinder(returnType, query) {
-            delegate.executableElement.getAnnotation(androidx.room.MapInfo::class)?.let {
-                processMapInfo(it, query, delegate.executableElement, this)
+        val resultBinder =
+            delegate.findResultBinder(returnType, query) {
+                delegate.executableElement.getAnnotation(androidx.room.MapInfo::class)?.let {
+                    processMapInfo(it, query, delegate.executableElement, this)
+                }
             }
-        }
         context.checker.check(
             resultBinder.adapter != null,
             executableElement,
@@ -236,7 +260,8 @@ private class InternalQueryProcessor(
             if (hasRelations) {
                 context.logger.w(
                     Warning.RELATION_QUERY_WITHOUT_TRANSACTION,
-                    executableElement, ProcessorErrors.TRANSACTION_MISSING_ON_RELATION
+                    executableElement,
+                    ProcessorErrors.TRANSACTION_MISSING_ON_RELATION
                 )
             }
         }
@@ -252,19 +277,22 @@ private class InternalQueryProcessor(
             val columnNames = queryResultInfo.columns.map { it.name }
             val unusedColumns = columnNames - usedColumns
             val pojoMappings = mappings.filterIsInstance<PojoRowAdapter.PojoMapping>()
-            val pojoUnusedFields = pojoMappings
-                .filter { it.unusedFields.isNotEmpty() }
-                .associate { it.pojo.typeName.toString(context.codeLanguage) to it.unusedFields }
+            val pojoUnusedFields =
+                pojoMappings
+                    .filter { it.unusedFields.isNotEmpty() }
+                    .associate {
+                        it.pojo.typeName.toString(context.codeLanguage) to it.unusedFields
+                    }
             if (unusedColumns.isNotEmpty() || pojoUnusedFields.isNotEmpty()) {
-                val warningMsg = ProcessorErrors.cursorPojoMismatch(
-                    pojoTypeNames = pojoMappings.map {
-                        it.pojo.typeName.toString(context.codeLanguage)
-                    },
-                    unusedColumns = unusedColumns,
-                    allColumns = columnNames,
-                    pojoUnusedFields = pojoUnusedFields,
-                )
-                context.logger.w(Warning.CURSOR_MISMATCH, executableElement, warningMsg)
+                val warningMsg =
+                    ProcessorErrors.queryFieldPojoMismatch(
+                        pojoTypeNames =
+                            pojoMappings.map { it.pojo.typeName.toString(context.codeLanguage) },
+                        unusedColumns = unusedColumns,
+                        allColumns = columnNames,
+                        pojoUnusedFields = pojoUnusedFields,
+                    )
+                context.logger.w(Warning.QUERY_MISMATCH, executableElement, warningMsg)
             }
         }
 
@@ -281,9 +309,10 @@ private class InternalQueryProcessor(
     }
 
     /**
-     * Parse @MapInfo annotation, validate its inputs and put information in the bag of extras,
-     * it will be later used by the TypeAdapterStore.
+     * Parse @MapInfo annotation, validate its inputs and put information in the bag of extras, it
+     * will be later used by the TypeAdapterStore.
      */
+    @Suppress("DEPRECATION") // Due to @MapInfo usage
     private fun processMapInfo(
         mapInfoAnnotation: XAnnotationBox<androidx.room.MapInfo>,
         query: ParsedQuery,
@@ -299,16 +328,15 @@ private class InternalQueryProcessor(
         // Checks if this list of columns contains one with matching name and origin table.
         // Takes into account that projection tables names might be aliased but originTable uses
         // sqlite3_column_origin_name which is un-aliased.
-        fun List<ColumnInfo>.contains(
-            columnName: String,
-            tableName: String?
-        ) = any { resultColumn ->
-            val resultTableAlias = resultColumn.originTable?.let { resultTableAliases[it] ?: it }
-            resultColumn.name == columnName && (
-                if (tableName != null) {
-                    resultTableAlias == tableName || resultColumn.originTable == tableName
-                } else true)
-        }
+        fun List<ColumnInfo>.contains(columnName: String, tableName: String?) =
+            any { resultColumn ->
+                val resultTableAlias =
+                    resultColumn.originTable?.let { resultTableAliases[it] ?: it }
+                resultColumn.name == columnName &&
+                    (if (tableName != null) {
+                        resultTableAlias == tableName || resultColumn.originTable == tableName
+                    } else true)
+            }
 
         context.checker.check(
             keyColumn.isNotEmpty() || valueColumn.isNotEmpty(),
@@ -323,18 +351,20 @@ private class InternalQueryProcessor(
                 keyColumn.isEmpty() || resultColumns.contains(keyColumn, keyTable),
                 queryExecutableElement
             ) {
-                cannotMapInfoSpecifiedColumn(
+                cannotMapSpecifiedColumn(
                     (if (keyTable != null) "$keyTable." else "") + keyColumn,
-                    resultColumns.map { it.name }
+                    resultColumns.map { it.name },
+                    androidx.room.MapInfo::class.java.simpleName
                 )
             }
             context.checker.check(
                 valueColumn.isEmpty() || resultColumns.contains(valueColumn, valueTable),
                 queryExecutableElement
             ) {
-                cannotMapInfoSpecifiedColumn(
+                cannotMapSpecifiedColumn(
                     (if (valueTable != null) "$valueTable." else "") + valueColumn,
-                    resultColumns.map { it.name }
+                    resultColumns.map { it.name },
+                    androidx.room.MapInfo::class.java.simpleName
                 )
             }
         }

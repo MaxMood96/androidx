@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// VERSION: v0_157
+// VERSION: v0_210
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 package androidx.compose.material3.tokens
@@ -21,11 +21,10 @@ package androidx.compose.material3.tokens
 import androidx.compose.ui.unit.dp
 
 internal object DatePickerModalTokens {
-    val ContainerColor = ColorSchemeKeyTokens.Surface
+    val ContainerColor = ColorSchemeKeyTokens.SurfaceContainerHigh
     val ContainerElevation = ElevationTokens.Level3
     val ContainerHeight = 568.0.dp
     val ContainerShape = ShapeKeyTokens.CornerExtraLarge
-    val ContainerSurfaceTintLayerColor = ColorSchemeKeyTokens.SurfaceTint
     val ContainerWidth = 360.0.dp
     val DateContainerHeight = 40.0.dp
     val DateContainerShape = ShapeKeyTokens.CornerFull
@@ -46,12 +45,12 @@ internal object DatePickerModalTokens {
     val HeaderHeadlineFont = TypographyKeyTokens.HeadlineLarge
     val HeaderSupportingTextColor = ColorSchemeKeyTokens.OnSurfaceVariant
     val HeaderSupportingTextFont = TypographyKeyTokens.LabelLarge
-    val RangeSelectionActiveIndicatorContainerColor = ColorSchemeKeyTokens.PrimaryContainer
+    val RangeSelectionActiveIndicatorContainerColor = ColorSchemeKeyTokens.SecondaryContainer
     val RangeSelectionActiveIndicatorContainerHeight = 40.0.dp
     val RangeSelectionActiveIndicatorContainerShape = ShapeKeyTokens.CornerFull
     val RangeSelectionContainerElevation = ElevationTokens.Level0
     val RangeSelectionContainerShape = ShapeKeyTokens.CornerNone
-    val SelectionDateInRangeLabelTextColor = ColorSchemeKeyTokens.OnPrimaryContainer
+    val SelectionDateInRangeLabelTextColor = ColorSchemeKeyTokens.OnSecondaryContainer
     val RangeSelectionHeaderContainerHeight = 128.0.dp
     val RangeSelectionHeaderHeadlineFont = TypographyKeyTokens.TitleLarge
     val RangeSelectionMonthSubheadColor = ColorSchemeKeyTokens.OnSurfaceVariant

@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package androidx.room.androidx.room.integration.kotlintestapp.testutil
+package androidx.room.integration.kotlintestapp.testutil
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-@Database(
-    version = 1,
-    exportSchema = false,
-    entities = [PagingEntity::class]
-)
+@Database(version = 1, exportSchema = false, entities = [PagingEntity::class])
 abstract class PagingDb : RoomDatabase() {
     abstract fun getDao(): PagingEntityDao
 }

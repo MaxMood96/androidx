@@ -11,25 +11,24 @@ import javax.`annotation`.processing.Generated
 import kotlin.Int
 import kotlin.String
 import kotlin.Suppress
-import kotlin.Unit
 import kotlin.collections.List
 import kotlin.jvm.JvmStatic
 
 @Generated(value = ["androidx.room.RoomProcessor"])
-@Suppress(names = ["UNCHECKED_CAST", "DEPRECATION"])
+@Suppress(names = ["UNCHECKED_CAST", "DEPRECATION", "REDUNDANT_PROJECTION", "REMOVAL"])
 public class MyDao_Impl(
     __db: RoomDatabase,
 ) : MyDao {
     private val __db: RoomDatabase
 
-    private val __insertionAdapterOfMyEntity: EntityInsertionAdapter<MyEntity>
+    private val __insertAdapterOfMyEntity: EntityInsertionAdapter<MyEntity>
     init {
         this.__db = __db
-        this.__insertionAdapterOfMyEntity = object : EntityInsertionAdapter<MyEntity>(__db) {
+        this.__insertAdapterOfMyEntity = object : EntityInsertionAdapter<MyEntity>(__db) {
             public override fun createQuery(): String =
                 "INSERT OR ABORT INTO `MyEntity` (`pk`,`foo`) VALUES (?,?)"
 
-            public override fun bind(statement: SupportSQLiteStatement, entity: MyEntity): Unit {
+            public override fun bind(statement: SupportSQLiteStatement, entity: MyEntity) {
                 statement.bindLong(1, entity.pk.toLong())
                 val _tmp: String = FooConverter.nullableFooToString(entity.foo)
                 if (_tmp == null) {
@@ -41,11 +40,11 @@ public class MyDao_Impl(
         }
     }
 
-    public override fun addEntity(item: MyEntity): Unit {
+    public override fun addEntity(item: MyEntity) {
         __db.assertNotSuspendingTransaction()
         __db.beginTransaction()
         try {
-            __insertionAdapterOfMyEntity.insert(item)
+            __insertAdapterOfMyEntity.insert(item)
             __db.setTransactionSuccessful()
         } finally {
             __db.endTransaction()

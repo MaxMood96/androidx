@@ -17,13 +17,15 @@
 package androidx.camera.camera2.internal.compat;
 
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Build;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
+import androidx.camera.camera2.internal.compat.workaround.OutputSizesCorrector;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,31 +35,37 @@ import java.util.Set;
  * A wrapper for {@link CameraCharacteristics} which caches the retrieved values to optimize
  * the latency and might contain backward compatible fixes for certain parameters.
  */
-@RequiresApi(21)
 public class CameraCharacteristicsCompat {
     @NonNull
     @GuardedBy("this")
     private final Map<CameraCharacteristics.Key<?>, Object> mValuesCache = new HashMap<>();
     @NonNull
     private final CameraCharacteristicsCompatImpl mCameraCharacteristicsImpl;
+    @NonNull
+    private final String mCameraId;
 
-    private CameraCharacteristicsCompat(@NonNull CameraCharacteristics cameraCharacteristics) {
+    @Nullable
+    private StreamConfigurationMapCompat mStreamConfigurationMapCompat = null;
+
+    private CameraCharacteristicsCompat(@NonNull CameraCharacteristics cameraCharacteristics,
+            @NonNull String cameraId) {
         if (Build.VERSION.SDK_INT >= 28) {
             mCameraCharacteristicsImpl = new CameraCharacteristicsApi28Impl(cameraCharacteristics);
         } else {
             mCameraCharacteristicsImpl = new CameraCharacteristicsBaseImpl(cameraCharacteristics);
         }
+        mCameraId = cameraId;
     }
 
     /**
      * Tests might need to create CameraCharacteristicsCompat directly for convenience. Elsewhere
      * we should get the CameraCharacteristicsCompat instance from {@link CameraManagerCompat}.
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+    @VisibleForTesting
     @NonNull
     public static CameraCharacteristicsCompat toCameraCharacteristicsCompat(
-            @NonNull CameraCharacteristics characteristics) {
-        return new CameraCharacteristicsCompat(characteristics);
+            @NonNull CameraCharacteristics characteristics, @NonNull String cameraId) {
+        return new CameraCharacteristicsCompat(characteristics, cameraId);
     }
 
     /**
@@ -65,11 +73,8 @@ public class CameraCharacteristicsCompat {
      * caching it.
      */
     private boolean isKeyNonCacheable(@NonNull CameraCharacteristics.Key<?> key) {
-        // SENSOR_ORIENTATION value scould change in some circumstances.
-        if (key.equals(CameraCharacteristics.SENSOR_ORIENTATION)) {
-            return true;
-        }
-        return false;
+        // SENSOR_ORIENTATION value should change in some circumstances.
+        return key.equals(CameraCharacteristics.SENSOR_ORIENTATION);
     }
 
     /**
@@ -114,6 +119,53 @@ public class CameraCharacteristicsCompat {
     }
 
     /**
+     * Returns {@code true} if overriding zoom setting is available, otherwise {@code false}.
+     */
+    public boolean isZoomOverrideAvailable() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            int[] availableSettingsOverrides = mCameraCharacteristicsImpl.get(
+                    CameraCharacteristics.CONTROL_AVAILABLE_SETTINGS_OVERRIDES);
+            if (availableSettingsOverrides != null) {
+                for (int i : availableSettingsOverrides) {
+                    if (i == CameraMetadata.CONTROL_SETTINGS_OVERRIDE_ZOOM) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Obtains the {@link StreamConfigurationMapCompat} which contains the output sizes related
+     * workarounds in it.
+     */
+    @NonNull
+    public StreamConfigurationMapCompat getStreamConfigurationMapCompat() {
+        if (mStreamConfigurationMapCompat == null) {
+            StreamConfigurationMap map;
+            try {
+                map = get(
+                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            } catch (NullPointerException | AssertionError e) {
+                // Some devices may throw AssertionError when querying stream configuration map
+                // from CameraCharacteristics during bindToLifecycle. Catch the AssertionError and
+                // throw IllegalArgumentException so app level can decide how to handle.
+                throw new IllegalArgumentException(e.getMessage());
+            }
+            if (map == null) {
+                throw new IllegalArgumentException("StreamConfigurationMap is null!");
+            }
+            OutputSizesCorrector outputSizesCorrector = new OutputSizesCorrector(mCameraId);
+            mStreamConfigurationMapCompat =
+                    StreamConfigurationMapCompat.toStreamConfigurationMapCompat(map,
+                            outputSizesCorrector);
+        }
+
+        return mStreamConfigurationMapCompat;
+    }
+
+    /**
      * Returns the {@link CameraCharacteristics} represented by this object.
      */
     @NonNull
@@ -122,17 +174,25 @@ public class CameraCharacteristicsCompat {
     }
 
     /**
+     * Returns the camera id associated with the camera characteristics.
+     */
+    @NonNull
+    public String getCameraId() {
+        return mCameraId;
+    }
+
+    /**
      * CameraCharacteristic Implementation Interface
      */
     public interface CameraCharacteristicsCompatImpl {
         /**
-         * Gets the key/values from the CameraCharacteristics .
+         * Gets the key/values from the CameraCharacteristics.
          */
         @Nullable
         <T> T get(@NonNull CameraCharacteristics.Key<T> key);
 
         /**
-         * Get physical camera ids.
+         * Gets physical camera ids.
          */
         @NonNull
         Set<String> getPhysicalCameraIds();

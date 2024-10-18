@@ -28,6 +28,9 @@ import androidx.constraintlayout.core.widgets.HelperWidget;
  */
 public class GridReference extends HelperReference {
 
+    private static final String SPANS_RESPECT_WIDGET_ORDER_STRING = "spansrespectwidgetorder";
+    private static final String SUB_GRID_BY_COL_ROW_STRING = "subgridbycolrow";
+
     public GridReference(@NonNull State state, @NonNull State.Helper type) {
         super(state, type);
         if (type == State.Helper.ROW) {
@@ -43,14 +46,14 @@ public class GridReference extends HelperReference {
     private GridCore mGrid;
 
     /**
-     * padding left
+     * padding start
      */
-    private int mPaddingLeft = 0;
+    private int mPaddingStart = 0;
 
     /**
-     * padding right
+     * padding end
      */
-    private int mPaddingRight = 0;
+    private int mPaddingEnd = 0;
 
     /**
      * padding top
@@ -108,35 +111,40 @@ public class GridReference extends HelperReference {
     private String mSkips;
 
     /**
+     * An int value containing flag information.
+     */
+    private int mFlags;
+
+    /**
      * get padding left
      * @return padding left
      */
-    public int getPaddingLeft() {
-        return mPaddingLeft;
+    public int getPaddingStart() {
+        return mPaddingStart;
     }
 
     /**
      * set padding left
-     * @param paddingLeft padding left to be set
+     * @param paddingStart padding left to be set
      */
-    public void setPaddingLeft(int paddingLeft) {
-        mPaddingLeft = paddingLeft;
+    public void setPaddingStart(int paddingStart) {
+        mPaddingStart = paddingStart;
     }
 
     /**
      * get padding right
      * @return padding right
      */
-    public int getPaddingRight() {
-        return mPaddingRight;
+    public int getPaddingEnd() {
+        return mPaddingEnd;
     }
 
     /**
      * set padding right
-     * @param paddingRight padding right to be set
+     * @param paddingEnd padding right to be set
      */
-    public void setPaddingRight(int paddingRight) {
-        mPaddingRight = paddingRight;
+    public void setPaddingEnd(int paddingEnd) {
+        mPaddingEnd = paddingEnd;
     }
 
     /**
@@ -169,6 +177,45 @@ public class GridReference extends HelperReference {
      */
     public void setPaddingBottom(int paddingBottom) {
         mPaddingBottom = paddingBottom;
+    }
+
+    /**
+     * Get all the flags of a Grid
+     * @return an int value containing flag information
+     */
+    public int getFlags() {
+        return mFlags;
+    }
+
+    /**
+     * Set flags of a Grid
+     * @param flags an int value containing flag information
+     */
+    public void setFlags(int flags) {
+        mFlags = flags;
+    }
+
+    /**
+     * Set flags of a Grid
+     * @param flags a String containing all the flags
+     */
+    public void setFlags(@NonNull String flags) {
+        if (flags.isEmpty()) {
+            return;
+        }
+
+        String[] strArr = flags.split("\\|");
+        mFlags = 0;
+        for (String str: strArr) {
+            switch (str.toLowerCase()) {
+                case SUB_GRID_BY_COL_ROW_STRING:
+                    mFlags |= 1;
+                    break;
+                case SPANS_RESPECT_WIDGET_ORDER_STRING:
+                    mFlags |= 2;
+                    break;
+            }
+        }
     }
 
     /**
@@ -377,21 +424,28 @@ public class GridReference extends HelperReference {
             mGrid.setVerticalGaps(mVerticalGaps);
         }
 
-        if (mRowWeights != null && !mRowWeights.equals("")) {
+        if (mRowWeights != null && !mRowWeights.isEmpty()) {
             mGrid.setRowWeights(mRowWeights);
         }
 
-        if (mColumnWeights != null && !mColumnWeights.equals("")) {
+        if (mColumnWeights != null && !mColumnWeights.isEmpty()) {
             mGrid.setColumnWeights(mColumnWeights);
         }
 
-        if (mSpans != null && !mSpans.equals("")) {
+        if (mSpans != null && !mSpans.isEmpty()) {
             mGrid.setSpans(mSpans);
         }
 
-        if (mSkips != null && !mSkips.equals("")) {
+        if (mSkips != null && !mSkips.isEmpty()) {
             mGrid.setSkips(mSkips);
         }
+
+        mGrid.setFlags(mFlags);
+
+        mGrid.setPaddingStart(mPaddingStart);
+        mGrid.setPaddingEnd(mPaddingEnd);
+        mGrid.setPaddingTop(mPaddingTop);
+        mGrid.setPaddingBottom(mPaddingBottom);
 
         // General attributes of a widget
         applyBase();

@@ -20,7 +20,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Matrix;
@@ -109,8 +108,6 @@ public class ChangeTransform extends Transition {
     public ChangeTransform() {
     }
 
-    @SuppressLint("RestrictedApi") // remove once core lib would be released with the new
-    // LIBRARY_GROUP_PREFIX restriction. tracking in b/127286008
     public ChangeTransform(@NonNull Context context, @NonNull AttributeSet attrs) {
         super(context, attrs);
         TypedArray a = context.obtainStyledAttributes(attrs, Styleable.CHANGE_TRANSFORM);
@@ -326,51 +323,11 @@ public class ChangeTransform extends Transition {
         ObjectAnimator animator = ObjectAnimator.ofPropertyValuesHolder(pathAnimatorMatrix,
                 valuesProperty, translationProperty);
 
-        final Matrix finalEndMatrix = endMatrix;
-
-        AnimatorListenerAdapter listener = new AnimatorListenerAdapter() {
-            private boolean mIsCanceled;
-            private Matrix mTempMatrix = new Matrix();
-
-            @Override
-            public void onAnimationCancel(Animator animation) {
-                mIsCanceled = true;
-            }
-
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                if (!mIsCanceled) {
-                    if (handleParentChange && mUseOverlay) {
-                        setCurrentMatrix(finalEndMatrix);
-                    } else {
-                        view.setTag(R.id.transition_transform, null);
-                        view.setTag(R.id.parent_matrix, null);
-                    }
-                }
-                ViewUtils.setAnimationMatrix(view, null);
-                transforms.restore(view);
-            }
-
-            @Override
-            public void onAnimationPause(Animator animation) {
-                Matrix currentMatrix = pathAnimatorMatrix.getMatrix();
-                setCurrentMatrix(currentMatrix);
-            }
-
-            @Override
-            public void onAnimationResume(Animator animation) {
-                setIdentityTransforms(view);
-            }
-
-            private void setCurrentMatrix(Matrix currentMatrix) {
-                mTempMatrix.set(currentMatrix);
-                view.setTag(R.id.transition_transform, mTempMatrix);
-                transforms.restore(view);
-            }
-        };
+        Listener listener = new Listener(view, transforms, pathAnimatorMatrix, endMatrix,
+                handleParentChange, mUseOverlay);
 
         animator.addListener(listener);
-        AnimatorUtils.addPauseListener(animator, listener);
+        animator.addPauseListener(listener);
         return animator;
     }
 
@@ -591,4 +548,60 @@ public class ChangeTransform extends Transition {
         }
     }
 
+    private static class Listener extends AnimatorListenerAdapter {
+        private boolean mIsCanceled;
+        private final Matrix mTempMatrix = new Matrix();
+        private final boolean mHandleParentChange;
+        private final boolean mUseOverlay;
+        private final View mView;
+        private final Transforms mTransforms;
+        private final PathAnimatorMatrix mPathAnimatorMatrix;
+        private final Matrix mEndMatrix;
+
+        Listener(View view, Transforms transforms, PathAnimatorMatrix pathAnimatorMatrix,
+                Matrix endMatrix, boolean handleParentChange, boolean useOverlay) {
+            mHandleParentChange = handleParentChange;
+            mUseOverlay = useOverlay;
+            mView = view;
+            mTransforms = transforms;
+            mPathAnimatorMatrix = pathAnimatorMatrix;
+            mEndMatrix = endMatrix;
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animation) {
+            mIsCanceled = true;
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+            if (!mIsCanceled) {
+                if (mHandleParentChange && mUseOverlay) {
+                    setCurrentMatrix(mEndMatrix);
+                } else {
+                    mView.setTag(R.id.transition_transform, null);
+                    mView.setTag(R.id.parent_matrix, null);
+                }
+            }
+            ViewUtils.setAnimationMatrix(mView, null);
+            mTransforms.restore(mView);
+        }
+
+        @Override
+        public void onAnimationPause(Animator animation) {
+            Matrix currentMatrix = mPathAnimatorMatrix.getMatrix();
+            setCurrentMatrix(currentMatrix);
+        }
+
+        @Override
+        public void onAnimationResume(Animator animation) {
+            setIdentityTransforms(mView);
+        }
+
+        private void setCurrentMatrix(Matrix currentMatrix) {
+            mTempMatrix.set(currentMatrix);
+            mView.setTag(R.id.transition_transform, mTempMatrix);
+            mTransforms.restore(mView);
+        }
+    }
 }

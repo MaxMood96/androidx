@@ -16,9 +16,11 @@
 
 package androidx.compose.animation.demos.lookahead
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.animateBounds
+import androidx.compose.animation.demos.fancy.AnimatedDotsDemo
 import androidx.compose.animation.demos.statetransition.InfiniteProgress
 import androidx.compose.animation.demos.statetransition.InfinitePulsingHeart
-import androidx.compose.animation.demos.fancy.AnimatedDotsDemo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -42,28 +44,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview
 @Composable
 fun LookaheadWithMovableContentDemo() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         var isSingleColumn by remember { mutableStateOf(true) }
 
         Column(
             Modifier.padding(100.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(modifier = Modifier.clickable {
-                isSingleColumn = true
-            }, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.clickable { isSingleColumn = true },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 RadioButton(isSingleColumn, { isSingleColumn = true })
                 Text("Single Column")
             }
-            Row(modifier = Modifier.clickable {
-                isSingleColumn = false
-            }, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.clickable { isSingleColumn = false },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 RadioButton(!isSingleColumn, { isSingleColumn = false })
                 Text("Double Column")
             }
@@ -71,53 +77,65 @@ fun LookaheadWithMovableContentDemo() {
 
         val items = remember {
             colors.mapIndexed { id, color ->
-                movableContentWithReceiverOf<SceneScope, Float> { weight ->
+                movableContentWithReceiverOf<LookaheadScope, Float> { weight ->
                     Box(
-                        Modifier.padding(15.dp).height(80.dp)
+                        Modifier.padding(15.dp)
+                            .height(80.dp)
                             .fillMaxWidth(weight)
-                            .sharedElement()
+                            .animateBounds(lookaheadScope = this@movableContentWithReceiverOf)
                             .background(color, RoundedCornerShape(20)),
                         contentAlignment = Alignment.Center
                     ) {
                         when (id) {
                             0 -> CircularProgressIndicator(color = Color.White)
-                            1 -> Box(Modifier.graphicsLayer {
-                                scaleX = 0.5f
-                                scaleY = 0.5f
-                                translationX = 100f
-                            }) {
-                                AnimatedDotsDemo()
-                            }
-                            2 -> Box(Modifier.graphicsLayer {
-                                scaleX = 0.5f
-                                scaleY = 0.5f
-                            }) { InfinitePulsingHeart() }
+                            1 ->
+                                Box(
+                                    Modifier.graphicsLayer {
+                                        scaleX = 0.5f
+                                        scaleY = 0.5f
+                                        translationX = 100f
+                                    }
+                                ) {
+                                    AnimatedDotsDemo()
+                                }
+                            2 ->
+                                Box(
+                                    Modifier.graphicsLayer {
+                                        scaleX = 0.5f
+                                        scaleY = 0.5f
+                                    }
+                                ) {
+                                    InfinitePulsingHeart()
+                                }
                             else -> InfiniteProgress()
                         }
                     }
                 }
             }
         }
-        SceneHost(Modifier.fillMaxSize()) {
-            if (isSingleColumn) {
-                Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    items.forEach {
-                        it(0.8f)
+        Box(Modifier.fillMaxSize()) {
+            LookaheadScope {
+                if (isSingleColumn) {
+                    Column(
+                        Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        items.forEach { it(0.8f) }
                     }
-                }
-            } else {
-                Row {
-                    Column(Modifier.weight(1f)) {
-                        items.forEachIndexed { id, item ->
-                            if (id % 2 == 0) {
-                                item(1f)
+                } else {
+                    Row {
+                        Column(Modifier.weight(1f)) {
+                            items.forEachIndexed { id, item ->
+                                if (id % 2 == 0) {
+                                    item(1f)
+                                }
                             }
                         }
-                    }
-                    Column(Modifier.weight(1f)) {
-                        items.forEachIndexed { id, item ->
-                            if (id % 2 != 0) {
-                                item(1f)
+                        Column(Modifier.weight(1f)) {
+                            items.forEachIndexed { id, item ->
+                                if (id % 2 != 0) {
+                                    item(1f)
+                                }
                             }
                         }
                     }
@@ -127,9 +145,5 @@ fun LookaheadWithMovableContentDemo() {
     }
 }
 
-private val colors = listOf(
-    Color(0xffff6f69),
-    Color(0xffffcc5c),
-    Color(0xff264653),
-    Color(0xff2a9d84)
-)
+private val colors =
+    listOf(Color(0xffff6f69), Color(0xffffcc5c), Color(0xff264653), Color(0xff2a9d84))

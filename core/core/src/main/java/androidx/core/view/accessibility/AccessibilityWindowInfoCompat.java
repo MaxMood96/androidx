@@ -21,13 +21,16 @@ import static android.view.Display.DEFAULT_DISPLAY;
 
 import android.graphics.Rect;
 import android.graphics.Region;
+import android.os.Build;
+import android.os.LocaleList;
+import android.os.SystemClock;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.os.LocaleListCompat;
 
 /**
  * Helper for accessing {@link android.view.accessibility.AccessibilityWindowInfo}.
@@ -75,6 +78,12 @@ public class AccessibilityWindowInfoCompat {
     public static final int TYPE_SPLIT_SCREEN_DIVIDER = 5;
 
     /**
+     * Window type: A system window used to show the UI for the interaction with
+     * window-based magnification, which includes the magnified content and the option menu.
+     */
+    public static final int TYPE_MAGNIFICATION_OVERLAY = 6;
+
+    /**
      * Creates a wrapper for info implementation.
      *
      * @param object The info to wrap.
@@ -85,6 +94,25 @@ public class AccessibilityWindowInfoCompat {
             return new AccessibilityWindowInfoCompat(object);
         }
         return null;
+    }
+
+    /**
+     * Creates a new AccessibilityWindowInfoCompat.
+     * <p>
+     * Compatibility:
+     *  <ul>
+     *      <li>Api &lt; 30: Will not wrap an
+     *      {@link android.view.accessibility.AccessibilityWindowInfo} instance.</li>
+     *  </ul>
+     * </p>
+     *
+     */
+    public AccessibilityWindowInfoCompat() {
+        if (SDK_INT >= 30) {
+            mInfo = Api30Impl.instantiateAccessibilityWindowInfo();
+        } else {
+            mInfo = null;
+        }
     }
 
     private AccessibilityWindowInfoCompat(Object info) {
@@ -138,13 +166,33 @@ public class AccessibilityWindowInfoCompat {
     }
 
     /**
-     * Check if the window is in picture-in-picture mode.
+     * Gets the root node in the window's hierarchy.
      *
+     * @param prefetchingStrategy the prefetching strategy.
+     * @return The root node.
+     *
+     * @see AccessibilityNodeInfoCompat#getParent(int) for a description of prefetching.
+     */
+    @Nullable
+    public AccessibilityNodeInfoCompat getRoot(int prefetchingStrategy) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            return Api33Impl.getRoot(mInfo, prefetchingStrategy);
+        }
+        return getRoot();
+    }
+
+    /**
+     * Check if the window is in picture-in-picture mode.
+     * <p>
+     * Compatibility:
+     * <ul>
+     *     <li>API &lt; 26: Returns false.</li>
+     * </ul>
      * @return {@code true} if the window is in picture-in-picture mode, {@code false} otherwise.
      */
     public boolean isInPictureInPictureMode() {
-        if (SDK_INT >= 33) {
-            return Api33Impl.isInPictureInPictureMode((AccessibilityWindowInfo) mInfo);
+        if (SDK_INT >= 26) {
+            return Api26Impl.isInPictureInPictureMode((AccessibilityWindowInfo) mInfo);
         } else {
             return false;
         }
@@ -303,6 +351,40 @@ public class AccessibilityWindowInfoCompat {
     }
 
     /**
+     * Returns the {@link SystemClock#uptimeMillis()} at which the last transition happens.
+     * A transition happens when {@link #getBoundsInScreen(Rect)} is changed.
+     * <p>
+     * Compatibility:
+     * <ul>
+     *   <li>Api &lt; 34: Will return 0.</li>
+     * </ul>
+     * @return The transition timestamp.
+     */
+    public long getTransitionTimeMillis() {
+        if (SDK_INT >= 34) {
+            return Api34Impl.getTransitionTimeMillis((AccessibilityWindowInfo) mInfo);
+        }
+        return 0;
+    }
+
+    /**
+     * Returns the {@link android.os.LocaleList} of the window.
+     * <p>
+     * Compatibility:
+     * <ul>
+     *   <li>Api &lt; 34: Will return {@link LocaleListCompat#getEmptyLocaleList()}.</li>
+     * </ul>
+     * @return the locales of the window.
+     */
+    public @NonNull LocaleListCompat getLocales() {
+        if (SDK_INT >= 34) {
+            return LocaleListCompat.wrap(Api34Impl.getLocales((AccessibilityWindowInfo) mInfo));
+        } else {
+            return LocaleListCompat.getEmptyLocaleList();
+        }
+    }
+
+    /**
      * Gets the title of the window.
      *
      * @return The title of the window, or the application label for the window if no title was
@@ -429,6 +511,8 @@ public class AccessibilityWindowInfoCompat {
         builder.append(", active=").append(isActive());
         builder.append(", hasParent=").append(getParent() != null);
         builder.append(", hasChildren=").append(getChildCount() > 0);
+        builder.append(", transitionTime=").append(getTransitionTimeMillis());
+        builder.append(", locales=").append(getLocales());
         builder.append(']');
         return builder.toString();
     }
@@ -458,67 +542,54 @@ public class AccessibilityWindowInfoCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void getBoundsInScreen(AccessibilityWindowInfo info, Rect outBounds) {
             info.getBoundsInScreen(outBounds);
         }
 
-        @DoNotInline
         static AccessibilityWindowInfo getChild(AccessibilityWindowInfo info, int index) {
             return info.getChild(index);
         }
 
-        @DoNotInline
         static int getChildCount(AccessibilityWindowInfo info) {
             return info.getChildCount();
         }
 
-        @DoNotInline
         static int getId(AccessibilityWindowInfo info) {
             return info.getId();
         }
 
-        @DoNotInline
         static int getLayer(AccessibilityWindowInfo info) {
             return info.getLayer();
         }
 
-        @DoNotInline
         static AccessibilityWindowInfo getParent(AccessibilityWindowInfo info) {
             return info.getParent();
         }
 
-        @DoNotInline
         static AccessibilityNodeInfo getRoot(AccessibilityWindowInfo info) {
             return info.getRoot();
         }
 
-        @DoNotInline
         static int getType(AccessibilityWindowInfo info) {
             return info.getType();
         }
 
-        @DoNotInline
         static boolean isAccessibilityFocused(AccessibilityWindowInfo info) {
             return info.isAccessibilityFocused();
         }
 
-        @DoNotInline
         static boolean isActive(AccessibilityWindowInfo info) {
             return info.isActive();
         }
 
-        @DoNotInline
         static boolean isFocused(AccessibilityWindowInfo info) {
             return info.isFocused();
         }
 
-        @DoNotInline
         static AccessibilityWindowInfo obtain() {
             return AccessibilityWindowInfo.obtain();
         }
 
-        @DoNotInline
         static AccessibilityWindowInfo obtain(AccessibilityWindowInfo info) {
             return AccessibilityWindowInfo.obtain(info);
         }
@@ -530,14 +601,34 @@ public class AccessibilityWindowInfoCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static AccessibilityNodeInfo getAnchor(AccessibilityWindowInfo info) {
             return info.getAnchor();
         }
 
-        @DoNotInline
         static CharSequence getTitle(AccessibilityWindowInfo info) {
             return info.getTitle();
+        }
+    }
+
+    @RequiresApi(26)
+    private static class Api26Impl {
+        private Api26Impl() {
+            // This class is non instantiable.
+        }
+
+        static boolean isInPictureInPictureMode(AccessibilityWindowInfo info) {
+            return info.isInPictureInPictureMode();
+        }
+    }
+
+    @RequiresApi(30)
+    private static class Api30Impl {
+        private Api30Impl() {
+            // This class is non instantiable.
+        }
+
+        static AccessibilityWindowInfo instantiateAccessibilityWindowInfo() {
+            return new AccessibilityWindowInfo();
         }
     }
 
@@ -547,19 +638,32 @@ public class AccessibilityWindowInfoCompat {
             // This class is non instantiable.
         }
 
-        @DoNotInline
         static int getDisplayId(AccessibilityWindowInfo info) {
             return info.getDisplayId();
         }
 
-        @DoNotInline
         static void getRegionInScreen(AccessibilityWindowInfo info, Region outRegion) {
             info.getRegionInScreen(outRegion);
         }
 
-        @DoNotInline
-        static boolean isInPictureInPictureMode(AccessibilityWindowInfo info) {
-            return info.isInPictureInPictureMode();
+        public static AccessibilityNodeInfoCompat getRoot(Object info, int prefetchingStrategy) {
+            return AccessibilityNodeInfoCompat.wrapNonNullInstance(
+                    ((AccessibilityWindowInfo) info).getRoot(prefetchingStrategy));
+        }
+    }
+
+    @RequiresApi(34)
+    private static class Api34Impl {
+        private Api34Impl() {
+            // This class is non instantiable.
+        }
+
+        public static long getTransitionTimeMillis(AccessibilityWindowInfo info) {
+            return info.getTransitionTimeMillis();
+        }
+
+        static LocaleList getLocales(AccessibilityWindowInfo info) {
+            return info.getLocales();
         }
     }
 }

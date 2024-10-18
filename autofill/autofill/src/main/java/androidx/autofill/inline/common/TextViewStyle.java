@@ -47,7 +47,6 @@ public final class TextViewStyle extends ViewStyle {
      * a style. It does not validate the provided bundle. {@link #isValid()} or
      * {@link #assertIsValid()} can be used for validation.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public TextViewStyle(@NonNull Bundle bundle) {
@@ -57,7 +56,6 @@ public final class TextViewStyle extends ViewStyle {
     /**
      * Applies the specified style on the {@code textView}.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public void applyStyleOnTextViewIfValid(@NonNull TextView textView) {
@@ -85,7 +83,6 @@ public final class TextViewStyle extends ViewStyle {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @NonNull
@@ -97,13 +94,13 @@ public final class TextViewStyle extends ViewStyle {
     /**
      * Builder for the {@link TextViewStyle}.
      */
+    @SuppressWarnings("HiddenSuperclass")
     public static final class Builder extends BaseBuilder<TextViewStyle, Builder> {
         public Builder() {
             super(KEY_TEXT_VIEW_STYLE);
         }
 
         /**
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         @NonNull

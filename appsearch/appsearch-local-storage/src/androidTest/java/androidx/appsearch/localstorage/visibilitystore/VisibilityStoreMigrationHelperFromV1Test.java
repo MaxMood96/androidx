@@ -23,10 +23,12 @@ import static com.google.common.truth.Truth.assertThat;
 
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.InternalSetSchemaResponse;
+import androidx.appsearch.app.InternalVisibilityConfig;
 import androidx.appsearch.app.PackageIdentifier;
 import androidx.appsearch.app.SetSchemaRequest;
-import androidx.appsearch.app.VisibilityDocument;
+import androidx.appsearch.localstorage.AppSearchConfigImpl;
 import androidx.appsearch.localstorage.AppSearchImpl;
+import androidx.appsearch.localstorage.LocalStorageIcingOptionsConfig;
 import androidx.appsearch.localstorage.OptimizeStrategy;
 import androidx.appsearch.localstorage.UnlimitedLimitConfig;
 import androidx.appsearch.localstorage.util.PrefixUtil;
@@ -64,15 +66,21 @@ public class VisibilityStoreMigrationHelperFromV1Test {
         // Values for a "foo" client
         String packageNameFoo = "packageFoo";
         byte[] sha256CertFoo = new byte[32];
+        PackageIdentifier packageIdentifierFoo =
+                new PackageIdentifier(packageNameFoo, sha256CertFoo);
 
         // Values for a "bar" client
         String packageNameBar = "packageBar";
         byte[] sha256CertBar = new byte[32];
+        PackageIdentifier packageIdentifierBar =
+                new PackageIdentifier(packageNameBar, sha256CertBar);
 
         // Create AppSearchImpl with visibility document version 1;
-        AppSearchImpl appSearchImplInV1 = AppSearchImpl.create(mFile, new UnlimitedLimitConfig(),
-                /*initStatsBuilder=*/ null, ALWAYS_OPTIMIZE,
-                /*visibilityChecker=*/null);
+        AppSearchImpl appSearchImplInV1 = AppSearchImpl.create(mFile,
+                new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()), /*initStatsBuilder=*/ null,
+                /*visibilityChecker=*/ null,
+                ALWAYS_OPTIMIZE);
         InternalSetSchemaResponse internalSetSchemaResponse = appSearchImplInV1.setSchema(
                 VisibilityStore.VISIBILITY_PACKAGE_NAME,
                 VisibilityStore.VISIBILITY_DATABASE_NAME,
@@ -118,27 +126,30 @@ public class VisibilityStoreMigrationHelperFromV1Test {
 
         // Persist to disk and re-open the AppSearchImpl
         appSearchImplInV1.close();
-        AppSearchImpl appSearchImpl = AppSearchImpl.create(mFile, new UnlimitedLimitConfig(),
-                /*initStatsBuilder=*/ null, ALWAYS_OPTIMIZE,
-                /*visibilityChecker=*/null);
+        AppSearchImpl appSearchImpl = AppSearchImpl.create(mFile,
+                new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()), /*initStatsBuilder=*/ null,
+                /*visibilityChecker=*/ null,
+                ALWAYS_OPTIMIZE);
 
-        VisibilityDocument actualDocument = new VisibilityDocument(
-                appSearchImpl.getDocument(
-                        VisibilityStore.VISIBILITY_PACKAGE_NAME,
-                        VisibilityStore.VISIBILITY_DATABASE_NAME,
-                        VisibilityDocument.NAMESPACE,
-                        /*id=*/ prefix + "Schema",
-                        /*typePropertyPaths=*/ Collections.emptyMap()));
+        InternalVisibilityConfig actualConfig =
+                VisibilityToDocumentConverter.createInternalVisibilityConfig(
+                        appSearchImpl.getDocument(
+                                VisibilityStore.VISIBILITY_PACKAGE_NAME,
+                                VisibilityStore.VISIBILITY_DATABASE_NAME,
+                                VisibilityToDocumentConverter.VISIBILITY_DOCUMENT_NAMESPACE,
+                                /*id=*/ prefix + "Schema",
+                                /*typePropertyPaths=*/ Collections.emptyMap()),
+                /*androidVOverlayDocument=*/null);
 
-        assertThat(actualDocument.isNotDisplayedBySystem()).isTrue();
-        assertThat(actualDocument.getPackageNames()).asList().containsExactly(packageNameFoo,
-                packageNameBar);
-        assertThat(actualDocument.getSha256Certs()).isEqualTo(
-                new byte[][] {sha256CertFoo, sha256CertBar});
-        assertThat(actualDocument.getVisibleToPermissions()).containsExactlyElementsIn(
-                ImmutableSet.of(
+        assertThat(actualConfig.isNotDisplayedBySystem()).isTrue();
+        assertThat(actualConfig.getVisibilityConfig().getAllowedPackages())
+                .containsExactly(packageIdentifierFoo, packageIdentifierBar);
+        assertThat(actualConfig.getVisibilityConfig().getRequiredPermissions())
+                .containsExactlyElementsIn(ImmutableSet.of(
                         ImmutableSet.of(SetSchemaRequest.READ_SMS, SetSchemaRequest.READ_CALENDAR),
                         ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA),
                         ImmutableSet.of(SetSchemaRequest.READ_ASSISTANT_APP_SEARCH_DATA)));
+        appSearchImpl.close();
     }
 }

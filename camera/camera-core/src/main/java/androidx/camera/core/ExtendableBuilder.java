@@ -17,7 +17,6 @@
 package androidx.camera.core;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.MutableConfig;
 
@@ -27,14 +26,12 @@ import androidx.camera.core.impl.MutableConfig;
  *
  * @param <T> the type being built by this builder.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface ExtendableBuilder<T> {
 
     /**
      * Returns the underlying {@link MutableConfig} being modified by this builder.
      *
      * @return The underlying {@link MutableConfig}.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull

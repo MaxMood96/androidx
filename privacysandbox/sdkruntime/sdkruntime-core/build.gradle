@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
@@ -24,15 +31,39 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
+    api("androidx.annotation:annotation:1.8.1")
+
+    implementation("androidx.core:core:1.12.0")
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.activity:activity:1.8.0")
+
+    // TODO(b/249982004): cleanup dependencies
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.testRules)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.junit)
+
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockitoInline)
 }
 
 android {
+    lintOptions {
+        // All components could be loaded from another app via client library
+        disable("BanKeepAnnotation")
+    }
+
     namespace "androidx.privacysandbox.sdkruntime.core"
+    compileSdk = 34
+    compileSdkExtension = 10
 }
 
 androidx {
-    name = "androidx.privacysandbox.sdkruntime:sdkruntime-core"
+    name = "SdkRuntime Core"
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
-    description = "Provides components for SdkRuntime aware SDKs"
+    description = "Provides shared components for SdkRuntime libraries"
+    legacyDisableKotlinStrictApiMode = true
 }

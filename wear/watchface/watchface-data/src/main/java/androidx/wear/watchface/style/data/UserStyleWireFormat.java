@@ -30,14 +30,13 @@ import androidx.versionedparcelable.VersionedParcelize;
 import java.util.HashMap;
 import java.util.Map;
 
-/** @hide */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @VersionedParcelize(allowSerialization = true)
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public class UserStyleWireFormat implements VersionedParcelable, Parcelable {
+    /** Map from user style setting id to user style option id. */
     @ParcelField(1)
     @NonNull
-    /** Map from user style setting id to user style option id. */
     public Map<String, byte[]> mUserStyle = new HashMap<>();
 
     UserStyleWireFormat() {}

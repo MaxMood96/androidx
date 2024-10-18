@@ -16,17 +16,17 @@
 
 package androidx.wear.protolayout.expression.pipeline;
 
-import static androidx.wear.protolayout.expression.pipeline.AnimationsHelper.applyAnimationSpecToAnimator;
-
-import android.animation.ValueAnimator;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat;
 import androidx.wear.protolayout.expression.proto.AnimationParameterProto.AnimationSpec;
+import androidx.wear.protolayout.expression.proto.DynamicProto;
 import androidx.wear.protolayout.expression.proto.DynamicProto.AnimatableFixedFloat;
 import androidx.wear.protolayout.expression.proto.DynamicProto.ArithmeticFloatOp;
+import androidx.wear.protolayout.expression.proto.DynamicProto.StateFloatSource;
 import androidx.wear.protolayout.expression.proto.FixedProto.FixedFloat;
 
 /** Dynamic data nodes which yield floats. */
@@ -36,11 +36,12 @@ class FloatNodes {
 
     /** Dynamic float node that has a fixed value. */
     static class FixedFloatNode implements DynamicDataSourceNode<Float> {
-        private final float mValue;
-        private final DynamicTypeValueReceiver<Float> mDownstream;
+        @Nullable private final Float mValue;
+        private final DynamicTypeValueReceiverWithPreUpdate<Float> mDownstream;
 
-        FixedFloatNode(FixedFloat protoNode, DynamicTypeValueReceiver<Float> downstream) {
-            this.mValue = protoNode.getValue();
+        FixedFloatNode(
+                FixedFloat protoNode, DynamicTypeValueReceiverWithPreUpdate<Float> downstream) {
+            this.mValue = getValidValueOrNull(protoNode.getValue());
             this.mDownstream = downstream;
         }
 
@@ -53,21 +54,35 @@ class FloatNodes {
         @Override
         @UiThread
         public void init() {
-            mDownstream.onData(mValue);
+            if (mValue == null) {
+                mDownstream.onInvalidated();
+            } else {
+                mDownstream.onData(mValue);
+            }
         }
 
         @Override
         @UiThread
         public void destroy() {}
+
+        @Override
+        public int getCost() {
+            return FIXED_NODE_COST;
+        }
     }
 
     /** Dynamic float node that gets value from the state. */
-    static class StateFloatNode extends StateSourceNode<Float> {
-        StateFloatNode(
-                ObservableStateStore observableStateStore,
-                String bindKey,
-                DynamicTypeValueReceiver<Float> downstream) {
-            super(observableStateStore, bindKey, se -> se.getFloatVal().getValue(), downstream);
+    static class StateFloatSourceNode extends StateSourceNode<Float> {
+        StateFloatSourceNode(
+                DataStore dataStore,
+                StateFloatSource protoNode,
+                DynamicTypeValueReceiverWithPreUpdate<Float> downstream) {
+            super(
+                    dataStore,
+                    StateSourceNode.<DynamicFloat>createKey(
+                            protoNode.getSourceNamespace(), protoNode.getSourceKey()),
+                    se -> getValidValueOrNull(se.getFloatVal().getValue()),
+                    downstream);
         }
     }
 
@@ -76,42 +91,46 @@ class FloatNodes {
         private static final String TAG = "ArithmeticFloatNode";
 
         ArithmeticFloatNode(
-                ArithmeticFloatOp protoNode, DynamicTypeValueReceiver<Float> downstream) {
+                ArithmeticFloatOp protoNode,
+                DynamicTypeValueReceiverWithPreUpdate<Float> downstream) {
             super(
                     downstream,
-                    (lhs, rhs) -> {
-                        try {
-                            switch (protoNode.getOperationType()) {
-                                case ARITHMETIC_OP_TYPE_UNDEFINED:
-                                case UNRECOGNIZED:
-                                    Log.e(TAG, "Unknown operation type in ArithmeticFloatNode");
-                                    return Float.NaN;
-                                case ARITHMETIC_OP_TYPE_ADD:
-                                    return lhs + rhs;
-                                case ARITHMETIC_OP_TYPE_SUBTRACT:
-                                    return lhs - rhs;
-                                case ARITHMETIC_OP_TYPE_MULTIPLY:
-                                    return lhs * rhs;
-                                case ARITHMETIC_OP_TYPE_DIVIDE:
-                                    return lhs / rhs;
-                                case ARITHMETIC_OP_TYPE_MODULO:
-                                    return lhs % rhs;
-                            }
-                        } catch (ArithmeticException ex) {
-                            Log.e(TAG, "ArithmeticException in ArithmeticFloatNode", ex);
-                            return Float.NaN;
-                        }
+                    (lhs, rhs) ->
+                            getValidValueOrNull(
+                                    computeResult(protoNode.getOperationType(), lhs, rhs)));
+        }
 
-                        Log.e(TAG, "Unknown operation type in ArithmeticFloatNode");
-                        return Float.NaN;
-                    });
+        private static float computeResult(
+                DynamicProto.ArithmeticOpType opType, float lhs, float rhs) {
+            try {
+                switch (opType) {
+                    case ARITHMETIC_OP_TYPE_ADD:
+                        return lhs + rhs;
+                    case ARITHMETIC_OP_TYPE_SUBTRACT:
+                        return lhs - rhs;
+                    case ARITHMETIC_OP_TYPE_MULTIPLY:
+                        return lhs * rhs;
+                    case ARITHMETIC_OP_TYPE_DIVIDE:
+                        return lhs / rhs;
+                    case ARITHMETIC_OP_TYPE_MODULO:
+                        return lhs % rhs;
+                    case ARITHMETIC_OP_TYPE_UNDEFINED:
+                    case UNRECOGNIZED:
+                        break;
+                }
+            } catch (ArithmeticException ex) {
+                Log.e(TAG, "ArithmeticException in ArithmeticFloatNode", ex);
+                return Float.NaN;
+            }
+            throw new IllegalArgumentException(
+                    "Unknown operation type in ArithmeticFloatNode: " + opType);
         }
     }
 
     /** Dynamic float node that gets value from INTEGER. */
     static class Int32ToFloatNode extends DynamicDataTransformNode<Integer, Float> {
 
-        Int32ToFloatNode(DynamicTypeValueReceiver<Float> downstream) {
+        Int32ToFloatNode(DynamicTypeValueReceiverWithPreUpdate<Float> downstream) {
             super(downstream, i -> (float) i);
         }
     }
@@ -121,15 +140,26 @@ class FloatNodes {
             implements DynamicDataSourceNode<Float> {
 
         private final AnimatableFixedFloat mProtoNode;
-        private final DynamicTypeValueReceiver<Float> mDownstream;
+        private final DynamicTypeValueReceiverWithPreUpdate<Float> mDownstream;
+        private boolean mFirstUpdateFromAnimatorDone = false;
 
         AnimatableFixedFloatNode(
                 AnimatableFixedFloat protoNode,
-                DynamicTypeValueReceiver<Float> downstream,
+                DynamicTypeValueReceiverWithPreUpdate<Float> downstream,
                 QuotaManager quotaManager) {
-            super(quotaManager);
+
+            super(quotaManager, protoNode.getAnimationSpec(), AnimatableNode.FLOAT_EVALUATOR);
             this.mProtoNode = protoNode;
             this.mDownstream = downstream;
+            mQuotaAwareAnimator.addUpdateCallback(
+                    animatedValue -> {
+                        // The onPreUpdate has already been called once before the first update.
+                        if (mFirstUpdateFromAnimatorDone) {
+                            mDownstream.onPreUpdate();
+                        }
+                        mDownstream.onData((Float) animatedValue);
+                        mFirstUpdateFromAnimatorDone = true;
+                    });
         }
 
         @Override
@@ -141,14 +171,16 @@ class FloatNodes {
         @Override
         @UiThread
         public void init() {
-            ValueAnimator animator =
-                    ValueAnimator.ofFloat(mProtoNode.getFromValue(), mProtoNode.getToValue());
-            animator.addUpdateListener(a -> mDownstream.onData((float) a.getAnimatedValue()));
-
-            applyAnimationSpecToAnimator(animator, mProtoNode.getAnimationSpec());
-
-            mQuotaAwareAnimator.updateAnimator(animator);
-            startOrSkipAnimator();
+            if (isValid(mProtoNode.getFromValue()) && isValid(mProtoNode.getToValue())) {
+                mQuotaAwareAnimator.setFloatValues(
+                        mProtoNode.getFromValue(), mProtoNode.getToValue());
+                // For the first update from the animator with the above from & to values, the
+                // onPreUpdate has already been called.
+                mFirstUpdateFromAnimatorDone = false;
+                startOrSkipAnimator();
+            } else {
+                mDownstream.onInvalidated();
+            }
         }
 
         @Override
@@ -156,36 +188,53 @@ class FloatNodes {
         public void destroy() {
             mQuotaAwareAnimator.stopAnimator();
         }
+
+        @Override
+        public int getCost() {
+            return DEFAULT_NODE_COST;
+        }
     }
 
     /** Dynamic float node that gets animatable value from dynamic source. */
     static class DynamicAnimatedFloatNode extends AnimatableNode implements DynamicDataNode<Float> {
 
-        final DynamicTypeValueReceiver<Float> mDownstream;
-        private final DynamicTypeValueReceiver<Float> mInputCallback;
+        final DynamicTypeValueReceiverWithPreUpdate<Float> mDownstream;
+        private final DynamicTypeValueReceiverWithPreUpdate<Float> mInputCallback;
 
         @Nullable Float mCurrentValue = null;
         int mPendingCalls = 0;
+        private boolean mFirstUpdateFromAnimatorDone = false;
 
         // Static analysis complains about calling methods of parent class AnimatableNode under
         // initialization but mInputCallback is only used after the constructor is finished.
         @SuppressWarnings("method.invocation.invalid")
         DynamicAnimatedFloatNode(
-                DynamicTypeValueReceiver<Float> downstream,
+                DynamicTypeValueReceiverWithPreUpdate<Float> downstream,
                 @NonNull AnimationSpec spec,
                 QuotaManager quotaManager) {
-            super(quotaManager);
+
+            super(quotaManager, spec, AnimatableNode.FLOAT_EVALUATOR);
             this.mDownstream = downstream;
+            mQuotaAwareAnimator.addUpdateCallback(
+                    animatedValue -> {
+                        if (mPendingCalls == 0) {
+                            // The onPreUpdate has already been called once before the first update.
+                            if (mFirstUpdateFromAnimatorDone) {
+                                mDownstream.onPreUpdate();
+                            }
+                            mCurrentValue = (Float) animatedValue;
+                            mDownstream.onData(mCurrentValue);
+                            mFirstUpdateFromAnimatorDone = true;
+                        }
+                    });
             this.mInputCallback =
-                    new DynamicTypeValueReceiver<Float>() {
+                    new DynamicTypeValueReceiverWithPreUpdate<Float>() {
                         @Override
                         public void onPreUpdate() {
                             mPendingCalls++;
 
                             if (mPendingCalls == 1) {
                                 mDownstream.onPreUpdate();
-
-                                mQuotaAwareAnimator.resetAnimator();
                             }
                         }
 
@@ -200,20 +249,10 @@ class FloatNodes {
                                     mCurrentValue = newData;
                                     mDownstream.onData(mCurrentValue);
                                 } else {
-                                    ValueAnimator animator =
-                                            ValueAnimator.ofFloat(mCurrentValue, newData);
-
-                                    applyAnimationSpecToAnimator(animator, spec);
-
-                                    animator.addUpdateListener(
-                                            a -> {
-                                                if (mPendingCalls == 0) {
-                                                    mCurrentValue = (float) a.getAnimatedValue();
-                                                    mDownstream.onData(mCurrentValue);
-                                                }
-                                            });
-
-                                    mQuotaAwareAnimator.updateAnimator(animator);
+                                    mQuotaAwareAnimator.setFloatValues(mCurrentValue, newData);
+                                    // For the first update from the animator with the above from &
+                                    // to values, the onPreUpdate has already been called.
+                                    mFirstUpdateFromAnimatorDone = false;
                                     startOrSkipAnimator();
                                 }
                             }
@@ -233,8 +272,22 @@ class FloatNodes {
                     };
         }
 
-        public DynamicTypeValueReceiver<Float> getInputCallback() {
+        public DynamicTypeValueReceiverWithPreUpdate<Float> getInputCallback() {
             return mInputCallback;
         }
+
+        @Override
+        public int getCost() {
+            return DEFAULT_NODE_COST;
+        }
+    }
+
+    private static boolean isValid(Float value) {
+        return value != null && Float.isFinite(value);
+    }
+
+    @Nullable
+    private static Float getValidValueOrNull(Float value) {
+        return isValid(value) ? value : null;
     }
 }

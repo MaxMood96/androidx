@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.Publish
 
 plugins {
@@ -26,19 +33,21 @@ dependencies {
     api(project(":navigation:navigation-runtime"))
     api(libs.truth)
     api(libs.kotlinStdlib)
+
+    implementation(project(":navigation:navigation-common"))
+
     androidTestImplementation(project(":internal-testutils-truth"))
     androidTestImplementation(project(":internal-testutils-navigation"), {
         exclude group: "androidx.navigation", module: "navigation-common"
     })
-    androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.junit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
 }
 
 androidx {
-    name = "Android Navigation Runtime Truth"
+    name = "Navigation Runtime Truth"
     publish = Publish.NONE
     inceptionYear = "2019"
     description = "Android Navigation-Runtime-Truth"

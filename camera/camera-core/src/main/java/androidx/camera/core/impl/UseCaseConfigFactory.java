@@ -20,14 +20,12 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageCapture.CaptureMode;
 import androidx.camera.core.InitializationException;
 
 /**
  * A Repository for generating use case configurations.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface UseCaseConfigFactory {
 
     enum CaptureType {
@@ -50,7 +48,16 @@ public interface UseCaseConfigFactory {
         /**
          * Capture type for video capture. A use case of this type is consuming a stream of frames.
          */
-        VIDEO_CAPTURE
+        VIDEO_CAPTURE,
+        /**
+         * Capture type for stream sharing. A use case of this type is consuming a stream of frames.
+         */
+        STREAM_SHARING,
+        /**
+         * Capture type for metering repeating. A use case of this type is consuming a stream of
+         * frames.
+         */
+        METERING_REPEATING
     }
 
     /**

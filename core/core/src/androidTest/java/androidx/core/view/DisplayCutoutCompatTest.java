@@ -23,11 +23,13 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 
+import android.graphics.Path;
 import android.graphics.Rect;
+import android.os.Build;
 
 import androidx.core.graphics.Insets;
-import androidx.core.os.BuildCompat;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
@@ -90,10 +92,30 @@ public class DisplayCutoutCompatTest {
 
     @Test
     public void testWaterfallInsets() {
-        if (BuildCompat.isAtLeastR()) {
+        if (Build.VERSION.SDK_INT >= 30) {
             assertEquals(Insets.of(0, 20, 0, 20), mCutoutWaterfall.getWaterfallInsets());
         } else {
             assertEquals(Insets.NONE, mCutoutWaterfall.getWaterfallInsets());
+        }
+    }
+
+    @Test
+    public void testCutoutPath() {
+        Path cutoutPath = new Path();
+        cutoutPath.addCircle(55, 10, 5, Path.Direction.CW);
+
+        DisplayCutoutCompat cutoutWithPath =
+                new DisplayCutoutCompat(Insets.of(0, 20, 0, 20),
+                        ZERO_RECT, new Rect(50, 0, 60, 20),
+                        ZERO_RECT, ZERO_RECT,
+                        Insets.of(0, 20, 0, 20),
+                        cutoutPath);
+
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            assertEquals(cutoutPath, cutoutWithPath.getCutoutPath());
+        } else {
+            assertNull(cutoutWithPath.getCutoutPath());
         }
     }
 

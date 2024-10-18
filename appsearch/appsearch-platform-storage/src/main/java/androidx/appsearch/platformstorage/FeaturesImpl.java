@@ -15,20 +15,34 @@
  */
 package androidx.appsearch.platformstorage;
 
+import android.content.Context;
+import android.os.Build;
+import android.os.ext.SdkExtensions;
+
 import androidx.annotation.NonNull;
 import androidx.appsearch.app.Features;
-import androidx.core.os.BuildCompat;
+import androidx.appsearch.platformstorage.util.AppSearchVersionUtil;
+import androidx.core.util.Preconditions;
 
 /**
  * An implementation of {@link Features}. Feature availability is dependent on Android API
  * level.
  */
 final class FeaturesImpl implements Features {
+    // Context is used to check mainline module version, as support varies by module version.
+    private final Context mContext;
+
+    FeaturesImpl(@NonNull Context context) {
+        mContext = Preconditions.checkNotNull(context);
+    }
 
     @Override
-    // TODO(b/201316758): Remove once BuildCompat.isAtLeastT is removed
-    @BuildCompat.PrereleaseSdkCheck
     public boolean isFeatureSupported(@NonNull String feature) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            // AppSearch platform-storage is not available below Android S.
+            return false;
+        }
+        int tSdkExtensionVersion = SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU);
         switch (feature) {
             // Android T Features
             case Features.ADD_PERMISSIONS_AND_GET_VISIBILITY:
@@ -40,40 +54,94 @@ final class FeaturesImpl implements Features {
             case Features.GLOBAL_SEARCH_SESSION_REGISTER_OBSERVER_CALLBACK:
                 // fall through
             case Features.SEARCH_RESULT_MATCH_INFO_SUBMATCH:
-                // fall through
-                return BuildCompat.isAtLeastT();
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
 
             // Android U Features
-            case Features.SEARCH_SPEC_PROPERTY_WEIGHTS:
-                // TODO(b/203700301) : Update to reflect support in Android U+ once this feature is
-                // synced over into service-appsearch.
-                // fall through
-            case Features.TOKENIZER_TYPE_RFC822:
-                // TODO(b/259294369) : Update to reflect support in Android U+ once this feature is
-                // synced over into service-appsearch.
-                // fall through
-            case Features.NUMERIC_SEARCH:
-                // TODO(b/259744228) : Update to reflect support in Android U+ once this feature is
-                // synced over into service-appsearch.
-                // fall through
-            case SEARCH_SPEC_ADVANCED_RANKING_EXPRESSION:
-                // TODO(b/261474063) : Update to reflect support in Android U+ once advanced
-                //  ranking becomes available.
-                // fall through
             case Features.JOIN_SPEC_AND_QUALIFIED_ID:
-                // TODO(b/256022027) : Update to reflect support in Android U+ once this feature is
-                // synced over into service-appsearch.
-                // fall through
-            case Features.VERBATIM_SEARCH:
-                // TODO(b/204333391) : Update to reflect support in Android U+ once this feature is
-                // synced over into service-appsearch.
                 // fall through
             case Features.LIST_FILTER_QUERY_LANGUAGE:
-                // TODO(b/208654892) : Update to reflect support in Android U+ once this feature is
-                // synced over into service-appsearch.
-                return false;
+                // fall through
+            case Features.NUMERIC_SEARCH:
+                // fall through
+            case Features.SEARCH_SPEC_ADVANCED_RANKING_EXPRESSION:
+                // fall through
+            case Features.SEARCH_SPEC_PROPERTY_WEIGHTS:
+                // fall through
+            case Features.SEARCH_SUGGESTION:
+                // fall through
+            case Features.TOKENIZER_TYPE_RFC822:
+                // fall through
+            case Features.VERBATIM_SEARCH:
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                        || tSdkExtensionVersion >= AppSearchVersionUtil.TExtensionVersions.U_BASE;
+
+            case Features.SET_SCHEMA_CIRCULAR_REFERENCES:
+                // This feature is restricted to Android U+ devices only due to rollback
+                // compatibility issues. It is not allowed in Android T devices.
+                // TODO(b/369703879) Remove this special handling once circular references is
+                // backported to Android T devices.
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
+
+            // Features that first landed in T Extensions 10 (Mainline Release M-2023-11) and later
+            // in Android V.
+            case Features.SCHEMA_ADD_INDEXABLE_NESTED_PROPERTIES:
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+                        || tSdkExtensionVersion >= AppSearchVersionUtil.TExtensionVersions.M2023_11;
+            case Features.SCHEMA_ADD_PARENT_TYPE:
+                // Add Parent Type has special handling. Polymorphism was restricted to U+ devices
+                // due to rollback compatibility concerns.
+                // TODO(b/369703879) Remove this special handling once polymorphism is backported to
+                // Android T devices.
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+                        || (Build.VERSION.SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                                && tSdkExtensionVersion
+                                        >= AppSearchVersionUtil.TExtensionVersions.M2023_11);
+
+            // Android V Features
+            case Features.ENTERPRISE_GLOBAL_SEARCH_SESSION:
+                // fall through
+            case Features.LIST_FILTER_HAS_PROPERTY_FUNCTION:
+                // fall through
+            case Features.SEARCH_SPEC_ADD_FILTER_PROPERTIES:
+                // fall through
+            case Features.SEARCH_SPEC_GROUPING_TYPE_PER_SCHEMA:
+                // fall through
+            case Features.SEARCH_SPEC_SET_SEARCH_SOURCE_LOG_TAG:
+                // fall through
+            case Features.SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG:
+                // fall through
+            case Features.SET_SCHEMA_REQUEST_SET_PUBLICLY_VISIBLE:
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+                        || tSdkExtensionVersion >= AppSearchVersionUtil.TExtensionVersions.V_BASE;
+
+            // Beyond Android V Features
+            case Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG:
+                // TODO(b/326656531) : Update when feature is ready in service-appsearch.
+                // fall through
+            case Features.SCHEMA_SET_DESCRIPTION:
+                // TODO(b/326987971) : Update when feature is ready in service-appsearch.
+                // fall through
+            case Features.SEARCH_SPEC_SEARCH_STRING_PARAMETERS:
+                // TODO(b/332620561) : Update when feature is ready in service-appsearch.
+                // fall through
+            case Features.SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS:
+                // TODO(b/332642571) : Update when feature is ready in service-appsearch.
+                // fall through
             default:
                 return false;
+        }
+    }
+
+    @Override
+    public int getMaxIndexedProperties() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return 64;
+        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU) {
+            // Sixty-four properties were enabled in mainline module of the U base version
+            return AppSearchVersionUtil.getAppSearchVersionCode(mContext)
+                    >= AppSearchVersionUtil.MainlineVersions.U_BASE ? 64 : 16;
+        } else {
+            return 16;
         }
     }
 }

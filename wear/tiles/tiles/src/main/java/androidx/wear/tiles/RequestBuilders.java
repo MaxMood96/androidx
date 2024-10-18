@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
-import androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters;
-import androidx.wear.tiles.StateBuilders.State;
+import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters;
+import androidx.wear.protolayout.StateBuilders.State;
+import androidx.wear.protolayout.expression.RequiresSchemaVersion;
+import androidx.wear.protolayout.proto.DeviceParametersProto;
+import androidx.wear.protolayout.proto.StateProto;
 import androidx.wear.tiles.proto.RequestProto;
 
 import java.util.List;
@@ -31,48 +34,114 @@ public final class RequestBuilders {
     private RequestBuilders() {}
 
     /**
-     * Parameters passed to a {@link androidx.wear.tiles.TileBuilders.Tile} service when the
+     * Parameters passed to a {@link androidx.wear.tiles.TileBuilders.Tile} Service when the
      * renderer is requesting a new version of the tile.
      */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class TileRequest {
         private final RequestProto.TileRequest mImpl;
 
-        private TileRequest(RequestProto.TileRequest impl) {
+        TileRequest(RequestProto.TileRequest impl) {
             this.mImpl = impl;
         }
 
-        /** Gets parameters describing the device requesting the tile update. */
+        /**
+         * Gets the {@link androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters}
+         * object describing the device requesting the tile update. If not set, a default empty
+         * instance is used.
+         */
+        @NonNull
+        public DeviceParameters getDeviceConfiguration() {
+            if (mImpl.hasDeviceConfiguration()) {
+                return DeviceParameters.fromProto(mImpl.getDeviceConfiguration());
+            } else {
+                return DeviceParameters.fromProto(
+                        DeviceParametersProto.DeviceParameters.getDefaultInstance());
+            }
+        }
+
+        /**
+         * Gets the {@link androidx.wear.protolayout.StateBuilders.State} that should be used when
+         * building the tile.
+         */
+        @NonNull
+        public State getCurrentState() {
+            if (mImpl.hasCurrentState()) {
+                return State.fromProto(mImpl.getCurrentState());
+            } else {
+                return State.fromProto(StateProto.State.getDefaultInstance());
+            }
+        }
+
+        /**
+         * Gets the instance ID of the tile being requested, allocated when the tile instance is
+         * added to the carousel. This ID will remain the same for this tile instance as long it is
+         * not removed from the carousel.
+         */
+        public int getTileId() {
+            return mImpl.getTileId();
+        }
+
+        /**
+         * Gets the {@link androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters} object
+         * describing the device requesting the tile update.
+         *
+         * @deprecated Use {@link #getDeviceConfiguration()} instead.
+         */
+        @Deprecated
         @Nullable
-        public DeviceParameters getDeviceParameters() {
-            if (mImpl.hasDeviceParameters()) {
-                return DeviceParameters.fromProto(mImpl.getDeviceParameters());
+        @SuppressWarnings("deprecation") // for backward compatibility
+        public androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters getDeviceParameters() {
+            if (mImpl.hasDeviceConfiguration()) {
+                return androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters.fromProto(
+                        mImpl.getDeviceConfiguration());
             } else {
                 return null;
             }
         }
 
-        /** Gets the state that should be used when building the tile. */
+        /**
+         * Gets the {@link androidx.wear.tiles.StateBuilders.State} that should be used when
+         * building the tile.
+         *
+         * @deprecated Use {@link #getCurrentState()} instead.
+         */
+        @Deprecated
         @Nullable
-        public State getState() {
-            if (mImpl.hasState()) {
-                return State.fromProto(mImpl.getState());
+        @SuppressWarnings("deprecation") // for backward compatibility
+        public androidx.wear.tiles.StateBuilders.State getState() {
+            if (mImpl.hasCurrentState()) {
+                return androidx.wear.tiles.StateBuilders.State.fromProto(mImpl.getCurrentState());
             } else {
                 return null;
             }
         }
 
-        /** @hide */
+        /** Creates a new wrapper instance from the proto. */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static TileRequest fromProto(@NonNull RequestProto.TileRequest proto) {
             return new TileRequest(proto);
         }
 
-        /** @hide */
+        /** Returns the internal proto instance. */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public RequestProto.TileRequest toProto() {
             return mImpl;
+        }
+
+        @Override
+        @NonNull
+        public String toString() {
+            return "TileRequest{"
+                    + "deviceConfiguration="
+                    + getDeviceConfiguration()
+                    + ", currentState="
+                    + getCurrentState()
+                    + ", tileId="
+                    + getTileId()
+                    + "}";
         }
 
         /** Builder for {@link TileRequest} */
@@ -80,19 +149,67 @@ public final class RequestBuilders {
             private final RequestProto.TileRequest.Builder mImpl =
                     RequestProto.TileRequest.newBuilder();
 
+            /** Creates an instance of {@link Builder}. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             public Builder() {}
 
-            /** Sets parameters describing the device requesting the tile update. */
+            /**
+             * Sets the {@link androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters}
+             * object describing the device requesting the tile update. If not set, a default empty
+             * instance is used.
+             */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
-            public Builder setDeviceParameters(@NonNull DeviceParameters deviceParameters) {
-                mImpl.setDeviceParameters(deviceParameters.toProto());
+            public Builder setDeviceConfiguration(@NonNull DeviceParameters deviceConfiguration) {
+                mImpl.setDeviceConfiguration(deviceConfiguration.toProto());
                 return this;
             }
 
-            /** Sets the state that should be used when building the tile. */
+            /**
+             * Sets the {@link androidx.wear.protolayout.StateBuilders.State} that should be used
+             * when building the tile.
+             */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
-            public Builder setState(@NonNull State state) {
-                mImpl.setState(state.toProto());
+            public Builder setCurrentState(@NonNull State currentState) {
+                mImpl.setCurrentState(currentState.toProto());
+                return this;
+            }
+
+            /** Sets the ID of the tile being requested. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
+            @NonNull
+            public Builder setTileId(int tileId) {
+                mImpl.setTileId(tileId);
+                return this;
+            }
+
+            /**
+             * Sets the {@link androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters}
+             * describing the device requesting the tile update.
+             *
+             * @deprecated Use {@link setDeviceConfiguration(DeviceParameters)} instead.
+             */
+            @Deprecated
+            @NonNull
+            public Builder setDeviceParameters(
+                    @NonNull
+                            androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters
+                                    deviceParameters) {
+                mImpl.setDeviceConfiguration(deviceParameters.toProto());
+                return this;
+            }
+
+            /**
+             * Sets the {@link androidx.wear.tiles.StateBuilders.State} that should be used when
+             * building the tile.
+             *
+             * @deprecated Use {@link setCurrentState(State)} instead.
+             */
+            @Deprecated
+            @NonNull
+            public Builder setState(@NonNull androidx.wear.tiles.StateBuilders.State state) {
+                mImpl.setCurrentState(state.toProto());
                 return this;
             }
 
@@ -105,13 +222,14 @@ public final class RequestBuilders {
     }
 
     /**
-     * Parameters passed to a {@link androidx.wear.tiles.TileBuilders.Tile} service when the
+     * Parameters passed to a {@link androidx.wear.tiles.TileBuilders.Tile} Service when the
      * renderer is requesting a specific resource version.
      */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class ResourcesRequest {
         private final RequestProto.ResourcesRequest mImpl;
 
-        private ResourcesRequest(RequestProto.ResourcesRequest impl) {
+        ResourcesRequest(RequestProto.ResourcesRequest impl) {
             this.mImpl = impl;
         }
 
@@ -126,11 +244,11 @@ public final class RequestBuilders {
 
         /**
          * Gets requested resource IDs. This specifies which tile resources should be returned in
-         * the {@link androidx.wear.tiles.ResourceBuilders.Resources} response. If not specified,
-         * all resources for the given version must be provided in the response.
+         * the {@link androidx.wear.protolayout.ResourceBuilders.Resources} response. If not
+         * specified, all resources for the given version must be provided in the response.
          *
          * <p>Note that resource IDs here correspond to tile resources (i.e. keys that would be used
-         * in {@link androidx.wear.tiles.ResourceBuilders.Resources}.idToImage), not Android
+         * in {@link androidx.wear.protolayout.ResourceBuilders.Resources}.idToImage), not Android
          * resource names or similar.
          */
         @NonNull
@@ -139,30 +257,73 @@ public final class RequestBuilders {
         }
 
         /**
-         * Gets parameters describing the device requesting the resources. Intended for testing
-         * purposes only.
+         * Gets the {@link androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters}
+         * object describing the device requesting the resources.
          */
+        @NonNull
+        public DeviceParameters getDeviceConfiguration() {
+            if (mImpl.hasDeviceConfiguration()) {
+                return DeviceParameters.fromProto(mImpl.getDeviceConfiguration());
+            } else {
+                return DeviceParameters.fromProto(
+                        DeviceParametersProto.DeviceParameters.getDefaultInstance());
+            }
+        }
+
+        /**
+         * Gets the instance ID of the tile for which resources are being requested, allocated when
+         * the tile instance is added to the carousel. This ID will remain the same for this tile
+         * instance as long it is not removed from the carousel.
+         */
+        public int getTileId() {
+            return mImpl.getTileId();
+        }
+
+        /**
+         * Gets the {@link androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters} object
+         * describing the device requesting the resources.
+         *
+         * @deprecated Use {@link #getDeviceConfiguration()} instead.
+         */
+        @Deprecated
         @Nullable
-        public DeviceParameters getDeviceParameters() {
-            if (mImpl.hasDeviceParameters()) {
-                return DeviceParameters.fromProto(mImpl.getDeviceParameters());
+        @SuppressWarnings("deprecation") // for backward compatibility
+        public androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters getDeviceParameters() {
+            if (mImpl.hasDeviceConfiguration()) {
+                return androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters.fromProto(
+                        mImpl.getDeviceConfiguration());
             } else {
                 return null;
             }
         }
 
-        /** @hide */
+        /** Creates a new wrapper instance from the proto. */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static ResourcesRequest fromProto(@NonNull RequestProto.ResourcesRequest proto) {
             return new ResourcesRequest(proto);
         }
 
-        /** @hide */
+        /** Returns the internal proto instance. */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public RequestProto.ResourcesRequest toProto() {
             return mImpl;
+        }
+
+        @Override
+        @NonNull
+        public String toString() {
+            return "ResourcesRequest{"
+                    + "version="
+                    + getVersion()
+                    + ", resourceIds="
+                    + getResourceIds()
+                    + ", deviceConfiguration="
+                    + getDeviceConfiguration()
+                    + ", tileId="
+                    + getTileId()
+                    + "}";
         }
 
         /** Builder for {@link ResourcesRequest} */
@@ -170,12 +331,15 @@ public final class RequestBuilders {
             private final RequestProto.ResourcesRequest.Builder mImpl =
                     RequestProto.ResourcesRequest.newBuilder();
 
+            /** Creates an instance of {@link Builder}. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             public Builder() {}
 
             /**
              * Sets the version of the resources being fetched. This is the same as the requested
              * resource version, passed in {@link androidx.wear.tiles.TileBuilders.Tile}.
              */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setVersion(@NonNull String version) {
                 mImpl.setVersion(version);
@@ -184,24 +348,54 @@ public final class RequestBuilders {
 
             /**
              * Adds one item to requested resource IDs. This specifies which tile resources should
-             * be returned in the {@link androidx.wear.tiles.ResourceBuilders.Resources} response.
-             * If not specified, all resources for the given version must be provided in the
-             * response.
+             * be returned in the {@link androidx.wear.protolayout.ResourceBuilders.Resources}
+             * response. If not specified, all resources for the given version must be provided in
+             * the response.
              *
              * <p>Note that resource IDs here correspond to tile resources (i.e. keys that would be
-             * used in {@link androidx.wear.tiles.ResourceBuilders.Resources}.idToImage), not
+             * used in {@link androidx.wear.protolayout.ResourceBuilders.Resources}.idToImage), not
              * Android resource names or similar.
              */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder addResourceId(@NonNull String resourceId) {
                 mImpl.addResourceIds(resourceId);
                 return this;
             }
 
-            /** Sets parameters describing the device requesting the resources. */
+            /**
+             * Sets the {@link androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters}
+             * object describing the device requesting the resources.
+             */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
-            public Builder setDeviceParameters(@NonNull DeviceParameters deviceParameters) {
-                mImpl.setDeviceParameters(deviceParameters.toProto());
+            public Builder setDeviceConfiguration(@NonNull DeviceParameters deviceConfiguration) {
+                mImpl.setDeviceConfiguration(deviceConfiguration.toProto());
+                return this;
+            }
+
+            /** Sets the ID of the tile for which resources are being requested. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
+            @NonNull
+            public Builder setTileId(int tileId) {
+                mImpl.setTileId(tileId);
+                return this;
+            }
+
+            /**
+             * Sets the {@link androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters}
+             * describing the device requesting the resources.
+             *
+             * @deprecated Use {@link setDeviceConfiguration(DeviceParameters)} instead.
+             */
+            @Deprecated
+            @NonNull
+            @SuppressWarnings("deprecation") // for backward compatibility
+            public Builder setDeviceParameters(
+                    @NonNull
+                            androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters
+                                    deviceParameters) {
+                mImpl.setDeviceConfiguration(deviceParameters.toProto());
                 return this;
             }
 

@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("androidx.stableaidl")
 }
 
 dependencies {
     implementation(project(":car:app:app"))
     annotationProcessor(libs.nullaway)
 
-    implementation("androidx.annotation:annotation:1.2.0")
+    implementation("androidx.annotation:annotation:1.8.1")
 
     testImplementation(libs.junit)
     testImplementation(libs.testCore)
@@ -38,16 +46,15 @@ dependencies {
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-        multiDexEnabled = true
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
     buildFeatures {
         aidl = true
     }
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
+
+        stableAidl {
+            version 1
+        }
     }
 
     testOptions.unitTests.includeAndroidResources = true
@@ -55,7 +62,7 @@ android {
 }
 
 androidx {
-    name = "Android for Cars App Library Projected Extension"
+    name = "Android for Cars App Projected Extension"
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2021"
     description = "Android Auto Projected specific funationaltiy to build navigation, parking, and charging apps for cars"

@@ -19,17 +19,14 @@ package androidx.camera.core;
 import android.media.ImageReader;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.ImageReaderProxy;
 
 /**
  * Different implementations of {@link ImageReaderProxy}.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class ImageReaderProxys {
 
     private ImageReaderProxys() {

@@ -19,13 +19,16 @@ package androidx.camera.core.concurrent;
 
 import android.hardware.camera2.CameraManager;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.impl.CameraStateRegistry;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
 /**
@@ -35,16 +38,23 @@ import java.util.List;
  * All camera devices intended to be operated concurrently, must be opened before configuring
  * sessions on any of the camera devices.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@RequiresApi(21)
 public interface CameraCoordinator {
 
-    /**
-     * Initializes the map for concurrent camera ids and convert camera ids to camera selectors.
-     */
-    void init();
+    int CAMERA_OPERATING_MODE_UNSPECIFIED = 0;
+
+    int CAMERA_OPERATING_MODE_SINGLE = 1;
+
+    int CAMERA_OPERATING_MODE_CONCURRENT = 2;
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @IntDef({CAMERA_OPERATING_MODE_UNSPECIFIED,
+            CAMERA_OPERATING_MODE_SINGLE,
+            CAMERA_OPERATING_MODE_CONCURRENT})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface CameraOperatingMode {
+    }
 
     /**
      * Returns concurrent camera selectors, which are converted from concurrent camera ids
@@ -59,12 +69,27 @@ public interface CameraCoordinator {
     List<List<CameraSelector>> getConcurrentCameraSelectors();
 
     /**
+     * Gets active concurrent camera infos.
+     *
+     * @return list of active concurrent camera infos.
+     */
+    @NonNull
+    List<CameraInfo> getActiveConcurrentCameraInfos();
+
+    /**
+     * Sets active concurrent camera infos.
+     *
+     * @param cameraInfos list of active concurrent camera infos.
+     */
+    void setActiveConcurrentCameraInfos(@NonNull List<CameraInfo> cameraInfos);
+
+    /**
      * Returns paired camera id in concurrent mode.
      *
-     * <p>The paired camera id dictionary is constructed when {@link CameraCoordinator#init()} is
-     * called. This internal API is used to look up paired camera id when coordinating device
-     * open and session config in {@link CameraStateRegistry}. Currently only dual cameras will
-     * be supported in concurrent mode.
+     * <p>The paired camera id dictionary is constructed when constructor is called. This
+     * internal API is used to look up paired camera id when coordinating device open and session
+     * config in {@link CameraStateRegistry}. Currently only dual cameras will be supported in
+     * concurrent mode.
      *
      * @param cameraId camera id.
      * @return The paired camera id if exists or null if paired camera not exists.
@@ -73,11 +98,12 @@ public interface CameraCoordinator {
     String getPairedConcurrentCameraId(@NonNull String cameraId);
 
     /**
-     * Returns concurrent camera mode.
+     * Returns camera operating mode.
      *
-     * @return true if concurrent mode is on, otherwise returns false.
+     * @return camera operating mode including unspecific, single or concurrent.
      */
-    boolean isConcurrentCameraModeOn();
+    @CameraOperatingMode
+    int getCameraOperatingMode();
 
     /**
      * Sets concurrent camera mode.
@@ -85,31 +111,37 @@ public interface CameraCoordinator {
      * <p>This internal API will be called when user binds user cases to cameras, which will
      * enable or disable concurrent camera mode based on the input config.
      *
-     * @param enabled true if concurrent camera mode is enabled, otherwise false.
+     * @param cameraOperatingMode camera operating mode including unspecific, single or concurrent.
      */
-    void setConcurrentCameraMode(boolean enabled);
+    void setCameraOperatingMode(@CameraOperatingMode int cameraOperatingMode);
 
     /**
      * Adds listener for concurrent camera mode update.
-     * @param listener
+     * @param listener {@link ConcurrentCameraModeListener}.
      */
     void addListener(@NonNull ConcurrentCameraModeListener listener);
 
     /**
      * Removes listener for concurrent camera mode update.
-     * @param listener
+     * @param listener {@link ConcurrentCameraModeListener}.
      */
     void removeListener(@NonNull ConcurrentCameraModeListener listener);
 
     /**
+     * Clean up all the resources when CameraX shutdown.
+     */
+    void shutdown();
+
+    /**
      * Interface for concurrent camera mode update.
      *
-     * <p>Everytime user sets concurrent mode, the observer will be notified and update related
-     * states or parameters accordingly. E.g. in
-     * {@link CameraStateRegistry}, we will update the number of max
-     * allowed cameras if concurrent mode is set.
+     * <p>Everytime user changes {@link CameraOperatingMode}, the observer will be notified and
+     * update related states or parameters accordingly. E.g. in {@link CameraStateRegistry}, we
+     * will update the number of max allowed cameras.
      */
     interface ConcurrentCameraModeListener {
-        void notifyConcurrentCameraModeUpdated(boolean isConcurrentCameraModeOn);
+        void onCameraOperatingModeUpdated(
+                @CameraOperatingMode int prevMode,
+                @CameraOperatingMode int currMode);
     }
 }

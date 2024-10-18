@@ -16,8 +16,6 @@
 
 package androidx.camera.view;
 
-import static androidx.annotation.RestrictTo.Scope.TESTS;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -26,9 +24,7 @@ import android.util.Log;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
-import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraEffect;
@@ -63,7 +59,6 @@ import com.google.common.util.concurrent.ListenableFuture;
  *     controller.setZoomRatio(.5F);
  * </code></pre>
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class LifecycleCameraController extends CameraController {
 
     private static final String TAG = "CamLifecycleController";
@@ -153,13 +148,12 @@ public final class LifecycleCameraController extends CameraController {
     }
 
     /**
-     * @hide
      */
-    @RestrictTo(TESTS)
+    @VisibleForTesting
     @SuppressWarnings("FutureReturnValueIgnored")
     void shutDownForTests() {
         if (mCameraProvider != null) {
-            mCameraProvider.shutdown();
+            mCameraProvider.shutdownAsync();
         }
     }
 }

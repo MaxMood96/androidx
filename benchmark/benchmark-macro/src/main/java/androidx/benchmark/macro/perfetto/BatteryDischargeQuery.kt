@@ -16,8 +16,14 @@
 
 package androidx.benchmark.macro.perfetto
 
+import androidx.benchmark.perfetto.PerfettoTraceProcessor
+import androidx.benchmark.perfetto.Slice
+import org.intellij.lang.annotations.Language
+
 internal object BatteryDischargeQuery {
-    private fun getFullQuery(slice: Slice) = """
+    @Language("sql")
+    private fun getFullQuery(slice: Slice) =
+        """
         SELECT
             max(c.value)/1000 AS startMah,
             min(c.value)/1000 AS endMah,
@@ -26,43 +32,33 @@ internal object BatteryDischargeQuery {
         JOIN counter_track t ON c.track_id = t.id
         WHERE t.name = 'batt.charge_uah'
         AND c.ts >= ${slice.ts} AND c.ts <= ${slice.endTs}
-    """.trimIndent()
+    """
+            .trimIndent()
 
-    data class BatteryDischargeMeasurement(
-        var name: String,
-        var chargeMah: Double
-    )
+    data class BatteryDischargeMeasurement(var name: String, var chargeMah: Double)
 
     fun getBatteryDischargeMetrics(
-        perfettoTraceProcessor: PerfettoTraceProcessor,
+        session: PerfettoTraceProcessor.Session,
         slice: Slice
     ): List<BatteryDischargeMeasurement> {
-        val queryResult = perfettoTraceProcessor.rawQuery(
-            query = getFullQuery(slice)
-        )
+        val queryResult = session.query(query = getFullQuery(slice)).toList()
 
         if (queryResult.isEmpty()) {
             return emptyList()
         }
 
-        if (queryResult.size() != 1) {
+        if (queryResult.size != 1) {
             throw IllegalStateException("Unexpected query result size for battery discharge.")
         }
 
-        val row = queryResult.next()
+        val row = queryResult.single()
         return listOf(
             BatteryDischargeMeasurement(
                 name = "Start",
                 chargeMah = row["startMah"] as Double,
             ),
-            BatteryDischargeMeasurement(
-                name = "End",
-                chargeMah = row["endMah"] as Double
-            ),
-            BatteryDischargeMeasurement(
-                name = "Diff",
-                chargeMah = row["diffMah"] as Double
-            )
+            BatteryDischargeMeasurement(name = "End", chargeMah = row["endMah"] as Double),
+            BatteryDischargeMeasurement(name = "Diff", chargeMah = row["diffMah"] as Double)
         )
     }
 }

@@ -31,7 +31,6 @@ import java.util.concurrent.Executor;
 /**
  * Manages access to vehicle specific info communication with a car app host.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 public class ProjectedCarInfo implements CarInfo {
@@ -78,6 +77,15 @@ public class ProjectedCarInfo implements CarInfo {
     public void fetchEnergyProfile(@NonNull Executor executor,
             @NonNull OnCarDataAvailableListener<EnergyProfile> listener) {
         mEnergyProfileCarResultStub.addListener(executor, listener);
+    }
+
+    // Exterior dimensions are not available in AAP without an update to the GAL protocol. As such
+    // this method returns a default ExteriorDimensions that returns UNKNOWN (effectively null).
+    @Override
+    public void fetchExteriorDimensions(@NonNull Executor executor,
+            @NonNull OnCarDataAvailableListener<ExteriorDimensions> listener) {
+        // TODO - b/325540913 Implement fetching exterior dimensions in AAP, including updating GAL
+        executor.execute(() -> listener.onCarDataAvailable(new ExteriorDimensions()));
     }
 
     @Override

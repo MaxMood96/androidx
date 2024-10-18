@@ -28,7 +28,6 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.LongDef;
 import androidx.annotation.Nullable;
@@ -49,7 +48,6 @@ import java.util.List;
 public final class PlaybackStateCompat implements Parcelable {
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX) // used by media2-session
     @LongDef(flag=true, value={ACTION_STOP, ACTION_PAUSE, ACTION_PLAY, ACTION_REWIND,
@@ -63,7 +61,6 @@ public final class PlaybackStateCompat implements Parcelable {
     public @interface Actions {}
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @LongDef({ACTION_STOP, ACTION_PAUSE, ACTION_PLAY, ACTION_REWIND, ACTION_SKIP_TO_PREVIOUS,
@@ -235,7 +232,6 @@ public final class PlaybackStateCompat implements Parcelable {
     public static final long ACTION_SET_PLAYBACK_SPEED = 1 << 22;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX) // used by media2-session
     @IntDef({STATE_NONE, STATE_STOPPED, STATE_PAUSED, STATE_PLAYING, STATE_FAST_FORWARDING,
@@ -348,7 +344,6 @@ public final class PlaybackStateCompat implements Parcelable {
     public final static long PLAYBACK_POSITION_UNKNOWN = -1;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX) // used by media2-session
     @IntDef({REPEAT_MODE_INVALID, REPEAT_MODE_NONE, REPEAT_MODE_ONE, REPEAT_MODE_ALL,
@@ -389,7 +384,6 @@ public final class PlaybackStateCompat implements Parcelable {
     public static final int REPEAT_MODE_GROUP = 3;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX) // used by media2-session
     @IntDef({SHUFFLE_MODE_INVALID, SHUFFLE_MODE_NONE, SHUFFLE_MODE_ALL, SHUFFLE_MODE_GROUP})
@@ -673,7 +667,6 @@ public final class PlaybackStateCompat implements Parcelable {
      *
      * @param timeDiff Only used for testing, otherwise it should be null.
      * @return The current playback position in ms
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX) // accessed by media2-session
     public long getCurrentPosition(Long timeDiff) {
@@ -1385,125 +1378,101 @@ public final class PlaybackStateCompat implements Parcelable {
     private static class Api21Impl {
         private Api21Impl() {}
 
-        @DoNotInline
         static PlaybackState.Builder createBuilder() {
             return new PlaybackState.Builder();
         }
 
-        @DoNotInline
         static void setState(PlaybackState.Builder builder, int state, long position,
                 float playbackSpeed, long updateTime) {
             builder.setState(state, position, playbackSpeed, updateTime);
         }
 
-        @DoNotInline
         static void setBufferedPosition(PlaybackState.Builder builder, long bufferedPosition) {
             builder.setBufferedPosition(bufferedPosition);
         }
 
-        @DoNotInline
         static void setActions(PlaybackState.Builder builder, long actions) {
             builder.setActions(actions);
         }
 
-        @DoNotInline
         static void setErrorMessage(PlaybackState.Builder builder, CharSequence error) {
             builder.setErrorMessage(error);
         }
 
-        @DoNotInline
         static void addCustomAction(PlaybackState.Builder builder,
                 PlaybackState.CustomAction customAction) {
             builder.addCustomAction(customAction);
         }
 
-        @DoNotInline
         static void setActiveQueueItemId(PlaybackState.Builder builder, long id) {
             builder.setActiveQueueItemId(id);
         }
 
-        @DoNotInline
         static List<PlaybackState.CustomAction> getCustomActions(PlaybackState state) {
             return state.getCustomActions();
         }
 
-        @DoNotInline
         static PlaybackState build(PlaybackState.Builder builder) {
             return builder.build();
         }
 
-        @DoNotInline
         static int getState(PlaybackState state) {
             return state.getState();
         }
 
-        @DoNotInline
         static long getPosition(PlaybackState state) {
             return state.getPosition();
         }
 
-        @DoNotInline
         static long getBufferedPosition(PlaybackState state) {
             return state.getBufferedPosition();
         }
 
-        @DoNotInline
         static float getPlaybackSpeed(PlaybackState state) {
             return state.getPlaybackSpeed();
         }
 
-        @DoNotInline
         static long getActions(PlaybackState state) {
             return state.getActions();
         }
 
-        @DoNotInline
         static CharSequence getErrorMessage(PlaybackState state) {
             return state.getErrorMessage();
         }
 
-        @DoNotInline
         static long getLastPositionUpdateTime(PlaybackState state) {
             return state.getLastPositionUpdateTime();
         }
 
-        @DoNotInline
         static long getActiveQueueItemId(PlaybackState state) {
             return state.getActiveQueueItemId();
         }
 
-        @DoNotInline
         static PlaybackState.CustomAction.Builder createCustomActionBuilder(String action,
                 CharSequence name, int icon) {
             return new PlaybackState.CustomAction.Builder(action, name, icon);
         }
 
-        @DoNotInline
         static void setExtras(PlaybackState.CustomAction.Builder builder, Bundle extras) {
             builder.setExtras(extras);
         }
 
-        @DoNotInline
         static PlaybackState.CustomAction build(PlaybackState.CustomAction.Builder builder) {
             return builder.build();
         }
 
-        @DoNotInline
         static Bundle getExtras(PlaybackState.CustomAction customAction) {
             return customAction.getExtras();
         }
 
-        @DoNotInline
         static String getAction(PlaybackState.CustomAction customAction) {
             return customAction.getAction();
         }
 
-        @DoNotInline
         static CharSequence getName(PlaybackState.CustomAction customAction) {
             return customAction.getName();
         }
 
-        @DoNotInline
         static int getIcon(PlaybackState.CustomAction customAction) {
             return customAction.getIcon();
         }
@@ -1513,12 +1482,10 @@ public final class PlaybackStateCompat implements Parcelable {
     private static class Api22Impl {
         private Api22Impl() {}
 
-        @DoNotInline
         static void setExtras(PlaybackState.Builder builder, Bundle extras) {
             builder.setExtras(extras);
         }
 
-        @DoNotInline
         static Bundle getExtras(PlaybackState state) {
             return state.getExtras();
         }

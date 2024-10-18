@@ -16,10 +16,7 @@
 
 package androidx.camera.effects.stillportrait;
 
-import android.os.Build;
-
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.CameraEffect;
 import androidx.camera.core.SurfaceProcessor;
@@ -29,10 +26,7 @@ import java.util.concurrent.Executor;
 
 /**
  * Provides a portrait post-processing effect.
- *
- * @hide
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class StillPortrait extends CameraEffect {
 
@@ -44,7 +38,8 @@ public class StillPortrait extends CameraEffect {
     protected StillPortrait(int targets,
             @NonNull Executor processorExecutor,
             @NonNull SurfaceProcessor surfaceProcessor) {
-        super(targets, processorExecutor, surfaceProcessor);
+        super(targets, processorExecutor, surfaceProcessor, throwable -> {
+        });
         // TODO: implement this.
     }
 }

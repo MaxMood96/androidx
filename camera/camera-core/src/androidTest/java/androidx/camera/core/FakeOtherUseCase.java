@@ -18,13 +18,12 @@ package androidx.camera.core;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.Config;
 import androidx.camera.core.impl.StreamSpec;
 import androidx.camera.core.impl.UseCaseConfig;
 import androidx.camera.core.impl.UseCaseConfigFactory;
-import androidx.camera.testing.fakes.FakeUseCase;
+import androidx.camera.testing.impl.fakes.FakeUseCase;
 
 /**
  * A second fake {@link UseCase}.
@@ -32,7 +31,6 @@ import androidx.camera.testing.fakes.FakeUseCase;
  * <p>This is used to complement the {@link FakeUseCase} for testing instances where a use case of
  * different type is created.
  */
-@RequiresApi(21)
 public class FakeOtherUseCase extends UseCase {
     private volatile boolean mIsDetached = false;
 
@@ -55,7 +53,6 @@ public class FakeOtherUseCase extends UseCase {
     /**
      * {@inheritDoc}
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @Nullable
@@ -68,7 +65,6 @@ public class FakeOtherUseCase extends UseCase {
     /**
      * {@inheritDoc}
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull
@@ -79,8 +75,10 @@ public class FakeOtherUseCase extends UseCase {
 
     @Override
     @NonNull
-    protected StreamSpec onSuggestedStreamSpecUpdated(@NonNull StreamSpec suggestedStreamSpec) {
-        return suggestedStreamSpec;
+    protected StreamSpec onSuggestedStreamSpecUpdated(
+            @NonNull StreamSpec primaryStreamSpec,
+            @Nullable StreamSpec secondaryStreamSpec) {
+        return primaryStreamSpec;
     }
 
     /** Returns true if {@link #onUnbind()} has been called previously. */

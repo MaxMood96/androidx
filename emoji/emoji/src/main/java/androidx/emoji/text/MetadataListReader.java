@@ -21,7 +21,6 @@ import android.content.res.AssetManager;
 
 import androidx.annotation.AnyThread;
 import androidx.annotation.IntRange;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.text.emoji.flatbuffer.MetadataList;
 
@@ -33,11 +32,9 @@ import java.nio.ByteOrder;
 /**
  * Reads the emoji metadata from a given InputStream or ByteBuffer.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 @AnyThread
-@RequiresApi(19)
 class MetadataListReader {
 
     /**

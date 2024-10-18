@@ -33,9 +33,16 @@ import java.util.Set;
  * The Grid Helper in the Core library that helps to enable Grid in Compose
  */
 public class GridCore extends VirtualLayout {
+    // TODO: Handle padding from VirtualLayout. It should represent the padding applied around the
+    //  Grid itself. Usually decreasing its size.
 
     public static final int HORIZONTAL = 0;
     public static final int VERTICAL = 1;
+
+    // Flags using incremental bit positions
+    public static final int SUB_GRID_BY_COL_ROW = 1;
+    public static final int SPANS_RESPECT_WIDGET_ORDER = 2;
+
     private static final int DEFAULT_SIZE = 3; // default rows and columns.
     private static final int MAX_ROWS = 50; // maximum number of rows can be specified.
     private static final int MAX_COLUMNS = 50; // maximum number of columns can be specified.
@@ -133,6 +140,21 @@ public class GridCore extends VirtualLayout {
      * Example row: [left, top, right, bottom]
      */
     private int[][] mConstraintMatrix;
+
+    /**
+     * An int value containing flag information.
+     */
+    private int mFlags;
+
+    /**
+     * A int matrix to store the span related information
+     */
+    private int[][] mSpanMatrix;
+
+    /**
+     * Index specify the next span to be handled.
+     */
+    private int mSpanIndex = 0;
 
     public GridCore() {
         updateActualRowsAndColumns();
@@ -362,11 +384,31 @@ public class GridCore extends VirtualLayout {
     }
 
     /**
+     * Get all the flags of a Grid
+     * @return an int value containing flag information
+     */
+    public int getFlags() {
+        return mFlags;
+    }
+
+    /**
+     * Set flags of a Grid
+     * @param flags an int value containing flag information
+     */
+    public void setFlags(int flags) {
+        mFlags = flags;
+    }
+
+    /**
      * Handle the span use cases
      *
      * @param spansMatrix a int matrix that contains span information
      */
     private void handleSpans(int[][] spansMatrix) {
+        if (isSpansRespectWidgetOrder()) {
+            return;
+        }
+
         for (int i = 0; i < spansMatrix.length; i++) {
             int row = getRowByIndex(spansMatrix[i][0]);
             int col = getColByIndex(spansMatrix[i][0]);
@@ -401,6 +443,21 @@ public class GridCore extends VirtualLayout {
                 return;
             }
 
+            if (isSpansRespectWidgetOrder() && mSpanMatrix != null) {
+                if (mSpanIndex < mSpanMatrix.length && mSpanMatrix[mSpanIndex][0] == position) {
+                    // when invoke getNextPosition this position would be set to false
+                    mPositionMatrix[row][col] = true;
+                    // if there is not enough space to constrain the span, don't do it.
+                    if (!invalidatePositions(row, col,
+                            mSpanMatrix[mSpanIndex][1], mSpanMatrix[mSpanIndex][2])) {
+                        continue;
+                    }
+                    connectWidget(mWidgets[i], row, col,
+                            mSpanMatrix[mSpanIndex][1], mSpanMatrix[mSpanIndex][2]);
+                    mSpanIndex++;
+                    continue;
+                }
+            }
             connectWidget(mWidgets[i], row, col, 1, 1);
         }
     }
@@ -433,17 +490,16 @@ public class GridCore extends VirtualLayout {
             }
         }
 
-        int[][] parsedSpans = null;
         if (mSpans != null && !mSpans.trim().isEmpty()) {
-            parsedSpans = parseSpans(this.mSpans, true);
+            mSpanMatrix = parseSpans(this.mSpans, true);
         }
 
         // Need to create boxes before handleSpans since the spanned widgets would be
         // constrained in this step.
         createBoxes();
 
-        if (parsedSpans != null) {
-            handleSpans(parsedSpans);
+        if (mSpanMatrix != null) {
+            handleSpans(mSpanMatrix);
         }
     }
 
@@ -517,7 +573,9 @@ public class GridCore extends VirtualLayout {
     }
 
     /**
-     * parse the weights/pads in the string format into a float array
+     * Parse the weights/pads in the string format into a float array. Note that weight are
+     * normally expected to match the size. But in case they don't, we trim or pad the weight with
+     * trailing 1 to match the expected size.
      *
      * @param size size of the return array
      * @param str  weights/pads in a string format
@@ -529,13 +587,22 @@ public class GridCore extends VirtualLayout {
         }
 
         String[] values = str.split(",");
-        if (values.length != size) {
-            return null;
-        }
 
+        // Return array must be of the expected size, effectively trimming excess weights
         float[] arr = new float[size];
         for (int i = 0; i < arr.length; i++) {
-            arr[i] = Float.parseFloat(values[i].trim());
+            if (i < values.length) {
+                try {
+                    arr[i] = Float.parseFloat(values[i]);
+                } catch (Exception e) {
+                    System.err.println("Error parsing `" + values[i] + "`: " + e.getMessage());
+                    // Fallback to 1f.
+                    arr[i] = 1f;
+                }
+            } else {
+                // Fill in missing weights with 1f
+                arr[i] = 1f;
+            }
         }
         return arr;
     }
@@ -806,6 +873,9 @@ public class GridCore extends VirtualLayout {
             int extraRows = 0;
             int extraColumns = 0;
             String[] spans = str.split(",");
+            // Sort the spans by the position
+            Arrays.sort(spans, (span1, span2) -> Integer.parseInt(span1.split(":")[0])
+                    - Integer.parseInt(span2.split(":")[0]));
             int[][] spanMatrix = new int[spans.length][3];
             String[] indexAndSpan;
             if (mRows == 1 || mColumns == 1) {
@@ -844,15 +914,20 @@ public class GridCore extends VirtualLayout {
                     indexAndSpan = spans[i].trim().split(":");
                     rowAndCol = indexAndSpan[1].split("x");
                     spanMatrix[i][0] = Integer.parseInt(indexAndSpan[0]);
-                    spanMatrix[i][1] = Integer.parseInt(rowAndCol[0]);
-                    spanMatrix[i][2] = Integer.parseInt(rowAndCol[1]);
+                    if (isSubGridByColRow()) {
+                        spanMatrix[i][1] = Integer.parseInt(rowAndCol[1]);
+                        spanMatrix[i][2] = Integer.parseInt(rowAndCol[0]);
+                    } else {
+                        spanMatrix[i][1] = Integer.parseInt(rowAndCol[0]);
+                        spanMatrix[i][2] = Integer.parseInt(rowAndCol[1]);
+                    }
+
                 }
             }
             return spanMatrix;
         } catch (Exception e) {
             return null;
         }
-
     }
 
     /**
@@ -909,6 +984,20 @@ public class GridCore extends VirtualLayout {
         fillConstraintMatrix(isUpdate);
     }
 
+    /**
+     * Flag to implicitly reverse the order of width/height specified in spans & skips.
+     * E.g.: 1:3x2 is read as 1:2x3
+     */
+    private boolean isSubGridByColRow() {
+        return (mFlags & SUB_GRID_BY_COL_ROW) > 0;
+    }
+
+    /**
+     * Flag to respect the order of the Widgets when arranging for spans.
+     */
+    private boolean isSpansRespectWidgetOrder() {
+        return (mFlags & SPANS_RESPECT_WIDGET_ORDER) > 0;
+    }
 
     @Override
     public void measure(int widthMode, int widthSize, int heightMode, int heightSize) {

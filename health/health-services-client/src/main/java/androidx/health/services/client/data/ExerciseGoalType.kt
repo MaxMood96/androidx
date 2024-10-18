@@ -35,22 +35,19 @@ public class ExerciseGoalType private constructor(public val id: Int, public val
 
     override fun hashCode(): Int = id
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     internal fun toProto(): DataProto.ExerciseGoalType =
         DataProto.ExerciseGoalType.forNumber(id) ?: EXERCISE_GOAL_TYPE_UNKNOWN
 
     public companion object {
         /** Goal type indicating this goal is for one event and should then be removed. */
-        @JvmField
-        public val ONE_TIME_GOAL: ExerciseGoalType = ExerciseGoalType(1, "ONE_TIME_GOAL")
+        @JvmField public val ONE_TIME_GOAL: ExerciseGoalType = ExerciseGoalType(1, "ONE_TIME_GOAL")
 
         /**
          * Goal type indicating this goal is for a repeating event and should remain until the
          * calling app removes it.
          */
-        @JvmField
-        public val MILESTONE: ExerciseGoalType = ExerciseGoalType(2, "MILESTONE")
+        @JvmField public val MILESTONE: ExerciseGoalType = ExerciseGoalType(2, "MILESTONE")
 
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         @JvmField
@@ -59,7 +56,6 @@ public class ExerciseGoalType private constructor(public val id: Int, public val
         @JvmStatic
         public fun fromId(id: Int): ExerciseGoalType? = VALUES.firstOrNull { it.id == id }
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         @JvmStatic
         internal fun fromProto(proto: DataProto.ExerciseGoalType): ExerciseGoalType? =

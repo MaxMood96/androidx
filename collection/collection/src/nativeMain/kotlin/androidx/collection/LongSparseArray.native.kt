@@ -44,12 +44,11 @@ import androidx.collection.internal.idealLongArraySize
  * order, or the values corresponding to the keys in ascending order in the case of [valueAt].
  *
  * @constructor Creates a new [LongSparseArray] containing no mappings that will not require any
- * additional memory allocation to store the specified number of mappings. If you supply an initial
- * capacity of 0, the sparse array will be initialized with a light-weight representation not
- * requiring any additional array allocations.
+ *   additional memory allocation to store the specified number of mappings. If you supply an
+ *   initial capacity of 0, the sparse array will be initialized with a light-weight representation
+ *   not requiring any additional array allocations.
  */
-public actual open class LongSparseArray<E>
-public actual constructor(initialCapacity: Int) {
+public actual open class LongSparseArray<E> public actual constructor(initialCapacity: Int) {
     internal actual var garbage = false
     internal actual var keys: LongArray
     internal actual var values: Array<Any?>
@@ -78,15 +77,11 @@ public actual constructor(initialCapacity: Int) {
     @Suppress("KotlinOperator") // Avoid confusion with matrix access syntax.
     public actual open fun get(key: Long, defaultValue: E): E = commonGet(key, defaultValue)
 
-    /**
-     * Removes the mapping from the specified [key], if there was any.
-     */
+    /** Removes the mapping from the specified [key], if there was any. */
     @Deprecated("Alias for `remove(key)`.", ReplaceWith("remove(key)"))
     public actual open fun delete(key: Long): Unit = commonRemove(key)
 
-    /**
-     * Removes the mapping from the specified [key], if there was any.
-     */
+    /** Removes the mapping from the specified [key], if there was any. */
     public actual open fun remove(key: Long): Unit = commonRemove(key)
 
     /**
@@ -98,9 +93,7 @@ public actual constructor(initialCapacity: Int) {
      */
     public actual open fun remove(key: Long, value: E): Boolean = commonRemove(key, value)
 
-    /**
-     * Removes the mapping at the specified index.
-     */
+    /** Removes the mapping at the specified index. */
     public actual open fun removeAt(index: Int): Unit = commonRemoveAt(index)
 
     /**
@@ -142,13 +135,11 @@ public actual constructor(initialCapacity: Int) {
      * @param key The key under which to store the value.
      * @param value The value to store for the given key.
      * @return Returns the value that was stored for the given key, or `null` if there was no such
-     * key.
+     *   key.
      */
     public actual open fun putIfAbsent(key: Long, value: E): E? = commonPutIfAbsent(key, value)
 
-    /**
-     * Returns the number of key-value mappings that this [LongSparseArray] currently stores.
-     */
+    /** Returns the number of key-value mappings that this [LongSparseArray] currently stores. */
     public actual open fun size(): Int = commonSize()
 
     /**
@@ -191,9 +182,8 @@ public actual constructor(initialCapacity: Int) {
     public actual open fun setValueAt(index: Int, value: E): Unit = commonSetValueAt(index, value)
 
     /**
-     * Returns the index for which [keyAt] would return the
-     * specified key, or a negative number if the specified
-     * key is not mapped.
+     * Returns the index for which [keyAt] would return the specified key, or a negative number if
+     * the specified key is not mapped.
      */
     public actual open fun indexOfKey(key: Long): Int = commonIndexOfKey(key)
 
@@ -212,9 +202,7 @@ public actual constructor(initialCapacity: Int) {
     /** Returns `true` if the specified [value] is mapped from any key. */
     public actual open fun containsValue(value: E): Boolean = commonContainsValue(value)
 
-    /**
-     * Removes all key-value mappings from this [LongSparseArray].
-     */
+    /** Removes all key-value mappings from this [LongSparseArray]. */
     public actual open fun clear(): Unit = commonClear()
 
     /**

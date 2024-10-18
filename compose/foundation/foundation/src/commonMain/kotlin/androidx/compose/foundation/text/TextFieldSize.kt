@@ -16,7 +16,6 @@
 
 package androidx.compose.foundation.text
 
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -35,23 +34,21 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 
-@Suppress("ModifierInspectorInfo")
 internal fun Modifier.textFieldMinSize(style: TextStyle) = composed {
     val density = LocalDensity.current
     val fontFamilyResolver = LocalFontFamilyResolver.current
     val layoutDirection = LocalLayoutDirection.current
 
-    val resolvedStyle = remember(style, layoutDirection) {
-        resolveDefaults(style, layoutDirection)
-    }
-    val typeface by remember(fontFamilyResolver, resolvedStyle) {
-        fontFamilyResolver.resolve(
-            resolvedStyle.fontFamily,
-            resolvedStyle.fontWeight ?: FontWeight.Normal,
-            resolvedStyle.fontStyle ?: FontStyle.Normal,
-            resolvedStyle.fontSynthesis ?: FontSynthesis.All
-        )
-    }
+    val resolvedStyle = remember(style, layoutDirection) { resolveDefaults(style, layoutDirection) }
+    val typeface by
+        remember(fontFamilyResolver, resolvedStyle) {
+            fontFamilyResolver.resolve(
+                resolvedStyle.fontFamily,
+                resolvedStyle.fontWeight ?: FontWeight.Normal,
+                resolvedStyle.fontStyle ?: FontStyle.Normal,
+                resolvedStyle.fontSynthesis ?: FontSynthesis.All
+            )
+        }
 
     val minSizeState = remember {
         TextFieldSize(layoutDirection, density, fontFamilyResolver, style, typeface)
@@ -60,17 +57,15 @@ internal fun Modifier.textFieldMinSize(style: TextStyle) = composed {
     minSizeState.update(layoutDirection, density, fontFamilyResolver, resolvedStyle, typeface)
 
     Modifier.layout { measurable, constraints ->
-        Modifier.defaultMinSize()
         val minSize = minSizeState.minSize
 
-        val childConstraints = constraints.copy(
-            minWidth = minSize.width.coerceIn(constraints.minWidth, constraints.maxWidth),
-            minHeight = minSize.height.coerceIn(constraints.minHeight, constraints.maxHeight)
-        )
+        val childConstraints =
+            constraints.copy(
+                minWidth = minSize.width.coerceIn(constraints.minWidth, constraints.maxWidth),
+                minHeight = minSize.height.coerceIn(constraints.minHeight, constraints.maxHeight)
+            )
         val measured = measurable.measure(childConstraints)
-        layout(measured.width, measured.height) {
-            measured.placeRelative(0, 0)
-        }
+        layout(measured.width, measured.height) { measured.placeRelative(0, 0) }
     }
 }
 
@@ -91,11 +86,12 @@ private class TextFieldSize(
         resolvedStyle: TextStyle,
         typeface: Any
     ) {
-        if (layoutDirection != this.layoutDirection ||
-            density != this.density ||
-            fontFamilyResolver != this.fontFamilyResolver ||
-            resolvedStyle != this.resolvedStyle ||
-            typeface != this.typeface
+        if (
+            layoutDirection != this.layoutDirection ||
+                density != this.density ||
+                fontFamilyResolver != this.fontFamilyResolver ||
+                resolvedStyle != this.resolvedStyle ||
+                typeface != this.typeface
         ) {
             this.layoutDirection = layoutDirection
             this.density = density

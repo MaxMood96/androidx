@@ -21,11 +21,11 @@
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.0.0")
+    api("androidx.annotation:annotation:1.8.1")
 }
 
 androidx {
-    name = "Jetpack Camera Library OEM Extensions Stub"
+    name = "Camera OEM Extensions Stub"
     publish = Publish.NONE
 
     inceptionYear = "2019"

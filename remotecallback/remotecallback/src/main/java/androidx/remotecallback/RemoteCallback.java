@@ -33,11 +33,15 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * An instance of a callback to a specific class/method with a specific set
  * of arguments. Can only be obtained from a {@link CallbackReceiver}.
+ *
+ * @deprecated Slice framework has been deprecated, it will not receive any updates moving
+ * forward. If you are looking for a framework that handles communication across apps,
+ * consider using {@link android.app.appsearch.AppSearchManager}.
  */
+@Deprecated
 public class RemoteCallback {
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public static final String EXTRA_METHOD = "remotecallback.method";
@@ -53,7 +57,6 @@ public class RemoteCallback {
     public static final int TYPE_PROVIDER = 1;
 
     /**
-     * @hide
      */
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -68,7 +71,6 @@ public class RemoteCallback {
     private final String mReceiverClass;
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public RemoteCallback(@NonNull Context context,

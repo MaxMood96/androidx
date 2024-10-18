@@ -22,6 +22,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageWriter;
@@ -43,14 +44,16 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 /**
- * Implementation for beauty image capture use case.
+ * Implementation for beauty image capture use case which implements a
+ * {@link CaptureProcessorImpl} that won't invoke
+ * {@link ProcessResultImpl#onCaptureCompleted(long, List)}. Besides, it returns a customized
+ * supported resolution lists.
  *
- * <p>This class should be implemented by OEM and deployed to the target devices. 3P developers
- * don't need to implement this, unless this is used for related testing usage.
+ * <p>This is only for testing camera-extensions and should not be used as a sample OEM
+ * implementation.
  *
  * @since 1.0
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @SuppressLint("UnknownNullness")
 public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtenderImpl {
     private static final String TAG = "BeautyICExtender";
@@ -59,6 +62,7 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
     private static final int EFFECT = CaptureRequest.CONTROL_EFFECT_MODE_NEGATIVE;
 
     private CameraCharacteristics mCameraCharacteristics;
+    private BeautyImageCaptureExtenderCaptureProcessorImpl mCaptureProcessor;
 
     public BeautyImageCaptureExtenderImpl() {
     }
@@ -84,6 +88,7 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return CameraCharacteristicAvailability.isEffectAvailable(cameraCharacteristics, EFFECT);
     }
 
+    @NonNull
     @Override
     public List<CaptureStageImpl> getCaptureStages() {
         // Placeholder set of CaptureRequest.Key values
@@ -94,10 +99,12 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return captureStages;
     }
 
+    @Nullable
     @Override
     public CaptureProcessorImpl getCaptureProcessor() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return new BeautyImageCaptureExtenderCaptureProcessorImpl();
+            mCaptureProcessor = new BeautyImageCaptureExtenderCaptureProcessorImpl();
+            return mCaptureProcessor;
         } else {
             return new NoOpCaptureProcessorImpl();
         }
@@ -112,9 +119,12 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
 
     @Override
     public void onDeInit() {
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mCaptureProcessor != null) {
+            mCaptureProcessor.release();
+        }
     }
 
+    @Nullable
     @Override
     public CaptureStageImpl onPresetSession() {
         // The CaptureRequest parameters will be set via SessionConfiguration#setSessionParameters
@@ -132,6 +142,12 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
     }
 
     @Override
+    public int onSessionType() {
+        return SessionConfiguration.SESSION_REGULAR;
+    }
+
+    @Nullable
+    @Override
     public CaptureStageImpl onEnableSession() {
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
         // placeholder set of CaptureRequest.Key values
@@ -141,6 +157,7 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return captureStage;
     }
 
+    @Nullable
     @Override
     public CaptureStageImpl onDisableSession() {
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
@@ -156,6 +173,7 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return 3;
     }
 
+    @Nullable
     @Override
     public List<Pair<Integer, Size[]>> getSupportedResolutions() {
         List<Pair<Integer, Size[]>> formatResolutionsPairList = new ArrayList<>();
@@ -165,14 +183,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
 
         if (map != null) {
             // The sample implementation only retrieves originally supported resolutions from
-            // CameraCharacteristics for JPEG and YUV_420_888 formats to return.
-            Size[] outputSizes = map.getOutputSizes(ImageFormat.JPEG);
-
-            if (outputSizes != null) {
-                formatResolutionsPairList.add(Pair.create(ImageFormat.JPEG, outputSizes));
-            }
-
-            outputSizes = map.getOutputSizes(ImageFormat.YUV_420_888);
+            // CameraCharacteristics for YUV_420_888 formats to return.
+            Size[] outputSizes = map.getOutputSizes(ImageFormat.YUV_420_888);
 
             if (outputSizes != null) {
                 formatResolutionsPairList.add(Pair.create(ImageFormat.YUV_420_888, outputSizes));
@@ -188,6 +200,28 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return new Range<>(300L, 1000L);
     }
 
+    @Nullable
+    @Override
+    public List<Pair<Integer, Size[]>> getSupportedPostviewResolutions(@NonNull Size captureSize) {
+        return null;
+    }
+
+    @Override
+    public boolean isCaptureProcessProgressAvailable() {
+        return false;
+    }
+
+    @Nullable
+    @Override
+    public Pair<Long, Long> getRealtimeCaptureLatency() {
+        return null;
+    }
+
+    @Override
+    public boolean isPostviewAvailable() {
+        return false;
+    }
+
     @RequiresApi(23)
     static final class BeautyImageCaptureExtenderCaptureProcessorImpl implements
             CaptureProcessorImpl {
@@ -199,7 +233,7 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         }
 
         @Override
-        public void process(Map<Integer, Pair<Image, TotalCaptureResult>> results) {
+        public void process(@NonNull Map<Integer, Pair<Image, TotalCaptureResult>> results) {
             Log.d(TAG, "Started beauty CaptureProcessor");
 
             Pair<Image, TotalCaptureResult> result = results.get(DEFAULT_STAGE_ID);
@@ -209,27 +243,57 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
                         "Unable to process since images does not contain all stages.");
                 return;
             } else {
-                Image image = mImageWriter.dequeueInputImage();
+                Image outputImage = mImageWriter.dequeueInputImage();
+                Image image = result.first;
 
-                // Do processing here
-                ByteBuffer yByteBuffer = image.getPlanes()[0].getBuffer();
-                ByteBuffer uByteBuffer = image.getPlanes()[2].getBuffer();
-                ByteBuffer vByteBuffer = image.getPlanes()[1].getBuffer();
+                // copy y plane
+                Image.Plane inYPlane = image.getPlanes()[0];
+                Image.Plane outYPlane = outputImage.getPlanes()[0];
+                ByteBuffer inYBuffer = inYPlane.getBuffer();
+                ByteBuffer outYBuffer = outYPlane.getBuffer();
+                int inYPixelStride = inYPlane.getPixelStride();
+                int inYRowStride = inYPlane.getRowStride();
+                int outYPixelStride = outYPlane.getPixelStride();
+                int outYRowStride = outYPlane.getRowStride();
+                for (int x = 0; x < outputImage.getHeight(); x++) {
+                    for (int y = 0; y < outputImage.getWidth(); y++) {
+                        int inIndex = x * inYRowStride + y * inYPixelStride;
+                        int outIndex = x * outYRowStride + y * outYPixelStride;
+                        outYBuffer.put(outIndex, inYBuffer.get(inIndex));
+                    }
+                }
 
-                // Sample here just simply copy/paste the capture image result
-                yByteBuffer.put(result.first.getPlanes()[0].getBuffer());
-                uByteBuffer.put(result.first.getPlanes()[2].getBuffer());
-                vByteBuffer.put(result.first.getPlanes()[1].getBuffer());
-
-                mImageWriter.queueInputImage(image);
+                // Copy UV
+                for (int i = 1; i < 3; i++) {
+                    Image.Plane inPlane = image.getPlanes()[i];
+                    Image.Plane outPlane = outputImage.getPlanes()[i];
+                    ByteBuffer inBuffer = inPlane.getBuffer();
+                    ByteBuffer outBuffer = outPlane.getBuffer();
+                    int inPixelStride = inPlane.getPixelStride();
+                    int inRowStride = inPlane.getRowStride();
+                    int outPixelStride = outPlane.getPixelStride();
+                    int outRowStride = outPlane.getRowStride();
+                    // UV are half width compared to Y
+                    for (int x = 0; x < outputImage.getHeight() / 2; x++) {
+                        for (int y = 0; y < outputImage.getWidth() / 2; y++) {
+                            int inIndex = x * inRowStride + y * inPixelStride;
+                            int outIndex = x * outRowStride + y * outPixelStride;
+                            byte b = inBuffer.get(inIndex);
+                            outBuffer.put(outIndex, b);
+                        }
+                    }
+                }
+                outputImage.setTimestamp(image.getTimestamp());
+                mImageWriter.queueInputImage(outputImage);
             }
 
             Log.d(TAG, "Completed beauty CaptureProcessor");
         }
 
         @Override
-        public void process(Map<Integer, Pair<Image, TotalCaptureResult>> results,
-                ProcessResultImpl resultCallback, Executor executor) {
+        public void process(@NonNull Map<Integer, Pair<Image, TotalCaptureResult>> results,
+                @NonNull ProcessResultImpl resultCallback, @Nullable Executor executor) {
+            process(results);
         }
 
         @Override
@@ -240,6 +304,29 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         @Override
         public void onImageFormatUpdate(int imageFormat) {
 
+        }
+
+        @Override
+        public void onPostviewOutputSurface(@NonNull Surface surface) {
+
+        }
+
+        @Override
+        public void onResolutionUpdate(@NonNull Size size, @NonNull Size postviewSize) {
+
+        }
+
+        @Override
+        public void processWithPostview(
+                @NonNull Map<Integer, Pair<Image, TotalCaptureResult>> results,
+                @NonNull ProcessResultImpl resultCallback, @Nullable Executor executor) {
+            throw new UnsupportedOperationException("Postview is not supported");
+        }
+
+        public void release() {
+            if (mImageWriter != null) {
+                mImageWriter.close();
+            }
         }
     }
 
@@ -254,4 +341,11 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
     public List<CaptureResult.Key> getAvailableCaptureResultKeys() {
         return null;
     }
+
+    /**
+     * This method is used to check if test lib is running. If OEM implementation exists, invoking
+     * this method will throw {@link NoSuchMethodError}. This can be used to determine if OEM
+     * implementation is used or not.
+     */
+    public static void checkTestlibRunning() {}
 }

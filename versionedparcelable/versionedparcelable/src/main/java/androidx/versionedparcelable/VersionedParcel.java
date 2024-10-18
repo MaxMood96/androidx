@@ -19,7 +19,6 @@ package androidx.versionedparcelable;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.os.BadParcelableException;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
@@ -30,7 +29,6 @@ import android.util.Size;
 import android.util.SizeF;
 import android.util.SparseBooleanArray;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -55,7 +53,6 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public abstract class VersionedParcel {
@@ -1688,7 +1685,6 @@ public abstract class VersionedParcel {
 
     @RequiresApi(21)
     private static final class Api21Impl {
-        @DoNotInline
         static void writeSize(@NonNull VersionedParcel self, @Nullable Size val) {
             self.writeBoolean(val != null);
             if (val != null) {
@@ -1697,7 +1693,6 @@ public abstract class VersionedParcel {
             }
         }
 
-        @DoNotInline
         static void writeSizeF(@NonNull VersionedParcel self, @Nullable SizeF val) {
             self.writeBoolean(val != null);
             if (val != null) {
@@ -1706,7 +1701,6 @@ public abstract class VersionedParcel {
             }
         }
 
-        @DoNotInline
         @Nullable
         static Size readSize(@NonNull VersionedParcel self) {
             if (self.readBoolean()) {
@@ -1717,7 +1711,6 @@ public abstract class VersionedParcel {
             return null;
         }
 
-        @DoNotInline
         @Nullable
         static SizeF readSizeF(@NonNull VersionedParcel self) {
             if (self.readBoolean()) {

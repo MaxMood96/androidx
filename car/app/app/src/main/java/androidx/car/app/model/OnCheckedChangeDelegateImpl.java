@@ -36,7 +36,6 @@ import androidx.car.app.utils.RemoteUtils;
 /**
  * Implementation class for {@link OnCheckedChangeDelegate}.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 @CarProtocol
@@ -67,10 +66,11 @@ public class OnCheckedChangeDelegateImpl implements OnCheckedChangeDelegate {
     @NonNull
     // This listener relates to UI event and is expected to be triggered on the main thread.
     @SuppressLint("ExecutorRegistration")
-    static OnCheckedChangeDelegate create(@NonNull OnCheckedChangeListener listener) {
+    public static OnCheckedChangeDelegate create(@NonNull OnCheckedChangeListener listener) {
         return new OnCheckedChangeDelegateImpl(listener);
     }
 
+    @CarProtocol
     @KeepFields // We need to keep these stub for Bundler serialization logic.
     private static class OnCheckedChangeListenerStub extends
             IOnCheckedChangeListener.Stub {

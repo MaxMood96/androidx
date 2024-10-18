@@ -15,8 +15,8 @@ package androidx.wear.watchface.style {
     method public int getSize();
     method public java.util.Iterator<java.util.Map.Entry<androidx.wear.watchface.style.UserStyleSetting,androidx.wear.watchface.style.UserStyleSetting.Option>> iterator();
     method public operator void set(androidx.wear.watchface.style.UserStyleSetting setting, androidx.wear.watchface.style.UserStyleSetting.Option option);
-    method public operator void set(androidx.wear.watchface.style.UserStyleSetting.Id settingId, androidx.wear.watchface.style.UserStyleSetting.Option option);
     method public operator void set(androidx.wear.watchface.style.UserStyleSetting setting, androidx.wear.watchface.style.UserStyleSetting.Option.Id optionId);
+    method public operator void set(androidx.wear.watchface.style.UserStyleSetting.Id settingId, androidx.wear.watchface.style.UserStyleSetting.Option option);
     method public operator void set(androidx.wear.watchface.style.UserStyleSetting.Id settingId, androidx.wear.watchface.style.UserStyleSetting.Option.Id optionId);
     method public androidx.wear.watchface.style.UserStyle toUserStyle();
     property public final int size;
@@ -24,8 +24,8 @@ package androidx.wear.watchface.style {
 
   public final class UserStyle implements kotlin.jvm.internal.markers.KMappedMarker java.util.Map<androidx.wear.watchface.style.UserStyleSetting,androidx.wear.watchface.style.UserStyleSetting.Option> {
     ctor public UserStyle(androidx.wear.watchface.style.UserStyle userStyle);
-    ctor public UserStyle(java.util.Map<androidx.wear.watchface.style.UserStyleSetting,? extends androidx.wear.watchface.style.UserStyleSetting.Option> selectedOptions);
     ctor public UserStyle(androidx.wear.watchface.style.UserStyleData userStyle, androidx.wear.watchface.style.UserStyleSchema styleSchema);
+    ctor public UserStyle(java.util.Map<androidx.wear.watchface.style.UserStyleSetting,? extends androidx.wear.watchface.style.UserStyleSetting.Option> selectedOptions);
     method public boolean containsKey(androidx.wear.watchface.style.UserStyleSetting key);
     method public boolean containsValue(androidx.wear.watchface.style.UserStyleSetting.Option value);
     method public operator androidx.wear.watchface.style.UserStyleSetting.Option? get(androidx.wear.watchface.style.UserStyleSetting key);
@@ -50,8 +50,8 @@ package androidx.wear.watchface.style {
   }
 
   public final class UserStyleFlavor {
-    ctor public UserStyleFlavor(String id, androidx.wear.watchface.style.UserStyleData style, java.util.Map<java.lang.Integer,androidx.wear.watchface.complications.DefaultComplicationDataSourcePolicy> complications);
     ctor public UserStyleFlavor(String id, androidx.wear.watchface.style.UserStyle style, java.util.Map<java.lang.Integer,androidx.wear.watchface.complications.DefaultComplicationDataSourcePolicy> complications);
+    ctor public UserStyleFlavor(String id, androidx.wear.watchface.style.UserStyleData style, java.util.Map<java.lang.Integer,androidx.wear.watchface.complications.DefaultComplicationDataSourcePolicy> complications);
     method public java.util.Map<java.lang.Integer,androidx.wear.watchface.complications.DefaultComplicationDataSourcePolicy> getComplications();
     method public String getId();
     method public androidx.wear.watchface.style.UserStyleData getStyle();
@@ -61,10 +61,14 @@ package androidx.wear.watchface.style {
   }
 
   public final class UserStyleFlavors {
-    ctor public UserStyleFlavors(java.util.List<androidx.wear.watchface.style.UserStyleFlavor> flavors);
     ctor public UserStyleFlavors();
+    ctor public UserStyleFlavors(java.util.List<androidx.wear.watchface.style.UserStyleFlavor> flavors);
     method public java.util.List<androidx.wear.watchface.style.UserStyleFlavor> getFlavors();
     property public final java.util.List<androidx.wear.watchface.style.UserStyleFlavor> flavors;
+    field public static final androidx.wear.watchface.style.UserStyleFlavors.Companion Companion;
+  }
+
+  public static final class UserStyleFlavors.Companion {
   }
 
   public final class UserStyleSchema {
@@ -76,6 +80,10 @@ package androidx.wear.watchface.style {
     method @Deprecated public java.util.List<androidx.wear.watchface.style.UserStyleSetting> getUserStyleSettings();
     property public final java.util.List<androidx.wear.watchface.style.UserStyleSetting> rootUserStyleSettings;
     property @Deprecated public final java.util.List<androidx.wear.watchface.style.UserStyleSetting> userStyleSettings;
+    field public static final androidx.wear.watchface.style.UserStyleSchema.Companion Companion;
+  }
+
+  public static final class UserStyleSchema.Companion {
   }
 
   public abstract sealed class UserStyleSetting {
@@ -102,8 +110,8 @@ package androidx.wear.watchface.style {
   }
 
   public static final class UserStyleSetting.BooleanUserStyleSetting extends androidx.wear.watchface.style.UserStyleSetting {
-    ctor public UserStyleSetting.BooleanUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, boolean defaultValue, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.BooleanUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, boolean defaultValue);
+    ctor @Deprecated public UserStyleSetting.BooleanUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, boolean defaultValue);
+    ctor @Deprecated public UserStyleSetting.BooleanUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, boolean defaultValue, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     method public boolean getDefaultValue();
   }
 
@@ -120,24 +128,40 @@ package androidx.wear.watchface.style {
     method public androidx.wear.watchface.style.UserStyleSetting.BooleanUserStyleSetting.BooleanOption from(boolean value);
   }
 
+  public static final class UserStyleSetting.BooleanUserStyleSetting.Builder {
+    ctor public UserStyleSetting.BooleanUserStyleSetting.Builder(androidx.wear.watchface.style.UserStyleSetting.Id id, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, boolean defaultValue, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId);
+    method public androidx.wear.watchface.style.UserStyleSetting.BooleanUserStyleSetting build();
+    method public androidx.wear.watchface.style.UserStyleSetting.BooleanUserStyleSetting.Builder setIcon(android.graphics.drawable.Icon icon);
+    method public androidx.wear.watchface.style.UserStyleSetting.BooleanUserStyleSetting.Builder setIcon(kotlin.jvm.functions.Function0<android.graphics.drawable.Icon?> iconProvider);
+    method public androidx.wear.watchface.style.UserStyleSetting.BooleanUserStyleSetting.Builder setWatchFaceEditorData(androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData watchFaceEditorData);
+  }
+
   public static final class UserStyleSetting.Companion {
   }
 
   public static final class UserStyleSetting.ComplicationSlotsUserStyleSetting extends androidx.wear.watchface.style.UserStyleSetting {
-    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption> complicationConfig, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption defaultOption, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption> complicationConfig, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption defaultOption);
-    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption> complicationConfig, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers);
+    ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption> complicationConfig, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers);
+    ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption> complicationConfig, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption defaultOption);
+    ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption> complicationConfig, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption defaultOption, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
+  }
+
+  public static final class UserStyleSetting.ComplicationSlotsUserStyleSetting.Builder {
+    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting.Builder(androidx.wear.watchface.style.UserStyleSetting.Id id, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption> complicationConfig, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId);
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting build();
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.Builder setIcon(android.graphics.drawable.Icon icon);
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.Builder setIcon(kotlin.jvm.functions.Function0<android.graphics.drawable.Icon?> iconProvider);
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.Builder setWatchFaceEditorData(androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData watchFaceEditorData);
   }
 
   public static final class UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay {
-    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay(int complicationSlotId, optional Boolean? enabled, optional androidx.wear.watchface.complications.ComplicationSlotBounds? complicationSlotBounds, optional Integer? accessibilityTraversalIndex, optional Integer? nameResourceId, optional Integer? screenReaderNameResourceId);
     ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay(int complicationSlotId, optional Boolean? enabled, optional androidx.wear.watchface.complications.ComplicationSlotBounds? complicationSlotBounds, optional Integer? accessibilityTraversalIndex);
+    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay(int complicationSlotId, optional Boolean? enabled, optional androidx.wear.watchface.complications.ComplicationSlotBounds? complicationSlotBounds, optional Integer? accessibilityTraversalIndex, optional Integer? nameResourceId, optional Integer? screenReaderNameResourceId);
     method public Integer? getAccessibilityTraversalIndex();
     method public androidx.wear.watchface.complications.ComplicationSlotBounds? getComplicationSlotBounds();
     method public int getComplicationSlotId();
-    method public Boolean? getEnabled();
     method public Integer? getNameResourceId();
     method public Integer? getScreenReaderNameResourceId();
+    method public Boolean? isEnabled();
     property public final Integer? accessibilityTraversalIndex;
     property public final androidx.wear.watchface.complications.ComplicationSlotBounds? complicationSlotBounds;
     property public final int complicationSlotId;
@@ -157,10 +181,10 @@ package androidx.wear.watchface.style {
   }
 
   public static final class UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption extends androidx.wear.watchface.style.UserStyleSetting.Option {
-    ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays);
-    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays);
+    ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
+    ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays);
+    ctor @Deprecated public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     method public java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> getComplicationSlotOverlays();
     method public CharSequence getDisplayName();
     method public android.graphics.drawable.Icon? getIcon();
@@ -173,6 +197,14 @@ package androidx.wear.watchface.style {
     property public final androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData;
   }
 
+  public static final class UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption.Builder {
+    ctor public UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption.Builder(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, java.util.Collection<androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotOverlay> complicationSlotOverlays, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId);
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption build();
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption.Builder setIcon(android.graphics.drawable.Icon icon);
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption.Builder setIcon(kotlin.jvm.functions.Function0<android.graphics.drawable.Icon?> iconProvider);
+    method public androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption.Builder setWatchFaceEditorData(androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData watchFaceEditorData);
+  }
+
   public static final class UserStyleSetting.CustomValueUserStyleSetting extends androidx.wear.watchface.style.UserStyleSetting {
     ctor public UserStyleSetting.CustomValueUserStyleSetting(java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, byte[] defaultValue);
   }
@@ -183,30 +215,23 @@ package androidx.wear.watchface.style {
     property public final byte[] customValue;
   }
 
-  @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) public static final class UserStyleSetting.CustomValueUserStyleSetting2 extends androidx.wear.watchface.style.UserStyleSetting {
-    ctor public UserStyleSetting.CustomValueUserStyleSetting2(java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, byte[] defaultValue);
-  }
-
-  public static final class UserStyleSetting.CustomValueUserStyleSetting2.CustomValueOption extends androidx.wear.watchface.style.UserStyleSetting.Option {
-    ctor public UserStyleSetting.CustomValueUserStyleSetting2.CustomValueOption(byte[] customValue);
-    method public byte[] getCustomValue();
-    property public final byte[] customValue;
-    field public static final androidx.wear.watchface.style.UserStyleSetting.CustomValueUserStyleSetting2.CustomValueOption.Companion Companion;
-    field public static final int MAX_SIZE = 125000; // 0x1e848
-  }
-
-  public static final class UserStyleSetting.CustomValueUserStyleSetting2.CustomValueOption.Companion {
-  }
-
   public static final class UserStyleSetting.DoubleRangeUserStyleSetting extends androidx.wear.watchface.style.UserStyleSetting {
-    ctor public UserStyleSetting.DoubleRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, double minimumValue, double maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, double defaultValue, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.DoubleRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, double minimumValue, double maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, double defaultValue);
+    ctor @Deprecated public UserStyleSetting.DoubleRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, double minimumValue, double maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, double defaultValue);
+    ctor @Deprecated public UserStyleSetting.DoubleRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, double minimumValue, double maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, double defaultValue, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     method public double getDefaultValue();
     method public double getMaximumValue();
     method public double getMinimumValue();
     property public final double defaultValue;
     property public final double maximumValue;
     property public final double minimumValue;
+  }
+
+  public static final class UserStyleSetting.DoubleRangeUserStyleSetting.Builder {
+    ctor public UserStyleSetting.DoubleRangeUserStyleSetting.Builder(androidx.wear.watchface.style.UserStyleSetting.Id id, double minimumValue, double maximumValue, double defaultValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId);
+    method public androidx.wear.watchface.style.UserStyleSetting.DoubleRangeUserStyleSetting build();
+    method public androidx.wear.watchface.style.UserStyleSetting.DoubleRangeUserStyleSetting.Builder setIcon(android.graphics.drawable.Icon icon);
+    method public androidx.wear.watchface.style.UserStyleSetting.DoubleRangeUserStyleSetting.Builder setIcon(kotlin.jvm.functions.Function0<android.graphics.drawable.Icon?> iconProvider);
+    method public androidx.wear.watchface.style.UserStyleSetting.DoubleRangeUserStyleSetting.Builder setWatchFaceEditorData(androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData watchFaceEditorData);
   }
 
   public static final class UserStyleSetting.DoubleRangeUserStyleSetting.DoubleRangeOption extends androidx.wear.watchface.style.UserStyleSetting.Option {
@@ -226,19 +251,43 @@ package androidx.wear.watchface.style {
   public static final class UserStyleSetting.Id.Companion {
   }
 
+  @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) public static final class UserStyleSetting.LargeCustomValueUserStyleSetting extends androidx.wear.watchface.style.UserStyleSetting {
+    ctor public UserStyleSetting.LargeCustomValueUserStyleSetting(java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, byte[] defaultValue);
+  }
+
+  public static final class UserStyleSetting.LargeCustomValueUserStyleSetting.CustomValueOption extends androidx.wear.watchface.style.UserStyleSetting.Option {
+    ctor public UserStyleSetting.LargeCustomValueUserStyleSetting.CustomValueOption(byte[] customValue);
+    method public byte[] getCustomValue();
+    property public final byte[] customValue;
+    field public static final androidx.wear.watchface.style.UserStyleSetting.LargeCustomValueUserStyleSetting.CustomValueOption.Companion Companion;
+    field public static final int MAX_SIZE = 125000; // 0x1e848
+  }
+
+  public static final class UserStyleSetting.LargeCustomValueUserStyleSetting.CustomValueOption.Companion {
+  }
+
   public static class UserStyleSetting.ListUserStyleSetting extends androidx.wear.watchface.style.UserStyleSetting {
-    ctor public UserStyleSetting.ListUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption> options, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption defaultOption, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.ListUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption> options, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption defaultOption);
-    ctor public UserStyleSetting.ListUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption> options, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers);
+    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption> options, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers);
+    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption> options, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption defaultOption);
+    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption> options, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, optional androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption defaultOption, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
+  }
+
+  public static final class UserStyleSetting.ListUserStyleSetting.Builder {
+    ctor public UserStyleSetting.ListUserStyleSetting.Builder(androidx.wear.watchface.style.UserStyleSetting.Id id, java.util.List<androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption> options, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting build();
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.Builder setDefaultOption(androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption defaultOption);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.Builder setIcon(android.graphics.drawable.Icon icon);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.Builder setIcon(kotlin.jvm.functions.Function0<android.graphics.drawable.Icon?> iconProvider);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.Builder setWatchFaceEditorData(androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData watchFaceEditorData);
   }
 
   public static final class UserStyleSetting.ListUserStyleSetting.ListOption extends androidx.wear.watchface.style.UserStyleSetting.Option {
-    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, android.graphics.drawable.Icon? icon, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     ctor @Deprecated public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, android.graphics.drawable.Icon? icon);
+    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, android.graphics.drawable.Icon? icon, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     ctor @Deprecated public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, android.graphics.drawable.Icon? icon, optional java.util.Collection<? extends androidx.wear.watchface.style.UserStyleSetting> childSettings, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, optional java.util.Collection<? extends androidx.wear.watchface.style.UserStyleSetting> childSettings, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, optional java.util.Collection<? extends androidx.wear.watchface.style.UserStyleSetting> childSettings);
-    ctor public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon);
+    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon);
+    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, optional java.util.Collection<? extends androidx.wear.watchface.style.UserStyleSetting> childSettings);
+    ctor @Deprecated public UserStyleSetting.ListUserStyleSetting.ListOption(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId, android.graphics.drawable.Icon? icon, optional java.util.Collection<? extends androidx.wear.watchface.style.UserStyleSetting> childSettings, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     method public CharSequence getDisplayName();
     method public android.graphics.drawable.Icon? getIcon();
     method public CharSequence? getScreenReaderName();
@@ -249,15 +298,32 @@ package androidx.wear.watchface.style {
     property public final androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData;
   }
 
+  public static final class UserStyleSetting.ListUserStyleSetting.ListOption.Builder {
+    ctor public UserStyleSetting.ListUserStyleSetting.ListOption.Builder(androidx.wear.watchface.style.UserStyleSetting.Option.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int screenReaderNameResourceId);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption build();
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption.Builder setChildSettings(java.util.Collection<? extends androidx.wear.watchface.style.UserStyleSetting> childSettings);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption.Builder setIcon(android.graphics.drawable.Icon icon);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption.Builder setIcon(kotlin.jvm.functions.Function0<android.graphics.drawable.Icon?> iconProvider);
+    method public androidx.wear.watchface.style.UserStyleSetting.ListUserStyleSetting.ListOption.Builder setWatchFaceEditorData(androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData watchFaceEditorData);
+  }
+
   public static final class UserStyleSetting.LongRangeUserStyleSetting extends androidx.wear.watchface.style.UserStyleSetting {
-    ctor public UserStyleSetting.LongRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, long minimumValue, long maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, long defaultValue, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
-    ctor public UserStyleSetting.LongRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, long minimumValue, long maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, long defaultValue);
+    ctor @Deprecated public UserStyleSetting.LongRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, long minimumValue, long maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, long defaultValue);
+    ctor @Deprecated public UserStyleSetting.LongRangeUserStyleSetting(androidx.wear.watchface.style.UserStyleSetting.Id id, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId, android.graphics.drawable.Icon? icon, long minimumValue, long maximumValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, long defaultValue, optional androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData? watchFaceEditorData);
     method public long getDefaultValue();
     method public long getMaximumValue();
     method public long getMinimumValue();
     property public final long defaultValue;
     property public final long maximumValue;
     property public final long minimumValue;
+  }
+
+  public static final class UserStyleSetting.LongRangeUserStyleSetting.Builder {
+    ctor public UserStyleSetting.LongRangeUserStyleSetting.Builder(androidx.wear.watchface.style.UserStyleSetting.Id id, long minimumValue, long maximumValue, long defaultValue, java.util.Collection<? extends androidx.wear.watchface.style.WatchFaceLayer> affectsWatchFaceLayers, android.content.res.Resources resources, @StringRes int displayNameResourceId, @StringRes int descriptionResourceId);
+    method public androidx.wear.watchface.style.UserStyleSetting.LongRangeUserStyleSetting build();
+    method public androidx.wear.watchface.style.UserStyleSetting.LongRangeUserStyleSetting.Builder setIcon(android.graphics.drawable.Icon icon);
+    method public androidx.wear.watchface.style.UserStyleSetting.LongRangeUserStyleSetting.Builder setIcon(kotlin.jvm.functions.Function0<android.graphics.drawable.Icon?> iconProvider);
+    method public androidx.wear.watchface.style.UserStyleSetting.LongRangeUserStyleSetting.Builder setWatchFaceEditorData(androidx.wear.watchface.style.UserStyleSetting.WatchFaceEditorData watchFaceEditorData);
   }
 
   public static final class UserStyleSetting.LongRangeUserStyleSetting.LongRangeOption extends androidx.wear.watchface.style.UserStyleSetting.Option {
@@ -297,8 +363,6 @@ package androidx.wear.watchface.style {
   }
 
   public enum WatchFaceLayer {
-    method public static androidx.wear.watchface.style.WatchFaceLayer valueOf(String name) throws java.lang.IllegalArgumentException;
-    method public static androidx.wear.watchface.style.WatchFaceLayer[] values();
     enum_constant public static final androidx.wear.watchface.style.WatchFaceLayer BASE;
     enum_constant public static final androidx.wear.watchface.style.WatchFaceLayer COMPLICATIONS;
     enum_constant public static final androidx.wear.watchface.style.WatchFaceLayer COMPLICATIONS_OVERLAY;

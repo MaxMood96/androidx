@@ -28,15 +28,16 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.IOnDoneCallback;
 import androidx.car.app.OnDoneCallback;
+import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.utils.RemoteUtils;
 
 /**
  * Implementation class for {@link AlertCallbackDelegate} to allow IPC for cancel events.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
+@CarProtocol
 @KeepFields
 public class AlertCallbackDelegateImpl implements AlertCallbackDelegate {
     @Nullable
@@ -44,7 +45,7 @@ public class AlertCallbackDelegateImpl implements AlertCallbackDelegate {
 
     @NonNull
     @SuppressLint("ExecutorRegistration")
-    static AlertCallbackDelegate create(@NonNull AlertCallback callback) {
+    public static AlertCallbackDelegate create(@NonNull AlertCallback callback) {
         return new AlertCallbackDelegateImpl(callback);
     }
 
@@ -77,6 +78,7 @@ public class AlertCallbackDelegateImpl implements AlertCallbackDelegate {
         }
     }
 
+    @CarProtocol
     @KeepFields // We need to keep these stub for Bundler serialization logic.
     private static class AlertCallbackStub extends IAlertCallback.Stub {
         private final AlertCallback mCallback;

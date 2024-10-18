@@ -19,8 +19,8 @@ package androidx.camera.view.transform;
 import android.graphics.Rect;
 
 import androidx.camera.core.ImageProxy;
-import androidx.camera.testing.fakes.FakeImageInfo;
-import androidx.camera.testing.fakes.FakeImageProxy;
+import androidx.camera.testing.impl.fakes.FakeImageInfo;
+import androidx.camera.testing.impl.fakes.FakeImageProxy;
 
 
 /**

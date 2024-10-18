@@ -20,7 +20,9 @@ import androidx.annotation.RestrictTo
 import androidx.health.services.client.proto.DataProto
 
 /** Exercise type used to configure sensors and algorithms. */
-public class ExerciseType @RestrictTo(RestrictTo.Scope.LIBRARY) public constructor(
+public class ExerciseType
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+public constructor(
     /** Returns a unique identifier of for the [ExerciseType], as an `int`. */
     public val id: Int,
 
@@ -45,7 +47,6 @@ public class ExerciseType @RestrictTo(RestrictTo.Scope.LIBRARY) public construct
         return id
     }
 
-    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public fun toProto(): DataProto.ExerciseType =
         DataProto.ExerciseType.forNumber(id) ?: DataProto.ExerciseType.EXERCISE_TYPE_UNKNOWN
@@ -282,7 +283,6 @@ public class ExerciseType @RestrictTo(RestrictTo.Scope.LIBRARY) public construct
             return exerciseType ?: UNKNOWN
         }
 
-        /** @hide */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         public fun fromProto(proto: DataProto.ExerciseType): ExerciseType = fromId(proto.number)
     }

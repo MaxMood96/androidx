@@ -90,8 +90,7 @@ public final class FontRequest {
             @NonNull String providerPackage,
             @NonNull String query
     ) {
-        return new StringBuilder(providerAuthority).append("-").append(providerPackage)
-                .append("-").append(query).toString();
+        return providerAuthority + "-" + providerPackage + "-" + query;
     }
 
     /**
@@ -149,7 +148,6 @@ public final class FontRequest {
      * @deprecated Not being used by any cross library, and should not be used, internal
      * implementation detail.
      *
-     * @hide
      */
     @Deprecated
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -157,7 +155,6 @@ public final class FontRequest {
         return mIdentifier;
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     @NonNull
     String getId() {

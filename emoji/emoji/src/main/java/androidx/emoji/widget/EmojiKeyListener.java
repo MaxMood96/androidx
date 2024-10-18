@@ -21,17 +21,14 @@ import android.text.Editable;
 import android.view.KeyEvent;
 import android.view.View;
 
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.emoji.text.EmojiCompat;
 
 /**
  * KeyListener class to handle delete operations correctly.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
-@RequiresApi(19)
 final class EmojiKeyListener implements android.text.method.KeyListener {
     private final android.text.method.KeyListener mKeyListener;
 

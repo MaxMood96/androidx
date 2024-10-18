@@ -22,16 +22,11 @@ import androidx.health.services.client.data.PassiveGoal
 import androidx.health.services.client.data.ProtoParcelable
 import androidx.health.services.client.proto.ResponsesProto
 
-/**
- * Response containing an achieved [PassiveGoal].
- *
- * @hide
- */
+/** Response containing an achieved [PassiveGoal]. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class PassiveMonitoringGoalResponse(public val passiveGoal: PassiveGoal) :
     ProtoParcelable<ResponsesProto.PassiveMonitoringGoalResponse>() {
 
-    /** @hide */
     public constructor(
         proto: ResponsesProto.PassiveMonitoringGoalResponse
     ) : this(PassiveGoal(proto.goal))

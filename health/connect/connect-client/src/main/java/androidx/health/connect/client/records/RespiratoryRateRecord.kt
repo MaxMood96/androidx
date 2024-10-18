@@ -31,7 +31,7 @@ public class RespiratoryRateRecord(
 ) : InstantaneousRecord {
     init {
         requireNonNegative(value = rate, name = "rate")
-        rate.requireNotMore(other = 100.0, name = "rate")
+        rate.requireNotMore(other = 1000.0, name = "rate")
     }
 
     override fun equals(other: Any?): Boolean {
@@ -53,5 +53,9 @@ public class RespiratoryRateRecord(
         result = 31 * result + (zoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "RespiratoryRateRecord(time=$time, zoneOffset=$zoneOffset, rate=$rate, metadata=$metadata)"
     }
 }

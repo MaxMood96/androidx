@@ -28,7 +28,6 @@ import androidx.annotation.RestrictTo;
 import androidx.car.app.IOnDoneCallback;
 import androidx.car.app.OnDoneCallback;
 import androidx.car.app.annotations.CarProtocol;
-import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.utils.RemoteUtils;
@@ -39,12 +38,10 @@ import androidx.car.app.utils.RemoteUtils;
  * <p> This class exists because we don't want to expose {@link IConversationCallback} to the A4C
  * client.
  *
- * @hide
  */
-@ExperimentalCarApi
 @RestrictTo(LIBRARY)
 @CarProtocol
-@RequiresCarApi(6)
+@RequiresCarApi(7)
 @KeepFields
 class ConversationCallbackDelegateImpl implements ConversationCallbackDelegate {
 
@@ -82,6 +79,7 @@ class ConversationCallbackDelegateImpl implements ConversationCallbackDelegate {
         }
     }
 
+    @CarProtocol
     @KeepFields
     private static class ConversationCallbackStub extends IConversationCallback.Stub {
 

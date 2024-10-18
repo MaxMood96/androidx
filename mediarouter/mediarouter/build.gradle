@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -25,11 +32,17 @@ dependencies {
     api("androidx.media:media:1.4.1")
     api(libs.guavaListenableFuture)
 
-    implementation("androidx.core:core:1.6.0")
+    // We should keep androidx.core up-to-date to keep an up-to-date BuildCompat dependency.
+    // See b/283315121 for context, However we cannot depend on tip of the tree dependency because
+    // it prevents our library releases, so we should update this dependency manually whenever
+    // there is a new stable release of it.
+    implementation("androidx.core:core:1.10.1")
     implementation("androidx.appcompat:appcompat:1.1.0")
     implementation("androidx.palette:palette:1.0.0")
     implementation("androidx.recyclerview:recyclerview:1.1.0")
     implementation("androidx.appcompat:appcompat-resources:1.2.0")
+
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
 
     testImplementation(libs.junit)
     testImplementation(libs.testCore)
@@ -40,21 +53,22 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.espressoCore)
     androidTestImplementation(project(":media:version-compat-tests:lib"))
     androidTestImplementation(project(":mediarouter:mediarouter-testing"))
 }
 
 android {
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     namespace "androidx.mediarouter"
 }
 
 androidx {
-    name = "Android MediaRouter Support Library"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "MediaRouter"
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2013"
     description = "Android MediaRouter Support Library"
     failOnDeprecationWarnings = false

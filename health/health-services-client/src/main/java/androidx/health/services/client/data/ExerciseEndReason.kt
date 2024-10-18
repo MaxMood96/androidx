@@ -17,15 +17,12 @@
 package androidx.health.services.client.data
 
 import androidx.annotation.IntDef
-import androidx.health.services.client.proto.DataProto
+import androidx.annotation.RestrictTo
 import androidx.health.services.client.ExerciseClient
+import androidx.health.services.client.proto.DataProto
 import kotlin.annotation.AnnotationRetention.SOURCE
 
-/**
- * The reason why an exercise has been ended for [ExerciseState] used in [ExerciseStateInfo].
- *
- * @hide
- */
+/** The reason why an exercise has been ended for [ExerciseState] used in [ExerciseStateInfo]. */
 @Retention(SOURCE)
 @IntDef(
     ExerciseEndReason.UNKNOWN,
@@ -36,6 +33,7 @@ import kotlin.annotation.AnnotationRetention.SOURCE
     ExerciseEndReason.AUTO_END_SUPERSEDED,
     ExerciseEndReason.AUTO_END_PREPARE_EXPIRED
 )
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public annotation class ExerciseEndReason {
 
     public companion object {
@@ -86,7 +84,6 @@ public annotation class ExerciseEndReason {
                 else -> DataProto.ExerciseEndReason.EXERCISE_END_REASON_UNKNOWN
             }
 
-        /** @hide */
         @ExerciseEndReason
         internal fun fromProto(proto: DataProto.ExerciseEndReason): Int =
             when (proto) {

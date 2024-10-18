@@ -16,14 +16,12 @@
 
 package androidx.appsearch.cts.app;
 
-import static androidx.appsearch.app.AppSearchResult.RESULT_INVALID_ARGUMENT;
-
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
+import androidx.appsearch.app.PropertyPath;
 import androidx.appsearch.app.SearchSuggestionSpec;
-import androidx.appsearch.exceptions.AppSearchException;
 
 import com.google.common.collect.ImmutableList;
 
@@ -68,14 +66,45 @@ public class SearchSuggestionSpecCtsTest {
 
     @Test
     public void testDocumentIdFilterMustMatchNamespaceFilter() throws Exception {
-        AppSearchException e = assertThrows(AppSearchException.class,
+        IllegalStateException e = assertThrows(IllegalStateException.class,
                 () -> new SearchSuggestionSpec.Builder(/*totalResultCount=*/123)
                         .addFilterNamespaces("namespace1")
                         .addFilterDocumentIds("namespace2", ImmutableList.of("doc1"))
                         .build());
-        assertThat(e.getResultCode()).isEqualTo(RESULT_INVALID_ARGUMENT);
         assertThat(e).hasMessageThat().contains("The namespace: namespace2 exists in the "
                 + "document id filter but doesn't exist in the namespace filter.");
+    }
+
+    @Test
+    public void testBuildSearchSuggestionSpec_withPropertyFilter() throws Exception {
+        SearchSuggestionSpec searchSuggestionSpec =
+                new SearchSuggestionSpec.Builder(/*totalResultCount=*/123)
+                        .setRankingStrategy(SearchSuggestionSpec
+                                .SUGGESTION_RANKING_STRATEGY_TERM_FREQUENCY)
+                        .addFilterSchemas("Person", "Email")
+                        .addFilterSchemas(ImmutableList.of("Foo"))
+                        .addFilterProperties("Email", ImmutableList.of("Subject", "body"))
+                        .addFilterPropertyPaths("Foo",
+                                ImmutableList.of(new PropertyPath("Bar")))
+                        .build();
+
+        assertThat(searchSuggestionSpec.getMaximumResultCount()).isEqualTo(123);
+        assertThat(searchSuggestionSpec.getFilterSchemas())
+                .containsExactly("Person", "Email", "Foo");
+        assertThat(searchSuggestionSpec.getFilterProperties())
+                .containsExactly("Email",  ImmutableList.of("Subject", "body"),
+                        "Foo",  ImmutableList.of("Bar"));
+    }
+
+    @Test
+    public void testPropertyFilterMustMatchSchemaFilter() throws Exception {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> new SearchSuggestionSpec.Builder(/*totalResultCount=*/123)
+                        .addFilterSchemas("Person")
+                        .addFilterProperties("Email", ImmutableList.of("Subject", "body"))
+                        .build());
+        assertThat(e).hasMessageThat().contains("The schema: Email exists in the "
+                + "property filter but doesn't exist in the schema filter.");
     }
 
     @Test
@@ -109,5 +138,32 @@ public class SearchSuggestionSpecCtsTest {
                         "namespace3", ImmutableList.of("doc3", "doc4"));
         assertThat(rebuild.getFilterSchemas())
                 .containsExactly("Person", "Email", "Message", "Foo");
+    }
+
+    @Test
+    public void testRebuild_withPropertyFilter() throws Exception {
+        SearchSuggestionSpec.Builder builder =
+                new SearchSuggestionSpec.Builder(/*totalResultCount=*/123)
+                        .addFilterSchemas("Person", "Email")
+                        .addFilterProperties("Email", ImmutableList.of("Subject", "body"));
+
+        SearchSuggestionSpec original = builder.build();
+
+        builder.addFilterSchemas("Message", "Foo")
+                .addFilterProperties("Foo", ImmutableList.of("Bar"));
+        SearchSuggestionSpec rebuild = builder.build();
+
+        assertThat(original.getMaximumResultCount()).isEqualTo(123);
+        assertThat(original.getFilterSchemas())
+                .containsExactly("Person", "Email");
+        assertThat(original.getFilterProperties())
+                .containsExactly("Email",  ImmutableList.of("Subject", "body"));
+
+        assertThat(rebuild.getMaximumResultCount()).isEqualTo(123);
+        assertThat(rebuild.getFilterSchemas())
+                .containsExactly("Person", "Email", "Message", "Foo");
+        assertThat(rebuild.getFilterProperties())
+                .containsExactly("Email",  ImmutableList.of("Subject", "body"),
+                        "Foo",  ImmutableList.of("Bar"));
     }
 }

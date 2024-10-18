@@ -46,7 +46,6 @@ import androidx.core.view.ViewCompat;
  *         priority for extra space</li>
  * </ul>
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class AlertDialogLayout extends LinearLayoutCompat {
@@ -312,7 +311,7 @@ public class AlertDialogLayout extends LinearLayoutCompat {
                 if (layoutGravity < 0) {
                     layoutGravity = minorGravity;
                 }
-                final int layoutDirection = ViewCompat.getLayoutDirection(this);
+                final int layoutDirection = getLayoutDirection();
                 final int absoluteGravity = GravityCompat.getAbsoluteGravity(
                         layoutGravity, layoutDirection);
 

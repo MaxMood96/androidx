@@ -99,6 +99,10 @@ public class BloodPressureRecord(
         return result
     }
 
+    override fun toString(): String {
+        return "BloodPressureRecord(time=$time, zoneOffset=$zoneOffset, systolic=$systolic, diastolic=$diastolic, bodyPosition=$bodyPosition, measurementLocation=$measurementLocation, metadata=$metadata)"
+    }
+
     /** The arm and part of the arm where a blood pressure measurement was taken. */
     internal object MeasurementLocation {
         const val LEFT_WRIST = "left_wrist"
@@ -107,10 +111,7 @@ public class BloodPressureRecord(
         const val RIGHT_UPPER_ARM = "right_upper_arm"
     }
 
-    /**
-     * The user's body position when a health measurement is taken.
-     * @suppress
-     */
+    /** The user's body position when a health measurement is taken. */
     internal object BodyPosition {
         const val STANDING_UP = "standing_up"
         const val SITTING_DOWN = "sitting_down"
@@ -118,10 +119,8 @@ public class BloodPressureRecord(
         const val RECLINING = "reclining"
     }
 
-    /**
-     * The arm and part of the arm where a blood pressure measurement was taken.
-     * @suppress
-     */
+    /** The arm and part of the arm where a blood pressure measurement was taken. */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(AnnotationRetention.SOURCE)
     @IntDef(
         value =
@@ -135,10 +134,7 @@ public class BloodPressureRecord(
     )
     annotation class MeasurementLocations
 
-    /**
-     * The user's body position when a health measurement is taken.
-     * @suppress
-     */
+    /** The user's body position when a health measurement is taken. */
     @Retention(AnnotationRetention.SOURCE)
     @IntDef(
         value =
@@ -150,6 +146,7 @@ public class BloodPressureRecord(
                 BODY_POSITION_RECLINING
             ]
     )
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     annotation class BodyPositions
 
     companion object {
@@ -198,7 +195,7 @@ public class BloodPressureRecord(
         private const val BLOOD_PRESSURE_NAME = "BloodPressure"
         private const val SYSTOLIC_FIELD_NAME = "systolic"
         private const val DIASTOLIC_FIELD_NAME = "diastolic"
-        private val MIN_SYSTOLIC = 10.millimetersOfMercury
+        private val MIN_SYSTOLIC = 20.millimetersOfMercury
         private val MAX_SYSTOLIC = 200.millimetersOfMercury
         private val MIN_DIASTOLIC = 10.millimetersOfMercury
         private val MAX_DIASTOLIC = 180.millimetersOfMercury

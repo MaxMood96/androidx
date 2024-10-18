@@ -21,9 +21,11 @@ plugins {
 }
 
 android {
+    compileSdk 35
     defaultConfig {
         applicationId "androidx.window.demo2"
         minSdkVersion 23
+        targetSdkVersion 35
     }
     buildFeatures {
         viewBinding true
@@ -32,13 +34,13 @@ android {
 }
 
 dependencies {
-    implementation("androidx.activity:activity:1.2.0")
-    implementation("androidx.appcompat:appcompat:1.2.0")
+    implementation("androidx.activity:activity:1.9.0")
+    implementation(project(":appcompat:appcompat"))
     api(libs.constraintLayout)
     implementation("androidx.core:core-ktx:1.8.0")
     // TODO(b/152245564) Conflicting dependencies cause IDE errors.
-    implementation("androidx.lifecycle:lifecycle-viewmodel:2.4.0-alpha02")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha02")
+    implementation("androidx.lifecycle:lifecycle-viewmodel:2.4.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation(project(":window:window-java"))
     implementation(project(":window:window-demos:demo-common"))

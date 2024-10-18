@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -34,10 +40,19 @@ dependencies {
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.kotlinStdlib)
+    androidTestImplementation(libs.kotlinTest)
 }
 
 android {
     namespace "androidx.benchmark.benchmark"
+    buildTypes.release {
+        androidTest {
+            enableMinification = false
+            testProguardFiles "proguard-rules.pro"
+        }
+    }
+    // TODO(b/345531033)
+    experimentalProperties["android.lint.useK2Uast"] = false 
 }
 
 androidx {

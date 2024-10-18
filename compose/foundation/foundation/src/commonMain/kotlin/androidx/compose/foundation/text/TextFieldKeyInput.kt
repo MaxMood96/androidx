@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.FinishComposingTextCommand
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 
@@ -42,12 +43,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 internal expect val KeyEvent.isTypedEvent: Boolean
 
 /**
- * It handles [KeyEvent]s and either process them as typed events or maps to
- * [KeyCommand] via [KeyMapping]. [KeyCommand] then is executed
- * using utility class [TextFieldPreparedSelection]
+ * It handles [KeyEvent]s and either process them as typed events or maps to [KeyCommand] via
+ * [KeyMapping]. [KeyCommand] then is executed using utility class [TextFieldPreparedSelection]
  */
 internal class TextFieldKeyInput(
-    val state: TextFieldState,
+    val state: LegacyTextFieldState,
     val selectionManager: TextFieldSelectionManager,
     val value: TextFieldValue = TextFieldValue(),
     val editable: Boolean = true,
@@ -57,14 +57,14 @@ internal class TextFieldKeyInput(
     val undoManager: UndoManager? = null,
     private val keyCombiner: DeadKeyCombiner,
     private val keyMapping: KeyMapping = platformDefaultKeyMapping,
-    private val onValueChange: (TextFieldValue) -> Unit = {}
+    private val onValueChange: (TextFieldValue) -> Unit = {},
+    private val imeAction: ImeAction,
 ) {
     private fun List<EditCommand>.apply() {
-        val newTextFieldValue = state.processor.apply(
-            this.toMutableList().apply {
-                add(0, FinishComposingTextCommand())
-            }
-        )
+        val newTextFieldValue =
+            state.processor.apply(
+                this.toMutableList().apply { add(0, FinishComposingTextCommand()) }
+            )
 
         onValueChange(newTextFieldValue)
     }
@@ -125,60 +125,67 @@ internal class TextFieldKeyInput(
                 KeyCommand.END -> moveCursorToEnd()
                 KeyCommand.DELETE_PREV_CHAR ->
                     deleteIfSelectedOr {
-                        DeleteSurroundingTextCommand(
-                            selection.end - getPrecedingCharacterIndex(),
-                            0
-                        )
-                    }?.apply()
+                            DeleteSurroundingTextCommand(
+                                selection.end - getPrecedingCharacterIndex(),
+                                0
+                            )
+                        }
+                        ?.apply()
                 KeyCommand.DELETE_NEXT_CHAR -> {
                     // Note that some software keyboards, such as Samsungs, go through this code
                     // path instead of making calls on the InputConnection directly.
                     deleteIfSelectedOr {
-                        val nextCharacterIndex = getNextCharacterIndex()
-                        // If there's no next character, it means the cursor is at the end of the
-                        // text, and this should be a no-op. See b/199919707.
-                        if (nextCharacterIndex != NoCharacterFound) {
-                            DeleteSurroundingTextCommand(0, nextCharacterIndex - selection.end)
-                        } else {
-                            null
+                            val nextCharacterIndex = getNextCharacterIndex()
+                            // If there's no next character, it means the cursor is at the end of
+                            // the
+                            // text, and this should be a no-op. See b/199919707.
+                            if (nextCharacterIndex != NoCharacterFound) {
+                                DeleteSurroundingTextCommand(0, nextCharacterIndex - selection.end)
+                            } else {
+                                null
+                            }
                         }
-                    }?.apply()
+                        ?.apply()
                 }
                 KeyCommand.DELETE_PREV_WORD ->
                     deleteIfSelectedOr {
-                        getPreviousWordOffset()?.let {
-                            DeleteSurroundingTextCommand(selection.end - it, 0)
+                            getPreviousWordOffset()?.let {
+                                DeleteSurroundingTextCommand(selection.end - it, 0)
+                            }
                         }
-                    }?.apply()
+                        ?.apply()
                 KeyCommand.DELETE_NEXT_WORD ->
                     deleteIfSelectedOr {
-                        getNextWordOffset()?.let {
-                            DeleteSurroundingTextCommand(0, it - selection.end)
+                            getNextWordOffset()?.let {
+                                DeleteSurroundingTextCommand(0, it - selection.end)
+                            }
                         }
-                    }?.apply()
+                        ?.apply()
                 KeyCommand.DELETE_FROM_LINE_START ->
                     deleteIfSelectedOr {
-                        getLineStartByOffset()?.let {
-                            DeleteSurroundingTextCommand(selection.end - it, 0)
+                            getLineStartByOffset()?.let {
+                                DeleteSurroundingTextCommand(selection.end - it, 0)
+                            }
                         }
-                    }?.apply()
+                        ?.apply()
                 KeyCommand.DELETE_TO_LINE_END ->
                     deleteIfSelectedOr {
-                        getLineEndByOffset()?.let {
-                            DeleteSurroundingTextCommand(0, it - selection.end)
+                            getLineEndByOffset()?.let {
+                                DeleteSurroundingTextCommand(0, it - selection.end)
+                            }
                         }
-                    }?.apply()
+                        ?.apply()
                 KeyCommand.NEW_LINE ->
                     if (!singleLine) {
                         CommitTextCommand("\n", 1).apply()
                     } else {
-                        consumed = false
+                        this@TextFieldKeyInput.state.onImeActionPerformed(imeAction)
                     }
                 KeyCommand.TAB ->
                     if (!singleLine) {
                         CommitTextCommand("\t", 1).apply()
                     } else {
-                        consumed = false
+                        consumed = false // let propagate to focus system
                     }
                 KeyCommand.SELECT_ALL -> selectAll()
                 KeyCommand.SELECT_LEFT_CHAR -> moveCursorLeft().selectMovement()
@@ -215,45 +222,49 @@ internal class TextFieldKeyInput(
     }
 
     private fun commandExecutionContext(block: TextFieldPreparedSelection.() -> Unit) {
-        val preparedSelection = TextFieldPreparedSelection(
-            currentValue = value,
-            offsetMapping = offsetMapping,
-            layoutResultProxy = state.layoutResult,
-            state = preparedSelectionState
-        )
+        val preparedSelection =
+            TextFieldPreparedSelection(
+                currentValue = value,
+                offsetMapping = offsetMapping,
+                layoutResultProxy = state.layoutResult,
+                state = preparedSelectionState
+            )
         block(preparedSelection)
-        if (preparedSelection.selection != value.selection ||
-            preparedSelection.annotatedString != value.annotatedString
+        if (
+            preparedSelection.selection != value.selection ||
+                preparedSelection.annotatedString != value.annotatedString
         ) {
             onValueChange(preparedSelection.value)
         }
     }
 }
 
-@Suppress("ModifierInspectorInfo")
 internal fun Modifier.textFieldKeyInput(
-    state: TextFieldState,
+    state: LegacyTextFieldState,
     manager: TextFieldSelectionManager,
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit = {},
     editable: Boolean,
     singleLine: Boolean,
     offsetMapping: OffsetMapping,
-    undoManager: UndoManager
+    undoManager: UndoManager,
+    imeAction: ImeAction,
 ) = composed {
     val preparedSelectionState = remember { TextPreparedSelectionState() }
     val keyCombiner = remember { DeadKeyCombiner() }
-    val processor = TextFieldKeyInput(
-        state = state,
-        selectionManager = manager,
-        value = value,
-        editable = editable,
-        singleLine = singleLine,
-        offsetMapping = offsetMapping,
-        preparedSelectionState = preparedSelectionState,
-        undoManager = undoManager,
-        keyCombiner = keyCombiner,
-        onValueChange = onValueChange
-    )
+    val processor =
+        TextFieldKeyInput(
+            state = state,
+            selectionManager = manager,
+            value = value,
+            editable = editable,
+            singleLine = singleLine,
+            offsetMapping = offsetMapping,
+            preparedSelectionState = preparedSelectionState,
+            undoManager = undoManager,
+            keyCombiner = keyCombiner,
+            onValueChange = onValueChange,
+            imeAction = imeAction,
+        )
     Modifier.onKeyEvent(processor::process)
 }

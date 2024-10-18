@@ -41,6 +41,7 @@ import android.util.Size;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
 import androidx.camera.camera2.internal.util.SemaphoreReleasingCamera2Callbacks;
@@ -48,6 +49,7 @@ import androidx.camera.camera2.interop.Camera2Interop;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExposureState;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.concurrent.CameraCoordinator;
 import androidx.camera.core.impl.CameraControlInternal;
 import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.CameraInternal;
@@ -58,11 +60,12 @@ import androidx.camera.core.impl.SessionConfig;
 import androidx.camera.core.impl.StreamSpec;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
 import androidx.camera.core.internal.CameraUseCaseAdapter;
-import androidx.camera.testing.CameraUtil;
-import androidx.camera.testing.fakes.FakeCameraDeviceSurfaceManager;
-import androidx.camera.testing.fakes.FakeUseCase;
-import androidx.camera.testing.fakes.FakeUseCaseConfig;
-import androidx.camera.testing.fakes.FakeUseCaseConfigFactory;
+import androidx.camera.testing.impl.CameraUtil;
+import androidx.camera.testing.impl.fakes.FakeCameraCoordinator;
+import androidx.camera.testing.impl.fakes.FakeCameraDeviceSurfaceManager;
+import androidx.camera.testing.impl.fakes.FakeUseCase;
+import androidx.camera.testing.impl.fakes.FakeUseCaseConfig;
+import androidx.camera.testing.impl.fakes.FakeUseCaseConfigFactory;
 import androidx.core.os.HandlerCompat;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -81,7 +84,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -104,7 +106,7 @@ public class ExposureDeviceTest {
     private static final int DEFAULT_AVAILABLE_CAMERA_COUNT = 1;
 
     @Rule
-    public TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTest(
+    public TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
             new CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
     );
 
@@ -117,6 +119,7 @@ public class ExposureDeviceTest {
     Semaphore mSemaphore;
     String mCameraId;
     SemaphoreReleasingCamera2Callbacks.SessionStateCallback mSessionStateCallback;
+    private CameraCoordinator mCameraCoordinator;
     private CameraUseCaseAdapter mCameraUseCaseAdapter;
     private CameraInfoInternal mCameraInfoInternal;
     private CameraControlInternal mCameraControlInternal;
@@ -149,17 +152,22 @@ public class ExposureDeviceTest {
         mSessionStateCallback = new SemaphoreReleasingCamera2Callbacks.SessionStateCallback();
         mCameraId = CameraUtil.getCameraIdWithLensFacing(DEFAULT_LENS_FACING);
         mSemaphore = new Semaphore(0);
-        mCameraStateRegistry = new CameraStateRegistry(DEFAULT_AVAILABLE_CAMERA_COUNT);
+        mCameraCoordinator = new FakeCameraCoordinator();
+        mCameraStateRegistry = new CameraStateRegistry(mCameraCoordinator,
+                DEFAULT_AVAILABLE_CAMERA_COUNT);
         CameraManagerCompat cameraManagerCompat =
                 CameraManagerCompat.from((Context) ApplicationProvider.getApplicationContext());
         Camera2CameraInfoImpl camera2CameraInfo = new Camera2CameraInfoImpl(
                 mCameraId, cameraManagerCompat);
         mCamera2CameraImpl = new Camera2CameraImpl(
+                (Context) ApplicationProvider.getApplicationContext(),
                 CameraManagerCompat.from((Context) ApplicationProvider.getApplicationContext()),
                 mCameraId,
                 camera2CameraInfo,
+                mCameraCoordinator,
                 mCameraStateRegistry, sCameraExecutor, sCameraHandler,
-                DisplayInfoManager.getInstance(ApplicationProvider.getApplicationContext())
+                DisplayInfoManager.getInstance(ApplicationProvider.getApplicationContext()),
+                -1L
         );
 
         mCameraInfoInternal = mCamera2CameraImpl.getCameraInfoInternal();
@@ -170,9 +178,10 @@ public class ExposureDeviceTest {
                 new FakeCameraDeviceSurfaceManager();
         fakeCameraDeviceSurfaceManager.setSuggestedStreamSpec(mCameraId, FakeUseCaseConfig.class,
                 StreamSpec.builder(new Size(640, 480)).build());
-
+        mCameraCoordinator = new FakeCameraCoordinator();
         mCameraUseCaseAdapter = new CameraUseCaseAdapter(
-                new LinkedHashSet<>(Collections.singleton(mCamera2CameraImpl)),
+                mCamera2CameraImpl,
+                mCameraCoordinator,
                 fakeCameraDeviceSurfaceManager, new FakeUseCaseConfigFactory());
     }
 
@@ -438,14 +447,16 @@ public class ExposureDeviceTest {
         @Override
         @NonNull
         protected StreamSpec onSuggestedStreamSpecUpdated(
-                @NonNull StreamSpec suggestedStreamSpec) {
-            createPipeline(suggestedStreamSpec);
+                @NonNull StreamSpec primaryStreamSpec,
+                @Nullable StreamSpec secondaryStreamSpec) {
+            createPipeline(primaryStreamSpec);
             notifyActive();
-            return suggestedStreamSpec;
+            return primaryStreamSpec;
         }
 
         private void createPipeline(StreamSpec streamSpec) {
-            SessionConfig.Builder builder = SessionConfig.Builder.createFrom(getCurrentConfig());
+            SessionConfig.Builder builder = SessionConfig.Builder.createFrom(getCurrentConfig(),
+                    streamSpec.getResolution());
 
             builder.setTemplateType(CameraDevice.TEMPLATE_PREVIEW);
             if (mDeferrableSurface != null) {
@@ -477,11 +488,11 @@ public class ExposureDeviceTest {
                         }
                     }));
 
-            builder.addErrorListener((sessionConfig, error) -> {
+            builder.setErrorListener((sessionConfig, error) -> {
                 // Create new pipeline and it will close the old one.
                 createPipeline(streamSpec);
             });
-            updateSessionConfig(builder.build());
+            updateSessionConfig(List.of(builder.build()));
         }
     }
 }

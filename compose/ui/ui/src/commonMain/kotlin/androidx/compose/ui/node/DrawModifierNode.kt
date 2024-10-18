@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.node
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 
@@ -28,17 +27,15 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
  *
  * @sample androidx.compose.ui.samples.DrawModifierNodeSample
  */
-@ExperimentalComposeUiApi
 interface DrawModifierNode : DelegatableNode {
     fun ContentDrawScope.draw()
+
     fun onMeasureResultChanged() {}
 }
 
 /**
- * Invalidates this modifier's draw layer, ensuring that a draw pass will
- * be run on the next frame.
+ * Invalidates this modifier's draw layer, ensuring that a draw pass will be run on the next frame.
  */
-@ExperimentalComposeUiApi
 fun DrawModifierNode.invalidateDraw() {
     if (node.isAttached) {
         requireCoordinator(Nodes.Any).invalidateLayer()

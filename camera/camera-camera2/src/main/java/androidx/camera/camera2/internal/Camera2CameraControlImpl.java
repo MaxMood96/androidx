@@ -35,12 +35,10 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.camera2.impl.Camera2ImplConfig;
 import androidx.camera.camera2.internal.annotation.CameraExecutor;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
-import androidx.camera.camera2.internal.compat.workaround.AeFpsRange;
 import androidx.camera.camera2.internal.compat.workaround.AutoFlashAEModeDisabler;
 import androidx.camera.camera2.interop.Camera2CameraControl;
 import androidx.camera.camera2.interop.CaptureRequestOptions;
@@ -48,7 +46,9 @@ import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCapture.ScreenFlash;
 import androidx.camera.core.Logger;
+import androidx.camera.core.imagecapture.CameraCapturePipeline;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraCaptureFailure;
 import androidx.camera.core.impl.CameraCaptureResult;
@@ -107,7 +107,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * </ul>
  */
 @OptIn(markerClass = ExperimentalCamera2Interop.class)
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class Camera2CameraControlImpl implements CameraControlInternal {
     private static final String TAG = "Camera2CameraControlImp";
     private static final int DEFAULT_TEMPLATE = CameraDevice.TEMPLATE_PREVIEW;
@@ -129,15 +128,18 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
     ZslControl mZslControl;
     private final Camera2CameraControl mCamera2CameraControl;
     private final Camera2CapturePipeline mCamera2CapturePipeline;
+    private final VideoUsageControl mVideoUsageControl;
     @GuardedBy("mLock")
     private int mUseCount = 0;
+
+    private ImageCapture.ScreenFlash mScreenFlash;
+
     // use volatile modifier to make these variables in sync in all threads.
     private volatile boolean mIsTorchOn = false;
     @ImageCapture.FlashMode
     private volatile int mFlashMode = FLASH_MODE_OFF;
 
     // Workarounds
-    private final AeFpsRange mAeFpsRange;
     private final AutoFlashAEModeDisabler mAutoFlashAEModeDisabler;
 
     static final String TAG_SESSION_UPDATE_ID = "CameraControlSessionUpdateId";
@@ -145,6 +147,7 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
     @NonNull
     private volatile ListenableFuture<Void> mFlashModeChangeSessionUpdateFuture =
             Futures.immediateFuture(null);
+
     //******************** Should only be accessed by executor *****************************//
     private int mTemplate = DEFAULT_TEMPLATE;
     // SessionUpdateId will auto-increment every time session updates.
@@ -183,6 +186,7 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
         mCameraCharacteristics = cameraCharacteristics;
         mControlUpdateCallback = controlUpdateCallback;
         mExecutor = executor;
+        mVideoUsageControl = new VideoUsageControl(executor);
         mSessionCallback = new CameraControlSessionCallback(mExecutor);
         mSessionConfigBuilder.setTemplateType(mTemplate);
         mSessionConfigBuilder.addRepeatingCameraCaptureCallback(
@@ -204,13 +208,10 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
         }
 
         // Workarounds
-        mAeFpsRange = new AeFpsRange(cameraQuirks);
         mAutoFlashAEModeDisabler = new AutoFlashAEModeDisabler(cameraQuirks);
         mCamera2CameraControl = new Camera2CameraControl(this, mExecutor);
         mCamera2CapturePipeline = new Camera2CapturePipeline(this, mCameraCharacteristics,
-                cameraQuirks, mExecutor);
-        mExecutor.execute(
-                () -> addCaptureResultListener(mCamera2CameraControl.getCaptureRequestListener()));
+                cameraQuirks, mExecutor, scheduler);
     }
 
     /** Increments the use count of the control. */
@@ -305,14 +306,24 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
      *
      * <p>Most operations during inactive state do nothing. Some states are reset to default
      * once it is changed to inactive state.
+     *
+     * <p>This method should be executed by {@link #mExecutor} only.
      */
     @ExecutedBy("mExecutor")
     void setActive(boolean isActive) {
+        Logger.d(TAG, "setActive: isActive = " + isActive);
         mFocusMeteringControl.setActive(isActive);
         mZoomControl.setActive(isActive);
         mTorchControl.setActive(isActive);
         mExposureControl.setActive(isActive);
         mCamera2CameraControl.setActive(isActive);
+        if (!isActive) {
+            mScreenFlash = null;
+            // Since the camera is no longer active, there should not be any recording ongoing with
+            // this camera. If something like persistent recording wants to resume recording with
+            // this camera again, it should update recording status again when being attached.
+            mVideoUsageControl.resetDirectly(); // already in mExecutor i.e. camera thread
+        }
     }
 
     @ExecutedBy("mExecutor")
@@ -377,6 +388,7 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
         }
         // update mFlashMode immediately so that following getFlashMode() returns correct value.
         mFlashMode = flashMode;
+        Logger.d(TAG, "setFlashMode: mFlashMode = " + mFlashMode);
 
         // Disable ZSL when flash mode is ON or AUTO.
         mZslControl.setZslDisabledByFlashMode(mFlashMode == FLASH_MODE_ON
@@ -386,6 +398,17 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
         // the flash mode is not completed. We need to store the future so that AE precapture can
         // wait for it.
         mFlashModeChangeSessionUpdateFuture = updateSessionConfigAsync();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setScreenFlash(@Nullable ScreenFlash screenFlash) {
+        mScreenFlash = screenFlash;
+    }
+
+    @Nullable
+    public ScreenFlash getScreenFlash() {
+        return mScreenFlash;
     }
 
     @Override
@@ -487,6 +510,27 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
                         flashMode, flashType), mExecutor);
     }
 
+    @NonNull
+    @Override
+    public ListenableFuture<CameraCapturePipeline> getCameraCapturePipelineAsync(
+            @ImageCapture.CaptureMode int captureMode, @ImageCapture.FlashType int flashType) {
+        if (!isControlInUse()) {
+            Logger.w(TAG, "Camera is not active.");
+            return Futures.immediateFailedFuture(
+                    new OperationCanceledException("Camera is not active."));
+        }
+
+        int flashMode = getFlashMode();
+        return FutureChain.from(
+                Futures.nonCancellationPropagating(mFlashModeChangeSessionUpdateFuture)
+        ).transformAsync(
+                v -> Futures.immediateFuture(mCamera2CapturePipeline.getCameraCapturePipeline(
+                        captureMode, flashMode, flashType
+                )),
+                mExecutor
+        );
+    }
+
     /** {@inheritDoc} */
     @Override
     @NonNull
@@ -494,10 +538,6 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
     public SessionConfig getSessionConfig() {
         mSessionConfigBuilder.setTemplateType(mTemplate);
         mSessionConfigBuilder.setImplementationOptions(getSessionOptions());
-        Object tag = mCamera2CameraControl.getCamera2ImplConfig().getCaptureRequestTag(null);
-        if (tag != null && tag instanceof Integer) {
-            mSessionConfigBuilder.addTag(Camera2CameraControl.TAG_KEY, tag);
-        }
         mSessionConfigBuilder.addTag(TAG_SESSION_UPDATE_ID, mCurrentSessionUpdateId);
         return mSessionConfigBuilder.build();
     }
@@ -531,7 +571,7 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
      * session is updated successfully.
      */
     @NonNull
-    ListenableFuture<Void> updateSessionConfigAsync() {
+    public ListenableFuture<Void> updateSessionConfigAsync() {
         ListenableFuture<Void> future = CallbackToFutureAdapter.getFuture(completer -> {
             mExecutor.execute(() -> {
                 long sessionUpdateId = updateSessionConfigSynchronous();
@@ -568,8 +608,12 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
     @ExecutedBy("mExecutor")
     @NonNull
     public Rect getSensorRect() {
-        return Preconditions.checkNotNull(
-                mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
+        Rect sensorRect =
+                mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        if ("robolectric".equals(Build.FINGERPRINT) && sensorRect == null) {
+            return new Rect(0, 0, 4000, 3000);
+        }
+        return Preconditions.checkNotNull(sensorRect);
     }
 
     @ExecutedBy("mExecutor")
@@ -638,20 +682,24 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
     @ExecutedBy("mExecutor")
     Config getSessionOptions() {
         Camera2ImplConfig.Builder builder = new Camera2ImplConfig.Builder();
-        builder.setCaptureRequestOption(
-                CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
+        builder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_MODE,
+                CaptureRequest.CONTROL_MODE_AUTO, Config.OptionPriority.REQUIRED);
 
         // AF Mode is assigned in mFocusMeteringControl.
         mFocusMeteringControl.addFocusMeteringOptions(builder);
 
-        mAeFpsRange.addAeFpsRangeOptions(builder);
-
         mZoomControl.addZoomOption(builder);
 
         int aeMode = CaptureRequest.CONTROL_AE_MODE_ON;
+
+        // Flash modes other than screen flash will override this AE mode later
+        if (mFocusMeteringControl.isExternalFlashAeModeEnabled()) {
+            aeMode = CaptureRequest.CONTROL_AE_MODE_ON_EXTERNAL_FLASH;
+        }
+
         if (mIsTorchOn) {
-            builder.setCaptureRequestOption(CaptureRequest.FLASH_MODE,
-                    CaptureRequest.FLASH_MODE_TORCH);
+            builder.setCaptureRequestOptionWithPriority(CaptureRequest.FLASH_MODE,
+                    CaptureRequest.FLASH_MODE_TORCH, Config.OptionPriority.REQUIRED);
         } else {
             switch (mFlashMode) {
                 case FLASH_MODE_OFF:
@@ -666,22 +714,16 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
                     break;
             }
         }
-        builder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE, getSupportedAeMode(aeMode));
+        builder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_AE_MODE,
+                getSupportedAeMode(aeMode), Config.OptionPriority.REQUIRED);
 
-        builder.setCaptureRequestOption(
-                CaptureRequest.CONTROL_AWB_MODE,
-                getSupportedAwbMode(CaptureRequest.CONTROL_AWB_MODE_AUTO));
+        builder.setCaptureRequestOptionWithPriority(CaptureRequest.CONTROL_AWB_MODE,
+                getSupportedAwbMode(CaptureRequest.CONTROL_AWB_MODE_AUTO),
+                Config.OptionPriority.REQUIRED);
 
         mExposureControl.setCaptureRequestOption(builder);
 
-        Config currentConfig = mCamera2CameraControl.getCamera2ImplConfig();
-        for (Config.Option<?> option : currentConfig.listOptions()) {
-            @SuppressWarnings("unchecked")
-            Config.Option<Object> objectOpt = (Config.Option<Object>) option;
-            builder.getMutableConfig().insertOption(objectOpt,
-                    Config.OptionPriority.ALWAYS_OVERRIDE,
-                    currentConfig.retrieveOption(objectOpt));
-        }
+        mCamera2CameraControl.applyOptionsToBuilder(builder);
 
         return builder.build();
     }
@@ -724,12 +766,24 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
      * <p><pre>If preferredMode is not supported, fallback with the following priority (highest to
      * lowest).
      * 1) {@link CaptureRequest#CONTROL_AE_MODE_ON}
-     * 2) {@link CaptureRequest#CONTROL_AE_MODE_OFF)}
+     * 2) {@link CaptureRequest#CONTROL_AE_MODE_OFF}
      * </pre>
      */
     @ExecutedBy("mExecutor")
     int getSupportedAeMode(int preferredMode) {
-        int[] modes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES);
+        return getSupportedAeMode(mCameraCharacteristics, preferredMode);
+    }
+
+    /**
+     * Returns a supported AE mode which will be preferredMode if it is supported.
+     *
+     * @see #getSupportedAeMode(int preferredMode)
+     */
+    public static int getSupportedAeMode(
+            @NonNull CameraCharacteristicsCompat cameraCharacteristics,
+            int preferredMode
+    ) {
+        int[] modes = cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES);
 
         if (modes == null) {
             return CaptureRequest.CONTROL_AE_MODE_OFF;
@@ -779,7 +833,7 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
     }
 
     @ExecutedBy("mExecutor")
-    private boolean isModeInList(int mode, int[] modeList) {
+    private static boolean isModeInList(int mode, int[] modeList) {
         for (int m : modeList) {
             if (mode == m) {
                 return true;
@@ -806,6 +860,23 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
     @VisibleForTesting
     long getCurrentSessionUpdateId() {
         return mCurrentSessionUpdateId;
+    }
+
+    @Override
+    public void incrementVideoUsage() {
+        mVideoUsageControl.incrementUsage();
+    }
+
+    @Override
+    public void decrementVideoUsage() {
+        mVideoUsageControl.decrementUsage();
+    }
+
+    @Override
+    public boolean isInVideoUsage() {
+        int currentVal = mVideoUsageControl.getUsage();
+        Logger.d(TAG, "isInVideoUsage: mVideoUsageControl value = " + currentVal);
+        return currentVal > 0;
     }
 
     /** An interface to listen to camera capture results. */
@@ -865,7 +936,6 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
      * A set of {@link CameraCaptureCallback}s which is capable of adding/removing callbacks
      * dynamically.
      */
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     static final class CameraCaptureCallbackSet extends CameraCaptureCallback {
         Set<CameraCaptureCallback> mCallbacks = new HashSet<>();
         Map<CameraCaptureCallback, Executor> mCallbackExecutors = new ArrayMap<>();
@@ -885,11 +955,12 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
 
         @ExecutedBy("mExecutor")
         @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureResult cameraCaptureResult) {
+        public void onCaptureCompleted(int captureConfigId,
+                @NonNull CameraCaptureResult cameraCaptureResult) {
             for (CameraCaptureCallback callback : mCallbacks) {
                 try {
                     mCallbackExecutors.get(callback).execute(() -> {
-                        callback.onCaptureCompleted(cameraCaptureResult);
+                        callback.onCaptureCompleted(captureConfigId, cameraCaptureResult);
                     });
                 } catch (RejectedExecutionException e) {
                     Logger.e(TAG, "Executor rejected to invoke onCaptureCompleted.", e);
@@ -899,11 +970,11 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
 
         @ExecutedBy("mExecutor")
         @Override
-        public void onCaptureFailed(@NonNull CameraCaptureFailure failure) {
+        public void onCaptureFailed(int captureConfigId, @NonNull CameraCaptureFailure failure) {
             for (CameraCaptureCallback callback : mCallbacks) {
                 try {
                     mCallbackExecutors.get(callback).execute(() -> {
-                        callback.onCaptureFailed(failure);
+                        callback.onCaptureFailed(captureConfigId, failure);
                     });
                 } catch (RejectedExecutionException e) {
                     Logger.e(TAG, "Executor rejected to invoke onCaptureFailed.", e);
@@ -913,11 +984,11 @@ public class Camera2CameraControlImpl implements CameraControlInternal {
 
         @ExecutedBy("mExecutor")
         @Override
-        public void onCaptureCancelled() {
+        public void onCaptureCancelled(int captureConfigId) {
             for (CameraCaptureCallback callback : mCallbacks) {
                 try {
                     mCallbackExecutors.get(callback).execute(() -> {
-                        callback.onCaptureCancelled();
+                        callback.onCaptureCancelled(captureConfigId);
                     });
                 } catch (RejectedExecutionException e) {
                     Logger.e(TAG, "Executor rejected to invoke onCaptureCancelled.", e);

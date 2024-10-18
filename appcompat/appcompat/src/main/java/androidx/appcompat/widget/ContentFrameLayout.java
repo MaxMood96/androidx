@@ -32,10 +32,8 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
-import androidx.core.view.ViewCompat;
 
 /**
- * @hide
  */
 @RestrictTo(LIBRARY)
 public class ContentFrameLayout extends FrameLayout {
@@ -71,7 +69,6 @@ public class ContentFrameLayout extends FrameLayout {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public void dispatchFitSystemWindows(Rect insets) {
@@ -86,12 +83,11 @@ public class ContentFrameLayout extends FrameLayout {
      * Notify this view of the window decor view's padding. We use these values when working out
      * our size for the window size attributes.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public void setDecorPadding(int left, int top, int right, int bottom) {
         mDecorPadding.set(left, top, right, bottom);
-        if (ViewCompat.isLaidOut(this)) {
+        if (isLaidOut()) {
             requestLayout();
         }
     }

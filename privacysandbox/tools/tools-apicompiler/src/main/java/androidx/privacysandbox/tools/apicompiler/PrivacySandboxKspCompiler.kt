@@ -36,6 +36,7 @@ class PrivacySandboxKspCompiler(
 ) : SymbolProcessor {
     companion object {
         const val AIDL_COMPILER_PATH_OPTIONS_KEY = "aidl_compiler_path"
+        const val FRAMEWORK_AIDL_PATH_OPTIONS_KEY = "framework_aidl_path"
         const val SKIP_SDK_RUNTIME_COMPAT_LIBRARY_OPTIONS_KEY = "skip_sdk_runtime_compat_library"
     }
 
@@ -45,31 +46,42 @@ class PrivacySandboxKspCompiler(
         // by KSP between rounds or for incremental compilation. This means that at some point
         // KSP will always invoke this processor with no valid services, so we should just stop
         // processing.
-        if (resolver.getSymbolsWithAnnotation(
-                PrivacySandboxService::class.qualifiedName!!).none()) {
+        if (
+            resolver.getSymbolsWithAnnotation(PrivacySandboxService::class.qualifiedName!!).none()
+        ) {
             return emptyList()
         }
 
-        val path = options[AIDL_COMPILER_PATH_OPTIONS_KEY]?.let(Paths::get)
-        if (path == null) {
+        val aidlCompilerPath = options[AIDL_COMPILER_PATH_OPTIONS_KEY]?.let(Paths::get)
+        if (aidlCompilerPath == null) {
             logger.error("KSP argument '$AIDL_COMPILER_PATH_OPTIONS_KEY' was not set.")
             return emptyList()
+        }
+        val frameworkAidlPath = options[FRAMEWORK_AIDL_PATH_OPTIONS_KEY]?.let(Paths::get)
+        if (frameworkAidlPath == null) {
+            logger.warn(
+                "KSP argument '$FRAMEWORK_AIDL_PATH_OPTIONS_KEY' was not set. This " +
+                    "will become a required argument in the future."
+            )
         }
 
         val skipCompatLibrary =
             options[SKIP_SDK_RUNTIME_COMPAT_LIBRARY_OPTIONS_KEY]?.lowercase().toBoolean()
-        val target = if (skipCompatLibrary) {
-            SandboxApiVersion.API_33
-        } else SandboxApiVersion.SDK_RUNTIME_COMPAT_LIBRARY
+        val target =
+            if (skipCompatLibrary) {
+                SandboxApiVersion.API_33
+            } else SandboxApiVersion.SDK_RUNTIME_COMPAT_LIBRARY
 
         val parsedApi = ApiParser(resolver, logger).parseApi()
 
         SdkCodeGenerator(
-            codeGenerator,
-            parsedApi,
-            path,
-            target,
-        ).generate()
+                codeGenerator,
+                parsedApi,
+                aidlCompilerPath,
+                frameworkAidlPath,
+                target,
+            )
+            .generate()
         return emptyList()
     }
 

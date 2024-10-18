@@ -43,7 +43,6 @@ import java.util.UUID;
 /**
  * {@link androidx.work.WorkerParameters}, but parcelable.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @SuppressLint("BanParcelableUsage")
@@ -186,6 +185,7 @@ public class ParcelableWorkerParameters implements Parcelable {
                 mRunAttemptCount,
                 mGeneration,
                 configuration.getExecutor(),
+                configuration.getWorkerCoroutineContext(),
                 taskExecutor,
                 configuration.getWorkerFactory(),
                 progressUpdater,

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.room.androidx.room.integration.kotlintestapp.test
+package androidx.room.integration.kotlintestapp.test
 
 import android.content.Context
 import androidx.arch.core.executor.testing.CountingTaskExecutorRule
@@ -23,13 +23,11 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.integration.kotlintestapp.TestDatabase
 import androidx.room.integration.kotlintestapp.dao.BooksDao
-import androidx.room.integration.kotlintestapp.test.TestUtil
 import androidx.room.integration.kotlintestapp.test.TestUtil.Companion.BOOK_1
 import androidx.room.integration.kotlintestapp.vo.Book
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.concurrent.TimeUnit
 import junit.framework.TestCase.assertEquals
@@ -49,17 +47,17 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 @LargeTest
-@SdkSuppress(minSdkVersion = 16)
 class WriteAheadLoggingKotlinTest {
-    @get:Rule
-    val countingTaskExecutorRule = CountingTaskExecutorRule()
+    @get:Rule val countingTaskExecutorRule = CountingTaskExecutorRule()
 
     private suspend fun withDb(fn: suspend (TestDatabase) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val dbName = "observe.db"
         context.deleteDatabase(dbName)
-        val db = Room.databaseBuilder(context, TestDatabase::class.java, dbName)
-            .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING).build()
+        val db =
+            Room.databaseBuilder(context, TestDatabase::class.java, dbName)
+                .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+                .build()
         try {
             fn(db)
         } finally {
@@ -89,11 +87,10 @@ class WriteAheadLoggingKotlinTest {
 
         dao.insertBookSuspend(BOOK_1)
 
-        val firstBookSeen = withContext(Dispatchers.Default) {
-            withTimeout(3000) {
-                booksSeen.filterNotNull().first()
+        val firstBookSeen =
+            withContext(Dispatchers.Default) {
+                withTimeout(3000) { booksSeen.filterNotNull().first() }
             }
-        }
 
         assertEquals(BOOK_1.bookId, firstBookSeen.bookId)
         InstrumentationRegistry.getInstrumentation().runOnMainSync {

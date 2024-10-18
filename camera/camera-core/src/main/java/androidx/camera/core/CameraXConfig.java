@@ -23,7 +23,7 @@ import android.util.Log;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.core.impl.CameraDeviceSurfaceManager;
@@ -32,9 +32,11 @@ import androidx.camera.core.impl.Config;
 import androidx.camera.core.impl.MutableConfig;
 import androidx.camera.core.impl.MutableOptionsBundle;
 import androidx.camera.core.impl.OptionsBundle;
+import androidx.camera.core.impl.QuirkSettings;
 import androidx.camera.core.impl.UseCaseConfigFactory;
 import androidx.camera.core.internal.TargetConfig;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
@@ -58,7 +60,6 @@ import java.util.concurrent.Executor;
  * @see CameraXConfig.Builder
  */
 @SuppressWarnings("HiddenSuperclass")
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class CameraXConfig implements TargetConfig<CameraX> {
 
     /**
@@ -109,6 +110,24 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
                     "camerax.core.appConfig.availableCamerasLimiter",
                     CameraSelector.class);
 
+    static final Option<Long> OPTION_CAMERA_OPEN_RETRY_MAX_TIMEOUT_IN_MILLIS_WHILE_RESUMING =
+            Option.create(
+                    "camerax.core.appConfig.cameraOpenRetryMaxTimeoutInMillisWhileResuming",
+                    long.class);
+
+    @OptIn(markerClass = ExperimentalRetryPolicy.class)
+    static final Option<RetryPolicy> OPTION_CAMERA_PROVIDER_INIT_RETRY_POLICY =
+            Option.create(
+                    "camerax.core.appConfig.cameraProviderInitRetryPolicy",
+                    RetryPolicy.class);
+
+    static final long DEFAULT_OPTION_CAMERA_OPEN_RETRY_MAX_TIMEOUT_IN_MILLIS_WHILE_RESUMING = -1L;
+
+    static final Option<QuirkSettings> OPTION_QUIRK_SETTINGS =
+            Option.create(
+                    "camerax.core.appConfig.quirksSettings",
+                    QuirkSettings.class);
+
     // *********************************************************************************************
 
     private final OptionsBundle mConfig;
@@ -120,7 +139,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
     /**
      * Returns the {@link CameraFactory} implementation for the application.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -132,7 +150,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
     /**
      * Returns the {@link CameraDeviceSurfaceManager} implementation for the application.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -146,7 +163,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
      *
      * <p>This factory should produce all default configurations for the application's use cases.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -194,7 +210,50 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
         return mConfig.retrieveOption(OPTION_AVAILABLE_CAMERAS_LIMITER, valueIfMissing);
     }
 
-    /** @hide */
+    /**
+     * Returns the camera open retry maximum timeout in milliseconds when in active resuming mode.
+     *
+     * <p>If this value is not set, -1L will be returned by default.
+     *
+     * @see Builder#setCameraOpenRetryMaxTimeoutInMillisWhileResuming(long)
+     */
+    public long getCameraOpenRetryMaxTimeoutInMillisWhileResuming() {
+        return mConfig.retrieveOption(OPTION_CAMERA_OPEN_RETRY_MAX_TIMEOUT_IN_MILLIS_WHILE_RESUMING,
+                DEFAULT_OPTION_CAMERA_OPEN_RETRY_MAX_TIMEOUT_IN_MILLIS_WHILE_RESUMING);
+    }
+
+    /**
+     * Retrieves the {@link RetryPolicy} for the CameraProvider initialization. This policy
+     * determines whether to retry the CameraProvider initialization if it fails.
+     *
+     * @return The {@link RetryPolicy} to be used for the CameraProvider initialization. If not
+     * explicitly set, it defaults to {@link RetryPolicy#DEFAULT}.
+     *
+     * @see Builder#setCameraProviderInitRetryPolicy(RetryPolicy)
+     */
+    @NonNull
+    @ExperimentalRetryPolicy
+    public RetryPolicy getCameraProviderInitRetryPolicy() {
+        return Objects.requireNonNull(
+                mConfig.retrieveOption(OPTION_CAMERA_PROVIDER_INIT_RETRY_POLICY,
+                        RetryPolicy.DEFAULT));
+    }
+
+    /**
+     * Returns the quirk settings.
+     *
+     * <p>If this value is not set, a default quirk settings will be returned.
+     *
+     * @return the quirk settings.
+     *
+     * @see Builder#setQuirkSettings(QuirkSettings)
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @Nullable
+    public QuirkSettings getQuirkSettings() {
+        return mConfig.retrieveOption(OPTION_QUIRK_SETTINGS, null);
+    }
+
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
     @Override
@@ -203,7 +262,7 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
     }
 
     /** A builder for generating {@link CameraXConfig} objects. */
-    @SuppressWarnings("ObjectToString")
+    @SuppressWarnings({"ObjectToString", "HiddenSuperclass"})
     public static final class Builder
             implements TargetConfig.Builder<CameraX, CameraXConfig.Builder> {
 
@@ -212,7 +271,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
         /**
          * Creates a new Builder object.
          *
-         * @hide
          */
         @RestrictTo(Scope.LIBRARY_GROUP)
         public Builder() {
@@ -249,7 +307,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
         /**
          * Sets the {@link CameraFactory} implementation for the application.
          *
-         * @hide
          */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
@@ -261,7 +318,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
         /**
          * Sets the {@link CameraDeviceSurfaceManager} implementation for the application.
          *
-         * @hide
          */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
@@ -278,7 +334,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
          * <p>This factory should produce all default configurations for the application's use
          * cases.
          *
-         * @hide
          */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
@@ -372,6 +427,68 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
             return this;
         }
 
+        /**
+         * Sets the camera open retry maximum timeout in milliseconds. This is only needed when
+         * users don't want to retry camera opening for a long time.
+         *
+         * <p>When {@link androidx.lifecycle.LifecycleOwner} is in ON_RESUME state, CameraX will
+         * actively retry opening the camera periodically to resume, until there is
+         * non-recoverable errors happening and then move to pending open state waiting for the
+         * next camera available after timeout.
+         *
+         * <p>When in active resuming mode, it will periodically retry opening the
+         * camera regardless of the camera availability.
+         * Elapsed time <= 2 minutes -> retry once per 1 second.
+         * Elapsed time 2 to 5 minutes -> retry once per 2 seconds.
+         * Elapsed time > 5 minutes -> retry once per 4 seconds.
+         * Retry will stop after 30 minutes.
+         *
+         * <p>When not in active resuming mode, the camera will be attempted to be opened every
+         * 700ms for 10 seconds. This value cannot currently be changed.
+         *
+         * @param maxTimeoutInMillis The max timeout in milliseconds.
+         * @return this builder.
+         */
+        @NonNull
+        public Builder setCameraOpenRetryMaxTimeoutInMillisWhileResuming(long maxTimeoutInMillis) {
+            getMutableConfig().insertOption(
+                    OPTION_CAMERA_OPEN_RETRY_MAX_TIMEOUT_IN_MILLIS_WHILE_RESUMING,
+                    maxTimeoutInMillis);
+            return this;
+        }
+
+        /**
+         * Sets the {@link RetryPolicy} for the CameraProvider initialization. This policy
+         * determines whether to retry the CameraProvider initialization if it fails.
+         *
+         * <p>If not set, a default retry policy {@link RetryPolicy#DEFAULT} will be applied.
+         *
+         * @param retryPolicy The {@link RetryPolicy} to use for retrying the CameraProvider
+         *                    initialization.
+         * @return this builder.
+         */
+        @NonNull
+        @ExperimentalRetryPolicy
+        public Builder setCameraProviderInitRetryPolicy(@NonNull RetryPolicy retryPolicy) {
+            getMutableConfig().insertOption(
+                    OPTION_CAMERA_PROVIDER_INIT_RETRY_POLICY,
+                    retryPolicy);
+            return this;
+        }
+
+        /**
+         * Sets the quirk settings.
+         *
+         * @param quirkSettings the quirk settings.
+         * @return this builder.
+         */
+        @RestrictTo(Scope.LIBRARY_GROUP)
+        @NonNull
+        public Builder setQuirkSettings(@NonNull QuirkSettings quirkSettings) {
+            getMutableConfig().insertOption(OPTION_QUIRK_SETTINGS, quirkSettings);
+            return this;
+        }
+
         @NonNull
         private MutableConfig getMutableConfig() {
             return mMutableConfig;
@@ -389,7 +506,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
 
         // Implementations of TargetConfig.Builder default methods
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @Override
         @NonNull
@@ -405,7 +521,6 @@ public final class CameraXConfig implements TargetConfig<CameraX> {
             return this;
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @Override
         @NonNull

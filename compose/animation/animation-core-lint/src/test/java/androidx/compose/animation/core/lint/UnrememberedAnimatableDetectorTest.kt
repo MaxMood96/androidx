@@ -28,12 +28,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
-/* ktlint-disable max-line-length */
 @RunWith(JUnit4::class)
 
-/**
- * Test for [UnrememberedAnimatableDetector].
- */
+/** Test for [UnrememberedAnimatableDetector]. */
 class UnrememberedAnimatableDetectorTest : LintDetectorTest() {
     override fun getDetector(): Detector = UnrememberedAnimatableDetector()
 
@@ -41,11 +38,12 @@ class UnrememberedAnimatableDetectorTest : LintDetectorTest() {
         mutableListOf(UnrememberedAnimatableDetector.UnrememberedAnimatable)
 
     // Simplified Animatable Color function stub, from androidx.compose.animation
-    private val AnimatableColorStub = bytecodeStub(
-        filename = "SingleValueAnimation.kt",
-        filepath = "androidx/compose/animation",
-        checksum = 0x285b4455,
-        """
+    private val AnimatableColorStub =
+        bytecodeStub(
+            filename = "SingleValueAnimation.kt",
+            filepath = "androidx/compose/animation",
+            checksum = 0x98c0a447,
+            """
             package androidx.compose.animation
 
             import androidx.compose.animation.core.Animatable
@@ -53,38 +51,39 @@ class UnrememberedAnimatableDetectorTest : LintDetectorTest() {
 
             fun Animatable(initialValue: Color): Animatable<Color, Any> = Animatable(initialValue)
         """,
-"""
+            """
         META-INF/main.kotlin_module:
-        H4sIAAAAAAAAAHWLuwrCQBBFR3zBIBZbiIgQsFCwWBt/QCzTqdhvkiEO7CPs
-        A/x8V9QqWNx74XIOAAwBYJAz/i7gEVfKNt5x85S1M50LJJVloyI7KxZXtq2m
-        u9KJTr+3jHjA4r+VH09i9uFVpSkLW1z2BJ9sZEMCL2TIVOQzt8N1j0ssW6+6
-        B9dBTM9Ouzc4x1GkEMXklruMG9jDC9/F7r/gAAAA
+        H4sIAAAAAAAA/3XLvQvCQAwF8IiiGEThBhERBBfBoS6Cszh2s+KetqE9uI9y
+        TcE/3xN1KgZehsf7AcAQAAYxU/gennBNrgxel8+k8LbxLSfktCXR3qllpl1l
+        +EGm48uvTQWPuP2vYhNYzT57yg1HcMZVD4TOibas8MaWbc4hFbXIHDVt7SUT
+        kjfc46YHO51UgZpaF62aXL3xUeIcR8KtqPE9/lR2cIAXLlZThPEAAAA=
         """,
-        """
+            """
         androidx/compose/animation/SingleValueAnimationKt.class:
-        H4sIAAAAAAAAAJVTXU8TQRQ9s223Zam0VFEoigooHwLbEh8wJUSCMSkWTESb
-        GB7MtF3rtNsZMjvb8Ej8J/oLfJNoYgi++aOMdwuExBKFTfbOuXfPnXPvzN1f
-        v7/9APAYSwxFLhtaica+W1edPRV4Lpeiw41Q0t0Rsul7Ve6H3vpZ8IVJgjFk
-        W7zLXZ/Lpvuy1vLqFI0x5E5ovOZ7iyvvVoq+v87gzm7OVf6hUlfac88TSwzN
-        q2Ws9nND4TY13/sg6oG7oXylS5W/Cy6tkdJURemm2/JMTXMhA9KQyvREAndb
-        me3Q94k1f/lakhhgmPx/PUkMMqRqan9RdPZ8hpkLW+5vI41rGHKQRobBXhVS
-        mDWG6mx/d/2RcqWtjC+k2+p2XCGNpyX33Wfeex76ZoM6NjqsG6W3uG57ujRX
-        TWMYOQcOrjOkIynB/d4wMLBNhuGz/bY8wxvUPp2U1enGaLJYZBJEa0fAovi+
-        iFCBUKPI8OboIOccHTjWqHXyZiMnFcvPEMgP5eI5q2D1bKzAlu1sPE/+z0N2
-        dECGHX+246lE1j7+aA1S1piTSB1/miiwaPNlBuf8NhgWrjZ505e5A0YN4tZF
-        P8dS2zDEN1SDlDMVIb3tsFPz9OuTWnIVVY9OUIvIPw0O7Iim5CbUhMdfhdKI
-        jleWXREI+rx+Po7U144Kdd17LqK0sVNqtY+IIizEET1EQwI2Ypgh7wkhi9bM
-        dzhvJw6RZQn2FTe+RDeEWbI2JQBJzJFN93AGI7hJ63yPk8SjU1aq5y/07EMs
-        0vo0OhISG91FrIyxMvJkMV7GbdwpYwJ3d8EC3MP9XSQDTAaYCjAd4EGAkQCJ
-        APYfAm5eAJQEAAA=
+        H4sIAAAAAAAA/5VTXU8TQRQ9s223Za20VFEoigooHwLTEh8wJUSCMSkWTMQ0
+        MTyYaTvWabczZHa24ZH4T/QX+CbRxBB880cZZ1sIiSUKD3vn3Dvnzv3cX7+/
+        /QDwBJSgyGRDK9E4oHXV2VcBp0yKDjNCSborZNPnVeaHfOPM+NIkQQiyLdZl
+        1GeySV/VWrxurTGCXJ/Gaj5fWn23WvT9DQI6tzVf+UeUutKcnjuWCJpX81gb
+        5IaCNjXb/yDqAd1UvtKlyt8Jl9ZtpOmK0k3a4qammZCBjSGV6QUJ6I4yO6Hv
+        W9bC5XNJYohg6v/5JHGNIFVTB0uis+8TzF5Y8mAZaVzHsIc0MgTumpDCrBNU
+        5warG7SUK21lfCFpq9uhQhquJfPpc/6ehb7ZtBUbHdaN0ttMt7kuzVfTGEHO
+        g4cbBOkolGB+bxkIyBbByNl729ywhi3fdsrpdGN2s0gkhiIBy21HwLGXByJC
+        BYsaRYLt48Ocd3zoOWNO/8tGSiqWn7EgP5yL55yC05OxAllxs/G81X8ekePD
+        k89uPJXIuicfnaSXSJ18miyQ6NEVAu98FASLV1u7mcsMgEQl3b7oz1huG4L4
+        pmrYyJmKkHwn7NS4ftPPJVdR9ah9WkT6qXFoVzQlM6G2eOJ1KI3o8LLsikDY
+        643zXbR17apQ1/kLEbmNn1KrA0QU4SCOfuPHkYCLGOas9tQix56Z7/DeTh4h
+        SxLkK25+iSaDeStd6wAksWBluoczGMUtez7ucZJYPGWlevpST85i2Z7PopbY
+        YGN7iJUxXka+jAncKeMuJsu4h/t7IAEeYGoPyQDTAWYCPAzwKMBogEQA9w+x
+        P7r8kQQAAA==
         """
-    )
+        )
 
     @Test
     fun notRemembered() {
-        lint().files(
-            kotlin(
-                """
+        lint()
+            .files(
+                kotlin(
+                    """
                 package test
 
                 import androidx.compose.animation.*
@@ -167,13 +166,14 @@ class UnrememberedAnimatableDetectorTest : LintDetectorTest() {
                     }
                 }
             """
-            ),
-            Stubs.Animatable,
-            AnimatableColorStub,
-            Stubs.Color,
-            Stubs.Composable,
-            Stubs.Remember,
-            Stubs.SnapshotState
+                ),
+                Stubs.Animatable,
+                AnimatableColorStub,
+                Stubs.Color,
+                Stubs.Composable,
+                Stubs.Remember,
+                Stubs.SnapshotState,
+                Stubs.StateFactoryMarker
             )
             .skipTestModes(TestMode.TYPE_ALIAS)
             .run()
@@ -258,9 +258,10 @@ src/test/{.kt:80: Error: Creating an Animatable during composition without using
 
     @Test
     fun rememberedInsideComposableBody() {
-        lint().files(
-            kotlin(
-                """
+        lint()
+            .files(
+                kotlin(
+                    """
                 package test
 
                 import androidx.compose.animation.*
@@ -332,23 +333,25 @@ src/test/{.kt:80: Error: Creating an Animatable during composition without using
                     }
                 }
             """
-            ),
-            Stubs.Animatable,
-            AnimatableColorStub,
-            Stubs.Color,
-            Stubs.Composable,
-            Stubs.Remember,
-            Stubs.SnapshotState
-        )
+                ),
+                Stubs.Animatable,
+                AnimatableColorStub,
+                Stubs.Color,
+                Stubs.Composable,
+                Stubs.Remember,
+                Stubs.SnapshotState,
+                Stubs.StateFactoryMarker
+            )
             .run()
             .expectClean()
     }
 
     @Test
     fun noErrors() {
-        lint().files(
-            kotlin(
-                """
+        lint()
+            .files(
+                kotlin(
+                    """
                 package test
 
                 import androidx.compose.animation.*
@@ -446,16 +449,16 @@ src/test/{.kt:80: Error: Creating an Animatable during composition without using
                     }
                 }
             """
-            ),
-            Stubs.Animatable,
-            AnimatableColorStub,
-            Stubs.Color,
-            Stubs.Composable,
-            Stubs.Remember,
-            Stubs.SnapshotState
+                ),
+                Stubs.Animatable,
+                AnimatableColorStub,
+                Stubs.Color,
+                Stubs.Composable,
+                Stubs.Remember,
+                Stubs.SnapshotState,
+                Stubs.StateFactoryMarker
             )
             .run()
             .expectClean()
     }
 }
-/* ktlint-enable max-line-length */

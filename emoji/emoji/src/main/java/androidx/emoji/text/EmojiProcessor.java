@@ -34,7 +34,6 @@ import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.graphics.PaintCompat;
 import androidx.emoji.widget.SpannableBuilder;
@@ -47,11 +46,9 @@ import java.util.List;
 /**
  * Processes the CharSequence and adds the emojis.
  *
- * @hide
  */
 @AnyThread
 @RestrictTo(LIBRARY_GROUP_PREFIX)
-@RequiresApi(19)
 final class EmojiProcessor {
 
     /**
@@ -773,7 +770,6 @@ final class EmojiProcessor {
     /**
      * Utility class that checks if the system can render a given glyph.
      *
-     * @hide
      */
     @AnyThread
     @RestrictTo(LIBRARY_GROUP_PREFIX)

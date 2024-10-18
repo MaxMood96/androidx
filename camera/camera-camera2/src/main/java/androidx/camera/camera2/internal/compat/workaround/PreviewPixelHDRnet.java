@@ -17,10 +17,11 @@
 package androidx.camera.camera2.internal.compat.workaround;
 
 import android.hardware.camera2.CaptureRequest;
+import android.util.Rational;
+import android.util.Size;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.impl.Camera2ImplConfig;
 import androidx.camera.camera2.internal.compat.quirk.DeviceQuirks;
 import androidx.camera.camera2.internal.compat.quirk.PreviewPixelHDRnetQuirk;
@@ -32,8 +33,9 @@ import androidx.camera.core.impl.SessionConfig;
  *
  * @see PreviewPixelHDRnetQuirk
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class PreviewPixelHDRnet {
+
+    public static final Rational ASPECT_RATIO_16_9 = new Rational(16, 9);
 
     private PreviewPixelHDRnet() {
     }
@@ -42,9 +44,15 @@ public class PreviewPixelHDRnet {
      * Turns on WYSIWYG viewfinder on Pixel devices
      */
     @OptIn(markerClass = ExperimentalCamera2Interop.class)
-    public static void setHDRnet(@NonNull SessionConfig.Builder sessionBuilder) {
+    public static void setHDRnet(
+            @NonNull Size resolution,
+            @NonNull SessionConfig.Builder sessionBuilder) {
         final PreviewPixelHDRnetQuirk quirk = DeviceQuirks.get(PreviewPixelHDRnetQuirk.class);
         if (quirk == null) {
+            return;
+        }
+
+        if (isAspectRatioMatch(resolution, ASPECT_RATIO_16_9)) {
             return;
         }
 
@@ -52,5 +60,11 @@ public class PreviewPixelHDRnet {
         camera2ConfigBuilder.setCaptureRequestOption(CaptureRequest.TONEMAP_MODE,
                 CaptureRequest.TONEMAP_MODE_HIGH_QUALITY);
         sessionBuilder.addImplementationOptions(camera2ConfigBuilder.build());
+    }
+
+    private static boolean isAspectRatioMatch(
+            @NonNull Size resolution,
+            @NonNull Rational aspectRatio) {
+        return aspectRatio.equals(new Rational(resolution.getWidth(), resolution.getHeight()));
     }
 }

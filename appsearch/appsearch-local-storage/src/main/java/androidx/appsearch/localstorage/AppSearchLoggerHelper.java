@@ -39,7 +39,7 @@ import com.google.android.icing.proto.SetSchemaResultProto;
  *
  * <p>E.g. we need to have helper functions to copy numbers from IcingLib to stats classes.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class AppSearchLoggerHelper {
@@ -64,7 +64,13 @@ public final class AppSearchLoggerHelper {
                 .setNativeIndexMergeLatencyMillis(fromNativeStats.getIndexMergeLatencyMs())
                 .setNativeDocumentSizeBytes(fromNativeStats.getDocumentSize())
                 .setNativeNumTokensIndexed(
-                        fromNativeStats.getTokenizationStats().getNumTokensIndexed());
+                        fromNativeStats.getTokenizationStats().getNumTokensIndexed())
+                .setNativeTermIndexLatencyMillis(fromNativeStats.getTermIndexLatencyMs())
+                .setNativeIntegerIndexLatencyMillis(fromNativeStats.getIntegerIndexLatencyMs())
+                .setNativeQualifiedIdJoinIndexLatencyMillis(
+                        fromNativeStats.getQualifiedIdJoinIndexLatencyMs())
+                .setNativeLiteIndexSortLatencyMillis(
+                        fromNativeStats.getLiteIndexSortLatencyMs());
     }
 
     /**
@@ -130,7 +136,10 @@ public final class AppSearchLoggerHelper {
                 .setJavaToNativeJniLatencyMillis(
                         fromNativeStats.getJavaToNativeJniLatencyMs())
                 .setNativeToJavaJniLatencyMillis(
-                        fromNativeStats.getNativeToJavaJniLatencyMs());
+                        fromNativeStats.getNativeToJavaJniLatencyMs())
+                .setNativeNumJoinedResultsCurrentPage(
+                        fromNativeStats.getNumJoinedResultsReturnedCurrentPage())
+                .setNativeJoinLatencyMillis(fromNativeStats.getJoinLatencyMs());
     }
 
     /**
@@ -160,11 +169,9 @@ public final class AppSearchLoggerHelper {
         Preconditions.checkNotNull(fromNativeStats);
         Preconditions.checkNotNull(toStatsBuilder);
 
-        @SuppressWarnings("deprecation")
-        int deleteType = DeleteStatsProto.DeleteType.Code.DEPRECATED_QUERY.getNumber();
         toStatsBuilder
                 .setNativeLatencyMillis(fromNativeStats.getLatencyMs())
-                .setDeleteType(deleteType)
+                .setDeleteType(RemoveStats.QUERY)
                 .setDeletedDocumentCount(fromNativeStats.getNumDocumentsDeleted());
     }
 

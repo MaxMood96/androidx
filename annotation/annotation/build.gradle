@@ -1,6 +1,13 @@
-import androidx.build.KmpPlatformsKt
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
-import androidx.build.Publish
+import androidx.build.PlatformIdentifier
+import androidx.build.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 
@@ -9,10 +16,19 @@ plugins {
 }
 
 androidXMultiplatform {
-    jvm()
-    mac()
-    linux()
+    androidNative()
     ios()
+    js()
+    jvm()
+    linux()
+    mac()
+    mingwX64()
+    tvos()
+    wasmJs()
+    watchos()
+    watchosDeviceArm64()
+
+    defaultPlatform(PlatformIdentifier.JVM)
 
     sourceSets {
         commonMain {
@@ -21,16 +37,22 @@ androidXMultiplatform {
             }
         }
 
-        if (KmpPlatformsKt.enableNative(project)) {
-            nonJvmMain {
-                dependsOn commonMain
-            }
+        nonJvmMain {
+            dependsOn(commonMain)
+        }
 
-            targets.all { target ->
-                if (target.platformType !in [KotlinPlatformType.jvm, KotlinPlatformType.common]) {
-                    target.compilations["main"].defaultSourceSet {
-                        dependsOn(nonJvmMain)
-                    }
+        wasmJsMain {
+            dependsOn(nonJvmMain)
+        }
+
+        jsMain {
+            dependsOn(nonJvmMain)
+        }
+
+        targets.configureEach { target ->
+            if (target.platformType !in [KotlinPlatformType.jvm, KotlinPlatformType.common]) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nonJvmMain)
                 }
             }
         }
@@ -66,10 +88,10 @@ artifacts {
 }
 
 androidx {
-    name = "Android Support Library Annotations"
+    name = "Annotation"
     type = LibraryType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.ANNOTATION
-    mavenMultiplatformVersion = LibraryVersions.ANNOTATION_KMP
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2013"
-    description = "The Support Library is a static library that you can add to your Android application in order to use APIs that are either not available for older platform versions or utility APIs that aren't a part of the framework APIs."
+    description = "Provides source annotations for tooling and readability."
 }

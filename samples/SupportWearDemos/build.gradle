@@ -22,10 +22,12 @@ plugins {
 dependencies {
     implementation(project(":wear:wear"))
     implementation(project(path: ":recyclerview:recyclerview"))
+    implementation(project(path: ":core:core"))
     implementation(project(path: ":appcompat:appcompat"))
 }
 
 android {
+    compileSdk 35
     defaultConfig {
         minSdkVersion 24
     }

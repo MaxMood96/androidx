@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -23,16 +30,28 @@ plugins {
 }
 
 dependencies {
+    api(project(":bluetooth:bluetooth"))
+
     implementation(libs.kotlinStdlib)
+    implementation(libs.kotlinCoroutinesCore)
+
+    testImplementation(libs.kotlinCoroutinesTest)
+    testImplementation(libs.kotlinTest)
+
+    testImplementation(libs.robolectric)
 }
 
 androidx {
-    name = "AndroidX Bluetooth Testing"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "Bluetooth Testing"
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "Test utilities for AndroidX Bluetooth"
+    legacyDisableKotlinStrictApiMode = true
 }
 
 android {
     namespace "androidx.bluetooth.testing"
+    defaultConfig {
+        minSdkVersion 33
+    }
 }

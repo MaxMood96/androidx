@@ -14,13 +14,22 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.KotlinTarget
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("kotlin-android")
-    id("kotlin-kapt")
+    id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
 }
 
@@ -44,7 +53,7 @@ dependencies {
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.hiltAndroid)
     androidTestImplementation(libs.hiltAndroidTesting)
-    kaptAndroidTest(libs.hiltCompiler)
+    kspAndroidTest(libs.hiltCompiler)
     androidTestImplementation(project(":internal-testutils-runtime"))
     androidTestImplementation(project(":internal-testutils-navigation"), {
         exclude group: 'androidx.navigation', module: 'navigation-common'
@@ -56,9 +65,11 @@ hilt {
 }
 
 androidx {
-    name = "Android Navigation Fragment Hilt Extension"
-    publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenVersion = LibraryVersions.HILT
+    name = "Navigation Fragment Hilt Extension"
+    type = LibraryType.PUBLISHED_LIBRARY
+    mavenVersion = LibraryVersions.HILT_NAVIGATION
     inceptionYear = "2021"
     description = "Android Navigation Fragment Hilt Extension"
+    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

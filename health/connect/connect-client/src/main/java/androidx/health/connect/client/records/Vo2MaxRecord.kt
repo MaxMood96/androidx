@@ -45,6 +45,7 @@ public class Vo2MaxRecord(
             name = "vo2MillilitersPerMinuteKilogram"
         )
     }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Vo2MaxRecord) return false
@@ -68,6 +69,10 @@ public class Vo2MaxRecord(
         return result
     }
 
+    override fun toString(): String {
+        return "Vo2MaxRecord(time=$time, zoneOffset=$zoneOffset, vo2MillilitersPerMinuteKilogram=$vo2MillilitersPerMinuteKilogram, measurementMethod=$measurementMethod, metadata=$metadata)"
+    }
+
     companion object {
         const val MEASUREMENT_METHOD_OTHER = 0
         const val MEASUREMENT_METHOD_METABOLIC_CART = 1
@@ -81,6 +86,7 @@ public class Vo2MaxRecord(
         @JvmField
         val MEASUREMENT_METHOD_STRING_TO_INT_MAP: Map<String, Int> =
             mapOf(
+                MeasurementMethod.OTHER to MEASUREMENT_METHOD_OTHER,
                 MeasurementMethod.METABOLIC_CART to MEASUREMENT_METHOD_METABOLIC_CART,
                 MeasurementMethod.HEART_RATE_RATIO to MEASUREMENT_METHOD_HEART_RATE_RATIO,
                 MeasurementMethod.COOPER_TEST to MEASUREMENT_METHOD_COOPER_TEST,
@@ -104,10 +110,7 @@ public class Vo2MaxRecord(
         const val OTHER = "other"
     }
 
-    /**
-     * VO2 max (maximal aerobic capacity) measurement method.
-     * @suppress
-     */
+    /** VO2 max (maximal aerobic capacity) measurement method. */
     @Retention(AnnotationRetention.SOURCE)
     @IntDef(
         value =

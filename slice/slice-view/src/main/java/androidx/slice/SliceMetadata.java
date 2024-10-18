@@ -51,7 +51,6 @@ import android.text.TextUtils;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.math.MathUtils;
 import androidx.core.util.Pair;
@@ -71,12 +70,15 @@ import java.util.List;
 
 /**
  * Utility class to parse a {@link Slice} and provide access to information around its contents.
+ *
+ * @deprecated Slice framework has been deprecated, it will not receive any updates moving
+ * forward. If you are looking for a framework that handles communication across apps,
+ * consider using {@link android.app.appsearch.AppSearchManager}.
  */
-@RequiresApi(19)
+@Deprecated
 public class SliceMetadata {
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef({
@@ -352,7 +354,6 @@ public class SliceMetadata {
      *
      * @return the current value of a progress bar or input range associated with this slice.
      */
-    @NonNull
     public int getRangeValue() {
         if (mTemplateType == ROW_TYPE_SLIDER
                 || mTemplateType == ROW_TYPE_PROGRESS) {
@@ -468,7 +469,6 @@ public class SliceMetadata {
 
     /**
      * @return the group of slice actions associated with the provided slice, if they exist.
-     * @hide
      */
     @Nullable
     @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -490,7 +490,6 @@ public class SliceMetadata {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public boolean isExpired() {
@@ -499,7 +498,6 @@ public class SliceMetadata {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public boolean neverExpires() {
@@ -507,7 +505,6 @@ public class SliceMetadata {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public long getTimeToExpiry() {
@@ -517,7 +514,6 @@ public class SliceMetadata {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public ListContent getListContent() {

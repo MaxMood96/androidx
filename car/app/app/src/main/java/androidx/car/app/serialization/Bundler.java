@@ -32,6 +32,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
+import androidx.car.app.annotations.CarProtocol;
+import androidx.core.app.Person;
 import androidx.core.graphics.drawable.IconCompat;
 
 import java.lang.reflect.Constructor;
@@ -74,7 +76,6 @@ import java.util.Set;
  * also serializable as per this list.
  * <li>Custom objects that hold only other objects as per defined in this list as fields.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 public final class Bundler {
@@ -109,6 +110,7 @@ public final class Bundler {
     private static final int ENUM = 7;
     private static final int CLASS = 8;
     private static final int IBINDER = 9;
+    private static final int PERSON = 10;
 
     /**
      * Serializes an object into a {@link Bundle} for sending over IPC.
@@ -163,6 +165,8 @@ public final class Bundler {
                 throw new TracedBundlerException(
                         "Object serializing contains an array, use a list or a set instead",
                         trace);
+            } else if (obj instanceof Person) {
+                return serializePerson((Person) obj);
             } else {
                 return serializeObject(obj, trace);
             }
@@ -216,6 +220,8 @@ public final class Bundler {
                     return deserializeList(bundle, trace);
                 case IMAGE:
                     return deserializeImage(bundle, trace);
+                case PERSON:
+                    return deserializePerson(bundle);
                 case OBJECT:
                     return deserializeObject(bundle, trace);
                 case ENUM:
@@ -365,8 +371,18 @@ public final class Bundler {
         return bundle;
     }
 
+    private static Bundle serializePerson(Person person) {
+        Bundle bundle = person.toBundle();
+        bundle.putInt(TAG_CLASS_TYPE, PERSON);
+        return bundle;
+    }
+
     private static Bundle serializeObject(Object obj, Trace trace) throws BundlerException {
         String className = obj.getClass().getName();
+        if (!obj.getClass().isAnnotationPresent(CarProtocol.class)) {
+            throw new TracedBundlerException(
+                    "Invalid class not marked as CarProtocol: " + className, trace);
+        }
         try {
             obj.getClass().getDeclaredConstructor();
         } catch (NoSuchMethodException e) {
@@ -556,6 +572,10 @@ public final class Bundler {
         return iconCompat;
     }
 
+    private static Object deserializePerson(Bundle bundle) {
+        return Person.fromBundle(bundle);
+    }
+
     @SuppressWarnings("deprecation")
     private static Object deserializeObject(Bundle bundle, Trace trace) throws BundlerException {
         String className = bundle.getString(TAG_CLASS_NAME);
@@ -565,6 +585,10 @@ public final class Bundler {
 
         try {
             Class<?> clazz = Class.forName(className);
+            if (!clazz.isAnnotationPresent(CarProtocol.class)) {
+                throw new TracedBundlerException(
+                        "Invalid class not marked as CarProtocol: " + className, trace);
+            }
             Constructor<?> constructor = clazz.getDeclaredConstructor();
             constructor.setAccessible(true);
             Object obj = constructor.newInstance();

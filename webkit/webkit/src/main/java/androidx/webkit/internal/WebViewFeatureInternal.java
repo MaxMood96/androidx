@@ -30,6 +30,9 @@ import android.webkit.WebView;
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
+import androidx.webkit.PrefetchParameters;
+import androidx.webkit.Profile;
+import androidx.webkit.ProfileStore;
 import androidx.webkit.ProxyConfig;
 import androidx.webkit.ProxyController;
 import androidx.webkit.SafeBrowsingResponseCompat;
@@ -46,6 +49,7 @@ import androidx.webkit.WebViewFeature;
 
 import org.chromium.support_lib_boundary.util.Features;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.util.Collection;
 import java.util.HashSet;
@@ -102,12 +106,12 @@ public class WebViewFeatureInternal {
             Features.START_SAFE_BROWSING);
 
     /**
-     * This feature covers {@link androidx.webkit.WebViewCompat#setSafeBrowsingWhitelist(Set,
-     * ValueCallback)}, plumbing through the deprecated boundary interface.
+     * This feature covers {@link androidx.webkit.WebViewCompat#setSafeBrowsingWhitelist(
+     * java.util.List, ValueCallback)}, plumbing through the deprecated boundary interface.
      *
-     * <p>Don't use this value directly. This exists only so {@link WebViewFeature#isSupported}
-     * supports the <b>deprecated</b> public feature when running against <b>old</b> WebView
-     * versions.
+     * <p>Don't use this value directly. This exists only so
+     * {@link WebViewFeatureInternal#isSupported(String)} supports the <b>deprecated</b> public
+     * feature when running against <b>old</b> WebView versions.
      *
      * @deprecated use {@link #SAFE_BROWSING_ALLOWLIST_PREFERRED_TO_DEPRECATED} to test for the
      * <b>old</b> boundary interface
@@ -118,12 +122,12 @@ public class WebViewFeatureInternal {
                     Features.SAFE_BROWSING_WHITELIST);
 
     /**
-     * This feature covers {@link androidx.webkit.WebViewCompat#setSafeBrowsingWhitelist(Set,
-     * ValueCallback)}, plumbing through the new boundary interface.
+     * This feature covers {@link androidx.webkit.WebViewCompat#setSafeBrowsingWhitelist(
+     * java.util.List, ValueCallback)}, plumbing through the new boundary interface.
      *
-     * <p>Don't use this value directly. This exists only so {@link WebViewFeature#isSupported}
-     * supports the <b>deprecated</b> public feature when running against <b>new</b> WebView
-     * versions.
+     * <p>Don't use this value directly. This exists only so
+     * {@link WebViewFeatureInternal#isSupported(String)} supports the <b>deprecated</b> public
+     * feature when running against <b>new</b> WebView versions.
      *
      * @deprecated use {@link #SAFE_BROWSING_ALLOWLIST_PREFERRED_TO_PREFERRED} to test for the
      * <b>new</b> boundary interface.
@@ -312,9 +316,9 @@ public class WebViewFeatureInternal {
      * {@link WebMessagePortCompat#postMessage(WebMessageCompat)} with ArrayBuffer type, and
      * {@link WebViewCompat#postWebMessage(WebView, WebMessageCompat, Uri)} with ArrayBuffer type.
      */
-    public static final ApiFeature.NoFramework WEB_MESSAGE_GET_MESSAGE_PAYLOAD =
-            new ApiFeature.NoFramework(WebViewFeature.WEB_MESSAGE_GET_MESSAGE_PAYLOAD,
-                    Features.WEB_MESSAGE_GET_MESSAGE_PAYLOAD);
+    public static final ApiFeature.NoFramework WEB_MESSAGE_ARRAY_BUFFER =
+            new ApiFeature.NoFramework(WebViewFeature.WEB_MESSAGE_ARRAY_BUFFER,
+                    Features.WEB_MESSAGE_ARRAY_BUFFER);
 
     /**
      * This feature covers
@@ -381,7 +385,7 @@ public class WebViewFeatureInternal {
 
     /**
      * This feature covers
-     * {@link androidx.webkit.ProcessGlobalConfig#setDataDirectorySuffix(String)}.
+     * {@link androidx.webkit.ProcessGlobalConfig#setDataDirectorySuffix(Context, String)}
      */
     public static final StartupApiFeature.P STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX =
             new StartupApiFeature.P(WebViewFeature.STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX,
@@ -389,10 +393,19 @@ public class WebViewFeatureInternal {
 
     /**
      * This feature covers
-     * {@link WebViewCompat#getWebViewRenderProcessClient()},
-     * {@link WebViewCompat#setWebViewRenderProcessClient(WebViewRenderProcessClient)},
-     * {@link WebViewRenderProcessClient#onRenderProcessUnresponsive(WebView, WebViewRenderProcess)},
-     * {@link WebViewRenderProcessClient#onRenderProcessResponsive(WebView, WebViewRenderProcess)}
+     * {@link androidx.webkit.ProcessGlobalConfig#setDirectoryBasePaths(Context, File, File)}.
+     */
+    public static final StartupApiFeature.NoFramework STARTUP_FEATURE_SET_DIRECTORY_BASE_PATH =
+            new StartupApiFeature.NoFramework(
+                    WebViewFeature.STARTUP_FEATURE_SET_DIRECTORY_BASE_PATHS,
+                    StartupFeatures.STARTUP_FEATURE_SET_DIRECTORY_BASE_PATH);
+
+    /**
+     * This feature covers
+     * {@link WebViewCompat#getWebViewRenderProcessClient(android.webkit.WebView)},
+     * {@link WebViewCompat#setWebViewRenderProcessClient(WebView, androidx.webkit.WebViewRenderProcessClient)},
+     * {@link android.webkit.WebViewRenderProcessClient#onRenderProcessUnresponsive(WebView, android.webkit.WebViewRenderProcess)},
+     * {@link android.webkit.WebViewRenderProcessClient#onRenderProcessResponsive(WebView, android.webkit.WebViewRenderProcess)}
      */
     public static final ApiFeature.Q WEB_VIEW_RENDERER_CLIENT_BASIC_USAGE =
             new ApiFeature.Q(WebViewFeature.WEB_VIEW_RENDERER_CLIENT_BASIC_USAGE,
@@ -425,22 +438,12 @@ public class WebViewFeatureInternal {
 
     /**
      * This feature covers
-     * {@link ProxyController#setProxyOverride(ProxyConfig, Executor, Runnable)},
-     * {@link ProxyController#setProxyOverride(ProxyConfig, Runnable)},
-     * {@link ProxyController#clearProxyOverride(Executor, Runnable)}, and
-     * {@link ProxyController#clearProxyOverride(Runnable)}.
+     * {@link ProxyController#setProxyOverride(ProxyConfig, Executor, Runnable)}, and
+     * {@link ProxyController#clearProxyOverride(Executor, Runnable)}.
      */
     public static final ApiFeature.NoFramework PROXY_OVERRIDE = new ApiFeature.NoFramework(
             WebViewFeature.PROXY_OVERRIDE, Features.PROXY_OVERRIDE);
 
-    /**
-     * This feature covers
-     * {@link androidx.webkit.WebSettingsCompat#willSuppressErrorPage(WebSettings)} and
-     * {@link androidx.webkit.WebSettingsCompat#setWillSuppressErrorPage(WebSettings, boolean)}.
-     */
-    public static final ApiFeature.NoFramework SUPPRESS_ERROR_PAGE =
-            new ApiFeature.NoFramework(WebViewFeature.SUPPRESS_ERROR_PAGE,
-                    Features.SUPPRESS_ERROR_PAGE);
 
     /**
      * This feature covers {@link WebViewCompat#isMultiProcessEnabled()}.
@@ -467,9 +470,8 @@ public class WebViewFeatureInternal {
 
     /**
      * This feature covers
-     * {@link androidx.webkit.WebViewCompat#setWebMessageListener(android.webkit.WebView,
-     * androidx.webkit.WebViewCompat.WebMessageListener, String, String[])} and
-     * {@link androidx.webkit.WebViewCompat#removeWebMessageListener()}
+     * {@link androidx.webkit.WebViewCompat#addWebMessageListener(WebView, String, Set, WebViewCompat.WebMessageListener)} and
+     * {@link androidx.webkit.WebViewCompat#removeWebMessageListener(WebView, String)}
      */
     public static final ApiFeature.NoFramework WEB_MESSAGE_LISTENER =
             new ApiFeature.NoFramework(WebViewFeature.WEB_MESSAGE_LISTENER,
@@ -486,7 +488,8 @@ public class WebViewFeatureInternal {
                     Features.DOCUMENT_START_SCRIPT);
 
     /**
-     * This feature covers {@link androidx.webkit.ProxyConfig.Builder.setReverseBypass(boolean)}
+     * This feature covers {@link
+     * androidx.webkit.ProxyConfig.Builder#setReverseBypassEnabled(boolean)}
      */
     public static final ApiFeature.NoFramework PROXY_OVERRIDE_REVERSE_BYPASS =
             new ApiFeature.NoFramework(WebViewFeature.PROXY_OVERRIDE_REVERSE_BYPASS,
@@ -511,24 +514,140 @@ public class WebViewFeatureInternal {
 
     /**
      * This feature covers
-     * {@link androidx.webkit.CookieManager#getCookieInfo(CookieManager, String)}.
+     * {@link androidx.webkit.CookieManagerCompat#getCookieInfo(android.webkit.CookieManager, String)}.
      */
     public static final ApiFeature.NoFramework GET_COOKIE_INFO =
             new ApiFeature.NoFramework(WebViewFeature.GET_COOKIE_INFO, Features.GET_COOKIE_INFO);
 
     /**
-     * Feature for {@link #isFeatureSupported(String)}.
      * This feature covers
      * {@link androidx.webkit.WebSettingsCompat#getRequestedWithHeaderOriginAllowList(WebSettings)],
      * {@link androidx.webkit.WebSettingsCompat#setRequestedWithHeaderAllowList(WebSettings, Set)},
      * {@link androidx.webkit.ServiceWorkerWebSettingsCompat#getRequestedWithHeaderAllowList(WebSettings)}, and
      * {@link androidx.webkit.ServiceWorkerWebSettingsCompat#setRequestedWithHeaderAllowList(WebSettings, Set)}.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final ApiFeature.NoFramework REQUESTED_WITH_HEADER_ALLOW_LIST =
             new ApiFeature.NoFramework(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST,
                     Features.REQUESTED_WITH_HEADER_ALLOW_LIST);
+
+    /**
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setUserAgentMetadata(WebSettings, androidx.webkit.UserAgentMetadata)} and
+     * {@link androidx.webkit.WebSettingsCompat#getUserAgentMetadata(WebSettings)}.
+     *
+     */
+    public static final ApiFeature.NoFramework USER_AGENT_METADATA =
+            new ApiFeature.NoFramework(WebViewFeature.USER_AGENT_METADATA,
+                    Features.USER_AGENT_METADATA);
+
+    /**
+     * This feature covers
+     * {@link Profile#getName()}.
+     * {@link Profile#getWebStorage()}.
+     * {@link Profile#getCookieManager()}.
+     * {@link Profile#getGeolocationPermissions()}.
+     * {@link Profile#getServiceWorkerController()}.
+     * {@link ProfileStore#getProfile(String)}.
+     * {@link ProfileStore#getOrCreateProfile(String)}.
+     * {@link ProfileStore#getAllProfileNames()}.
+     * {@link ProfileStore#deleteProfile(String)}.
+     * {@link ProfileStore#getInstance()}.
+     */
+    public static final ApiFeature.NoFramework MULTI_PROFILE =
+            new ApiFeature.NoFramework(WebViewFeature.MULTI_PROFILE, Features.MULTI_PROFILE) {
+                @Override
+                public boolean isSupportedByWebView() {
+                    // Multi-process mode is a requirement for Multi-Profile feature.
+                    if (!super.isSupportedByWebView()) {
+                        return false;
+                    }
+                    if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROCESS)) {
+                        return WebViewCompat.isMultiProcessEnabled();
+                    }
+                    return false;
+                }
+            };
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setAttributionRegistrationBehavior(WebSettings, int)}
+     * {@link androidx.webkit.WebSettingsCompat#getAttributionRegistrationBehavior(WebSettings)}
+     */
+    public static final ApiFeature.NoFramework ATTRIBUTION_REGISTRATION_BEHAVIOR =
+            new ApiFeature.NoFramework(WebViewFeature.ATTRIBUTION_REGISTRATION_BEHAVIOR,
+                    Features.ATTRIBUTION_BEHAVIOR);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setWebViewMediaIntegrityApiStatus(WebSettings, androidx.webkit.WebViewMediaIntegrityApiStatusConfig)}
+     * {@link androidx.webkit.WebSettingsCompat#getWebViewMediaIntegrityApiStatus(WebSettings)}
+     */
+    public static final ApiFeature.NoFramework WEBVIEW_MEDIA_INTEGRITY_API_STATUS =
+            new ApiFeature.NoFramework(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS,
+                    Features.WEBVIEW_MEDIA_INTEGRITY_API_STATUS);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebViewCompat#isAudioMuted(WebView)}
+     * {@link androidx.webkit.WebViewCompat#setAudioMuted(WebView, boolean)}
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public static final ApiFeature.NoFramework MUTE_AUDIO =
+            new ApiFeature.NoFramework(WebViewFeature.MUTE_AUDIO,
+                    Features.MUTE_AUDIO);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setWebAuthenticationSupport(WebSettings, int)}
+     * {@link androidx.webkit.WebSettingsCompat#getWebAuthenticationSupport(WebSettings)}
+     */
+    public static final ApiFeature.NoFramework WEB_AUTHENTICATION = new ApiFeature.NoFramework(
+            WebViewFeature.WEB_AUTHENTICATION, Features.WEB_AUTHENTICATION);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setSpeculativeLoadingStatus(WebSettings, int)}
+     * {@link androidx.webkit.WebSettingsCompat#getSpeculativeLoadingStatus(WebSettings)}
+     */
+    public static final ApiFeature.NoFramework SPECULATIVE_LOADING =
+            new ApiFeature.NoFramework(WebViewFeature.SPECULATIVE_LOADING,
+                    Features.SPECULATIVE_LOADING);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setBackForwardCacheEnabled(WebSettings, boolean)}
+     * {@link androidx.webkit.WebSettingsCompat#getBackForwardCacheEnabled(WebSettings)}
+     */
+    public static final ApiFeature.NoFramework BACK_FORWARD_CACHE =
+            new ApiFeature.NoFramework(WebViewFeature.BACK_FORWARD_CACHE,
+                    Features.BACK_FORWARD_CACHE);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.Profile#prefetchUrlAsync(String, PrefetchParameters)}
+     * {@link androidx.webkit.Profile#clearPrefetchAsync(String)}
+     */
+    public static final ApiFeature.NoFramework PROFILE_URL_PREFETCH =
+            new ApiFeature.NoFramework(WebViewFeature.PROFILE_URL_PREFETCH,
+                    Features.PREFETCH_WITH_URL) {
+                @Override
+                public boolean isSupportedByWebView() {
+                    // Multi-profile is a requirement for this feature.
+                    if (!WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+                        return false;
+                    }
+                    return super.isSupportedByWebView();
+                }
+            };
+
     // --- Add new feature constants above this line ---
 
     private WebViewFeatureInternal() {

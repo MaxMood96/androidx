@@ -17,12 +17,16 @@
 package androidx.benchmark
 
 import android.Manifest
+import androidx.annotation.RequiresApi
 import androidx.benchmark.BenchmarkState.Companion.ExperimentalExternalReport
+import androidx.benchmark.json.BenchmarkData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.FlakyTest
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
+import java.util.concurrent.TimeUnit
+import kotlin.test.assertFailsWith
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
@@ -32,9 +36,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.TimeUnit
-import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
@@ -71,23 +72,18 @@ class BenchmarkStateTest {
             }
 
             state.pauseTiming()
-            runAndSpin(durationUs = 700) {
-                allocate(80)
-            }
+            runAndSpin(durationUs = 700) { allocate(80) }
             state.resumeTiming()
         }
         // The point of these asserts are to verify that pause/resume work, and that metrics that
         // come out are reasonable, not perfect - this isn't always run in stable perf environments
-        val medianTime = state.getReport().getMetricResult("timeNs").median.toLong()
+        val medianTime = state.peekTestResult().metrics["timeNs"]!!.median.toLong()
         assertTrue(
             "median time (ns) $medianTime should be roughly 300us",
             medianTime in us2ns(280)..us2ns(900)
         )
-        val medianAlloc = state.getReport().getMetricResult("allocationCount").median.toInt()
-        assertTrue(
-            "median allocs $medianAlloc should be approximately 40",
-            medianAlloc in 40..50
-        )
+        val medianAlloc = state.peekTestResult().metrics["allocationCount"]!!.median.toInt()
+        assertTrue("median allocs $medianAlloc should be approximately 40", medianAlloc in 40..50)
     }
 
     @Test
@@ -151,35 +147,39 @@ class BenchmarkStateTest {
         assertEquals(initialPriority, ThreadPriority.get())
     }
 
-    private fun iterationCheck(checkingForThermalThrottling: Boolean) {
+    private fun iterationCheck(simplifiedTimingOnlyMode: Boolean) {
         // disable thermal throttle checks, since it can cause loops to be thrown out
         // note that this bypasses allocation count
-        val state = BenchmarkState(simplifiedTimingOnlyMode = checkingForThermalThrottling)
+        val state = BenchmarkState(simplifiedTimingOnlyMode = simplifiedTimingOnlyMode)
         var total = 0
         while (state.keepRunning()) {
             total++
         }
 
-        val report = state.getReport()
-        val expectedRepeatCount = state.repeatCountTime +
-            if (!checkingForThermalThrottling) BenchmarkState.REPEAT_COUNT_ALLOCATION else 0
-        val expectedCount = report.warmupIterations + report.repeatIterations * expectedRepeatCount
+        val testResult = state.peekTestResult()
+
+        // '50' assumes we're not running in a special mode
+        // that affects repeat count (dry run)
+        val expectedRepeatCount =
+            50 + if (simplifiedTimingOnlyMode) 0 else BenchmarkState.REPEAT_COUNT_ALLOCATION
+        val expectedCount =
+            testResult.warmupIterations!! +
+                testResult.repeatIterations!! * expectedRepeatCount +
+                if (Arguments.profiler == MethodTracing && !simplifiedTimingOnlyMode) 1 else 0
         assertEquals(expectedCount, total)
 
         if (Arguments.iterations != null) {
-            assertEquals(Arguments.iterations, report.repeatIterations)
+            assertEquals(Arguments.iterations, testResult.repeatIterations)
         }
 
         // verify we're not in warmup mode
-        assertTrue(report.warmupIterations > 0)
-        assertTrue(report.repeatIterations > 1)
-        // verify we're not running in a special mode that affects repeat count (dry run, profiling)
-        assertEquals(50, state.repeatCountTime)
+        assertTrue(testResult.warmupIterations!! > 0)
+        assertTrue(testResult.repeatIterations!! > 1)
     }
 
     @Test
     fun iterationCheck_simple() {
-        iterationCheck(checkingForThermalThrottling = true)
+        iterationCheck(simplifiedTimingOnlyMode = true)
     }
 
     @Test
@@ -189,31 +189,34 @@ class BenchmarkStateTest {
         assumeTrue(
             CpuInfo.locked ||
                 IsolationActivity.sustainedPerformanceModeInUse ||
-                Errors.isEmulator
+                DeviceInfo.isEmulator
         )
-        iterationCheck(checkingForThermalThrottling = false)
+        iterationCheck(simplifiedTimingOnlyMode = false)
     }
 
     @Test
     @Suppress("DEPRECATION")
     fun bundle() {
-        val bundle = BenchmarkState().apply {
-            while (keepRunning()) {
-                // nothing, we're ignoring numbers
-            }
-        }.getFullStatusReport(
-            key = "foo",
-            reportMetrics = true,
-            tracePath = Outputs.outputDirectory.absolutePath + "/bar"
-        )
+        val bundle =
+            BenchmarkState()
+                .apply {
+                    while (keepRunning()) {
+                        // nothing, we're ignoring numbers
+                    }
+                }
+                .getFullStatusReport(
+                    key = "foo",
+                    reportMetrics = true,
+                    tracePath = Outputs.outputDirectory.absolutePath + "/bar"
+                )
 
         val displayStringV1 = (bundle.get("android.studio.display.benchmark") as String)
         val displayStringV2 = (bundle.get("android.studio.v2display.benchmark") as String)
         assertTrue("$displayStringV1 should contain foo", displayStringV1.contains("foo"))
         assertTrue("$displayStringV2 should contain foo", displayStringV2.contains("foo"))
         assertTrue(
-            "$displayStringV2 should contain [trace](file://bar)",
-            displayStringV2.contains("[trace](file://bar)")
+            "$displayStringV2 should contain [Trace](file://bar)",
+            displayStringV2.contains("[Trace](file://bar)")
         )
 
         // check attribute presence and naming
@@ -233,7 +236,7 @@ class BenchmarkStateTest {
     fun notStarted() {
         val initialPriority = ThreadPriority.get()
         try {
-            BenchmarkState().getReport().getMetricResult("timeNs").median
+            BenchmarkState().peekTestResult().metrics["timeNs"]!!.median
             fail("expected exception")
         } catch (e: IllegalStateException) {
             assertEquals(initialPriority, ThreadPriority.get())
@@ -247,7 +250,7 @@ class BenchmarkStateTest {
         try {
             BenchmarkState().run {
                 keepRunning()
-                getReport().getMetricResult("timeNs").median
+                peekTestResult().metrics["timeNs"]!!.median
             }
             fail("expected exception")
         } catch (e: IllegalStateException) {
@@ -257,7 +260,6 @@ class BenchmarkStateTest {
         }
     }
 
-    @Suppress("DEPRECATION")
     @OptIn(ExperimentalExternalReport::class)
     @Test
     fun reportResult() {
@@ -270,128 +272,83 @@ class BenchmarkStateTest {
             thermalThrottleSleepSeconds = 0,
             repeatIterations = 1
         )
-        val expectedReport = BenchmarkResult(
-            className = "className",
-            testName = "testName",
-            totalRunTimeNs = 900000000,
-            metrics = listOf(
-                MetricResult(
-                    name = "timeNs",
-                    data = listOf(100.0, 200.0, 300.0)
-                )
-            ),
-            repeatIterations = 1,
-            thermalThrottleSleepSeconds = 0,
-            warmupIterations = 1
-        )
+        val expectedReport =
+            BenchmarkData.TestResult(
+                className = "className",
+                name = "testName",
+                totalRunTimeNs = 900000000,
+                metrics = listOf(MetricResult(name = "timeNs", data = listOf(100.0, 200.0, 300.0))),
+                repeatIterations = 1,
+                thermalThrottleSleepSeconds = 0,
+                warmupIterations = 1,
+                profilerOutputs = null,
+            )
         assertEquals(expectedReport, ResultWriter.reports.last())
     }
 
+    @RequiresApi(22) // 21 profiler has flaky platform crashes, see b/353716346
     private fun validateProfilerUsage(simplifiedTimingOnlyMode: Boolean?) {
-        try {
-            profilerOverride = StackSamplingLegacy
+        val config = MicrobenchmarkConfig(profiler = ProfilerConfig.StackSamplingLegacy())
 
-            val benchmarkState = if (simplifiedTimingOnlyMode != null) {
-                BenchmarkState(simplifiedTimingOnlyMode = simplifiedTimingOnlyMode)
+        val benchmarkState =
+            if (simplifiedTimingOnlyMode != null) {
+                BenchmarkState(config = config, simplifiedTimingOnlyMode = simplifiedTimingOnlyMode)
             } else {
-                BenchmarkState()
+                BenchmarkState(config)
             }
 
-            // count iters with profiler enabled vs disabled
-            var profilerDisabledIterations = 0
-            var profilerEnabledIterations = 0
-            var profilerAllocationIterations = 0
-            while (benchmarkState.keepRunning()) {
-                if (StackSamplingLegacy.isRunning) {
-                    profilerEnabledIterations++
-                } else {
-                    profilerDisabledIterations++
+        // count iters with profiler enabled vs disabled
+        var profilerDisabledIterations = 0
+        var profilerEnabledIterations = 0
+        var profilerAllocationIterations = 0
+        while (benchmarkState.keepRunning()) {
+            if (StackSamplingLegacy.isRunning) {
+                profilerEnabledIterations++
+            } else {
+                profilerDisabledIterations++
 
-                    if (profilerEnabledIterations != 0) {
-                        // profiler will only be disabled after running during allocation phase
-                        profilerAllocationIterations++
-                    }
+                if (profilerEnabledIterations != 0) {
+                    // profiler will only be disabled after running during allocation phase
+                    profilerAllocationIterations++
                 }
             }
+        }
 
-            if (simplifiedTimingOnlyMode == true) {
-                // profiler should be always disabled
-                assertNotEquals(0, profilerDisabledIterations)
-                assertEquals(0, profilerEnabledIterations)
-                assertEquals(0, profilerAllocationIterations)
-            } else {
-                // first, profiler disabled, then enabled until end
-                assertNotEquals(0, profilerDisabledIterations)
-                assertNotEquals(0, profilerEnabledIterations)
-                assertNotEquals(0, profilerAllocationIterations)
-            }
-        } finally {
-            profilerOverride = null
+        if (simplifiedTimingOnlyMode == true) {
+            // profiler should be always disabled
+            assertNotEquals(0, profilerDisabledIterations)
+            assertEquals(0, profilerEnabledIterations)
+            assertEquals(0, profilerAllocationIterations)
+        } else {
+            // first, profiler disabled (timing) ...
+            assertNotEquals(0, profilerDisabledIterations)
+            // then enabled (profiling) ...
+            assertNotEquals(0, profilerEnabledIterations)
+            // then disabled again (allocs)
+            assertNotEquals(0, profilerAllocationIterations)
         }
     }
 
-    @Test fun profiler_default() = validateProfilerUsage(null)
-    @Test fun profiler_false() = validateProfilerUsage(false)
-    @Test fun profiler_true() = validateProfilerUsage(true)
+    @SdkSuppress(minSdkVersion = 22) // 21 profiler has flaky platform crashes, see b/353716346
+    @Test
+    fun profiler_default() = validateProfilerUsage(null)
+
+    @SdkSuppress(minSdkVersion = 22) // 21 profiler has flaky platform crashes, see b/353716346
+    @Test
+    fun profiler_false() = validateProfilerUsage(false)
+
+    @SdkSuppress(minSdkVersion = 22) // 21 profiler has flaky platform crashes, see b/353716346
+    @Test
+    fun profiler_true() = validateProfilerUsage(true)
 
     @OptIn(ExperimentalBenchmarkStateApi::class)
     @Test
     fun experimentalConstructor() {
         // min values that don't fail
-        BenchmarkState(
-            warmupCount = null,
-            measurementCount = 1
-        )
+        BenchmarkState(warmupCount = null, measurementCount = 1)
 
         // test failures
-        assertFailsWith<IllegalArgumentException> {
-            BenchmarkState(warmupCount = 0)
-        }
-        assertFailsWith<IllegalArgumentException> {
-            BenchmarkState(measurementCount = 0)
-        }
-    }
-
-    @OptIn(ExperimentalBenchmarkStateApi::class)
-    private fun validateIters(
-        warmupCount: Int?,
-        measurementCount: Int
-    ) {
-        val state = BenchmarkState(
-            warmupCount = warmupCount,
-            measurementCount = measurementCount
-        )
-        var count = 0
-        while (state.keepRunning()) {
-            count++
-        }
-        if (warmupCount != null) {
-            assertEquals(
-                warmupCount + // warmup
-                    measurementCount * state.iterationsPerRepeat + // timing
-                    BenchmarkState.REPEAT_COUNT_ALLOCATION * state.iterationsPerRepeat, // allocs
-                count
-            )
-        }
-        assertEquals(
-            measurementCount,
-            state.getMeasurementTimeNs().size
-        )
-    }
-
-    @Test
-    fun experimentalIters() {
-        validateIters(
-            warmupCount = 1,
-            measurementCount = 1
-        )
-        validateIters(
-            warmupCount = 3,
-            measurementCount = 5
-        )
-        validateIters(
-            warmupCount = 10000,
-            measurementCount = 1
-        )
+        assertFailsWith<IllegalArgumentException> { BenchmarkState(warmupCount = 0) }
+        assertFailsWith<IllegalArgumentException> { BenchmarkState(measurementCount = 0) }
     }
 }

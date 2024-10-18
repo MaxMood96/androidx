@@ -18,21 +18,37 @@ package androidx.camera.camera2.internal.compat;
 
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.os.Build;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.camera.core.Logger;
 import androidx.camera.core.impl.ImageFormatConstants;
 
-@RequiresApi(21)
 class StreamConfigurationMapCompatBaseImpl
         implements StreamConfigurationMapCompat.StreamConfigurationMapCompatImpl {
+
+    private static final String TAG = "StreamConfigurationMapCompatBaseImpl";
 
     final StreamConfigurationMap mStreamConfigurationMap;
 
     StreamConfigurationMapCompatBaseImpl(@NonNull StreamConfigurationMap map) {
         mStreamConfigurationMap = map;
+    }
+
+    @Nullable
+    @Override
+    public int[] getOutputFormats() {
+        // b/361590210: try-catch to workaround the NullPointerException issue when using
+        // StreamConfigurationMap provided by Robolectric.
+        try {
+            return mStreamConfigurationMap.getOutputFormats();
+        } catch (NullPointerException | IllegalArgumentException e) {
+            Logger.w(TAG, "Failed to get output formats from StreamConfigurationMap", e);
+            return null;
+        }
     }
 
     @Nullable
@@ -56,5 +72,32 @@ class StreamConfigurationMapCompatBaseImpl
     @Override
     public <T> Size[] getOutputSizes(@NonNull Class<T> klass) {
         return mStreamConfigurationMap.getOutputSizes(klass);
+    }
+
+    @Nullable
+    @Override
+    public Size[] getHighResolutionOutputSizes(int format) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return Api23Impl.getHighResolutionOutputSizes(mStreamConfigurationMap, format);
+        }
+        return null;
+    }
+
+    @NonNull
+    @Override
+    public StreamConfigurationMap unwrap() {
+        return mStreamConfigurationMap;
+    }
+
+    @RequiresApi(23)
+    static class Api23Impl {
+        private Api23Impl() {
+            // This class is not instantiable.
+        }
+
+        static Size[] getHighResolutionOutputSizes(StreamConfigurationMap streamConfigurationMap,
+                int format) {
+            return streamConfigurationMap.getHighResolutionOutputSizes(format);
+        }
     }
 }

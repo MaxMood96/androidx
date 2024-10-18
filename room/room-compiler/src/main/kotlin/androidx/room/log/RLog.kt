@@ -74,6 +74,10 @@ class RLog(
         printToMessager(messager, WARNING, msg.safeFormat(args), defaultElement)
     }
 
+    fun w(msg: String, vararg args: Any) {
+        printToMessager(messager, WARNING, msg.safeFormat(args), defaultElement)
+    }
+
     private data class DiagnosticMessage(
         val msg: String,
         val element: XElement?,
@@ -83,6 +87,7 @@ class RLog(
 
     class CollectingMessager : XMessager() {
         private val messages = mutableMapOf<Diagnostic.Kind, MutableList<DiagnosticMessage>>()
+
         override fun onPrintMessage(
             kind: Diagnostic.Kind,
             msg: String,
@@ -90,14 +95,15 @@ class RLog(
             annotation: XAnnotation?,
             annotationValue: XAnnotationValue?
         ) {
-            messages.getOrPut(kind) { arrayListOf() }
+            messages
+                .getOrPut(kind) { arrayListOf() }
                 .add(DiagnosticMessage(msg, element, annotation, annotationValue))
         }
 
         fun hasErrors() = messages.containsKey(ERROR)
 
-        fun hasMissingTypeErrors() = messages.getOrElse(ERROR) { emptyList() }
-            .any { it.msg.startsWith(MISSING_TYPE_PREFIX) }
+        fun hasMissingTypeErrors() =
+            messages.getOrElse(ERROR) { emptyList() }.any { it.msg.startsWith(MISSING_TYPE_PREFIX) }
 
         fun writeTo(
             context: Context,

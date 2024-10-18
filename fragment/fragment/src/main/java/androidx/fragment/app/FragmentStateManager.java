@@ -18,6 +18,7 @@ package androidx.fragment.app;
 
 import android.app.Activity;
 import android.content.res.Resources;
+import android.os.BadParcelableException;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.Log;
@@ -205,6 +206,14 @@ class FragmentStateManager {
                 }
             }
         }
+        // For fragments that are added via FragmentTransaction.add(ViewGroup)
+        if (mFragment.mInDynamicContainer) {
+            if (mFragment.mContainer == null) {
+                // If their container is not available yet (onContainerAvailable hasn't been
+                // called), don't allow the fragment to go beyond ACTIVITY_CREATED
+                maxState = Math.min(maxState, Fragment.ACTIVITY_CREATED);
+            }
+        }
         // Fragments that are not currently added will sit in the CREATED state.
         if (!mFragment.mAdded) {
             maxState = Math.min(maxState, Fragment.CREATED);
@@ -234,6 +243,11 @@ class FragmentStateManager {
         // if it's not already started.
         if (mFragment.mDeferStart && mFragment.mState < Fragment.STARTED) {
             maxState = Math.min(maxState, Fragment.ACTIVITY_CREATED);
+        }
+        // Fragments that are transitioning are part of a seeking effect and must be at least
+        // AWAITING_EXIT_EFFECTS
+        if (mFragment.mTransitioning) {
+            maxState = Math.max(maxState, Fragment.AWAITING_EXIT_EFFECTS);
         }
         if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
             Log.v(FragmentManager.TAG, "computeExpectedState() of " + maxState + " for "
@@ -359,7 +373,7 @@ class FragmentStateManager {
                     if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
                         Log.d(TAG, "Cleaning up state of never attached fragment: " + mFragment);
                     }
-                    mFragmentStore.getNonConfig().clearNonConfigState(mFragment);
+                    mFragmentStore.getNonConfig().clearNonConfigState(mFragment, true);
                     mFragmentStore.makeInactive(this);
                     if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
                         Log.d(TAG, "initState called for fragment: " + mFragment);
@@ -431,8 +445,14 @@ class FragmentStateManager {
                     new Bundle());
         }
 
-        mFragment.mSavedViewState = mFragment.mSavedFragmentState.getSparseParcelableArray(
-                VIEW_STATE_KEY);
+        try {
+            mFragment.mSavedViewState = mFragment.mSavedFragmentState.getSparseParcelableArray(
+                    VIEW_STATE_KEY);
+        } catch (BadParcelableException e) {
+            throw new IllegalStateException(
+                    "Failed to restore view hierarchy state for fragment " + getFragment(), e
+            );
+        }
         mFragment.mSavedViewRegistryState = mFragment.mSavedFragmentState.getBundle(
                 VIEW_REGISTRY_STATE_KEY);
 
@@ -536,7 +556,7 @@ class FragmentStateManager {
             FragmentContainer fragmentContainer = mFragment.mFragmentManager.getContainer();
             container = (ViewGroup) fragmentContainer.onFindViewById(mFragment.mContainerId);
             if (container == null) {
-                if (!mFragment.mRestored) {
+                if (!mFragment.mRestored && !mFragment.mInDynamicContainer) {
                     String resName;
                     try {
                         resName = mFragment.getResources().getResourceName(mFragment.mContainerId);
@@ -556,6 +576,9 @@ class FragmentStateManager {
         mFragment.mContainer = container;
         mFragment.performCreateView(layoutInflater, container, savedInstanceState);
         if (mFragment.mView != null) {
+            if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
+                Log.d(TAG, "moveto VIEW_CREATED: " + mFragment);
+            }
             mFragment.mView.setSaveFromParentEnabled(false);
             mFragment.mView.setTag(R.id.fragment_container_view_tag, mFragment);
             if (container != null) {
@@ -565,7 +588,7 @@ class FragmentStateManager {
                 mFragment.mView.setVisibility(View.GONE);
             }
             // How I wish we could use doOnAttach
-            if (ViewCompat.isAttachedToWindow(mFragment.mView)) {
+            if (mFragment.mView.isAttachedToWindow()) {
                 ViewCompat.requestApplyInsets(mFragment.mView);
             } else {
                 final View fragmentView = mFragment.mView;
@@ -642,6 +665,7 @@ class FragmentStateManager {
         mFragment.setFocusedView(null);
         mFragment.performResume();
         mDispatcher.dispatchOnFragmentResumed(mFragment, false);
+        mFragmentStore.setSavedState(mFragment.mWho, null);
         mFragment.mSavedFragmentState = null;
         mFragment.mSavedViewState = null;
         mFragment.mSavedViewRegistryState = null;
@@ -803,7 +827,7 @@ class FragmentStateManager {
                 shouldClear = true;
             }
             if ((beingRemoved && !mFragment.mBeingSaved) || shouldClear) {
-                mFragmentStore.getNonConfig().clearNonConfigState(mFragment);
+                mFragmentStore.getNonConfig().clearNonConfigState(mFragment, false);
             }
             mFragment.performDestroy();
             mDispatcher.dispatchOnFragmentDestroyed(mFragment, false);

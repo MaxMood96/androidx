@@ -28,32 +28,23 @@ import androidx.compose.runtime.Immutable
 sealed class PathNode(val isCurve: Boolean = false, val isQuad: Boolean = false) {
     // RelativeClose and Close are considered the same internally, so we represent both with Close
     // for simplicity and to make equals comparisons robust.
-    @Immutable
-    object Close : PathNode()
+    @Immutable object Close : PathNode()
 
-    @Immutable
-    data class RelativeMoveTo(val dx: Float, val dy: Float) : PathNode()
+    @Immutable data class RelativeMoveTo(val dx: Float, val dy: Float) : PathNode()
 
-    @Immutable
-    data class MoveTo(val x: Float, val y: Float) : PathNode()
+    @Immutable data class MoveTo(val x: Float, val y: Float) : PathNode()
 
-    @Immutable
-    data class RelativeLineTo(val dx: Float, val dy: Float) : PathNode()
+    @Immutable data class RelativeLineTo(val dx: Float, val dy: Float) : PathNode()
 
-    @Immutable
-    data class LineTo(val x: Float, val y: Float) : PathNode()
+    @Immutable data class LineTo(val x: Float, val y: Float) : PathNode()
 
-    @Immutable
-    data class RelativeHorizontalTo(val dx: Float) : PathNode()
+    @Immutable data class RelativeHorizontalTo(val dx: Float) : PathNode()
 
-    @Immutable
-    data class HorizontalTo(val x: Float) : PathNode()
+    @Immutable data class HorizontalTo(val x: Float) : PathNode()
 
-    @Immutable
-    data class RelativeVerticalTo(val dy: Float) : PathNode()
+    @Immutable data class RelativeVerticalTo(val dy: Float) : PathNode()
 
-    @Immutable
-    data class VerticalTo(val y: Float) : PathNode()
+    @Immutable data class VerticalTo(val y: Float) : PathNode()
 
     @Immutable
     data class RelativeCurveTo(
@@ -84,40 +75,21 @@ sealed class PathNode(val isCurve: Boolean = false, val isQuad: Boolean = false)
     ) : PathNode(isCurve = true)
 
     @Immutable
-    data class ReflectiveCurveTo(
-        val x1: Float,
-        val y1: Float,
-        val x2: Float,
-        val y2: Float
-    ) : PathNode(isCurve = true)
+    data class ReflectiveCurveTo(val x1: Float, val y1: Float, val x2: Float, val y2: Float) :
+        PathNode(isCurve = true)
 
     @Immutable
-    data class RelativeQuadTo(
-        val dx1: Float,
-        val dy1: Float,
-        val dx2: Float,
-        val dy2: Float
-    ) : PathNode(isQuad = true)
+    data class RelativeQuadTo(val dx1: Float, val dy1: Float, val dx2: Float, val dy2: Float) :
+        PathNode(isQuad = true)
 
     @Immutable
-    data class QuadTo(
-        val x1: Float,
-        val y1: Float,
-        val x2: Float,
-        val y2: Float
-    ) : PathNode(isQuad = true)
+    data class QuadTo(val x1: Float, val y1: Float, val x2: Float, val y2: Float) :
+        PathNode(isQuad = true)
 
     @Immutable
-    data class RelativeReflectiveQuadTo(
-        val dx: Float,
-        val dy: Float
-    ) : PathNode(isQuad = true)
+    data class RelativeReflectiveQuadTo(val dx: Float, val dy: Float) : PathNode(isQuad = true)
 
-    @Immutable
-    data class ReflectiveQuadTo(
-        val x: Float,
-        val y: Float
-    ) : PathNode(isQuad = true)
+    @Immutable data class ReflectiveQuadTo(val x: Float, val y: Float) : PathNode(isQuad = true)
 
     @Immutable
     data class RelativeArcTo(
@@ -143,160 +115,183 @@ sealed class PathNode(val isCurve: Boolean = false, val isQuad: Boolean = false)
 }
 
 /**
- * Return the corresponding [PathNode] for the given character key if it exists.
- * If the key is unknown then [IllegalArgumentException] is thrown
- * @return [PathNode] that matches the key
+ * Adds the corresponding [PathNode] for the given character key, if it exists, to [nodes]. If the
+ * key is unknown then [IllegalArgumentException] is thrown
+ *
  * @throws IllegalArgumentException
  */
-internal fun Char.toPathNodes(args: FloatArray): List<PathNode> = when (this) {
-    RelativeCloseKey, CloseKey -> listOf(PathNode.Close)
-    RelativeMoveToKey -> pathNodesFromArgs(args, NUM_MOVE_TO_ARGS) { array ->
-        PathNode.RelativeMoveTo(dx = array[0], dy = array[1])
+internal fun Char.addPathNodes(nodes: ArrayList<PathNode>, args: FloatArray, count: Int) {
+    when (this) {
+        RelativeCloseKey,
+        CloseKey -> nodes.add(PathNode.Close)
+        RelativeMoveToKey -> pathRelativeMoveNodeFromArgs(nodes, args, count)
+        MoveToKey -> pathMoveNodeFromArgs(nodes, args, count)
+        RelativeLineToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_LINE_TO_ARGS) { array, start ->
+                PathNode.RelativeLineTo(dx = array[start], dy = array[start + 1])
+            }
+        LineToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_LINE_TO_ARGS) { array, start ->
+                PathNode.LineTo(x = array[start], y = array[start + 1])
+            }
+        RelativeHorizontalToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_HORIZONTAL_TO_ARGS) { array, start ->
+                PathNode.RelativeHorizontalTo(dx = array[start])
+            }
+        HorizontalToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_HORIZONTAL_TO_ARGS) { array, start ->
+                PathNode.HorizontalTo(x = array[start])
+            }
+        RelativeVerticalToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_VERTICAL_TO_ARGS) { array, start ->
+                PathNode.RelativeVerticalTo(dy = array[start])
+            }
+        VerticalToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_VERTICAL_TO_ARGS) { array, start ->
+                PathNode.VerticalTo(y = array[start])
+            }
+        RelativeCurveToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_CURVE_TO_ARGS) { array, start ->
+                PathNode.RelativeCurveTo(
+                    dx1 = array[start],
+                    dy1 = array[start + 1],
+                    dx2 = array[start + 2],
+                    dy2 = array[start + 3],
+                    dx3 = array[start + 4],
+                    dy3 = array[start + 5]
+                )
+            }
+        CurveToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_CURVE_TO_ARGS) { array, start ->
+                PathNode.CurveTo(
+                    x1 = array[start],
+                    y1 = array[start + 1],
+                    x2 = array[start + 2],
+                    y2 = array[start + 3],
+                    x3 = array[start + 4],
+                    y3 = array[start + 5]
+                )
+            }
+        RelativeReflectiveCurveToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_REFLECTIVE_CURVE_TO_ARGS) { array, start ->
+                PathNode.RelativeReflectiveCurveTo(
+                    dx1 = array[start],
+                    dy1 = array[start + 1],
+                    dx2 = array[start + 2],
+                    dy2 = array[start + 3]
+                )
+            }
+        ReflectiveCurveToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_REFLECTIVE_CURVE_TO_ARGS) { array, start ->
+                PathNode.ReflectiveCurveTo(
+                    x1 = array[start],
+                    y1 = array[start + 1],
+                    x2 = array[start + 2],
+                    y2 = array[start + 3]
+                )
+            }
+        RelativeQuadToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_QUAD_TO_ARGS) { array, start ->
+                PathNode.RelativeQuadTo(
+                    dx1 = array[start],
+                    dy1 = array[start + 1],
+                    dx2 = array[start + 2],
+                    dy2 = array[start + 3]
+                )
+            }
+        QuadToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_QUAD_TO_ARGS) { array, start ->
+                PathNode.QuadTo(
+                    x1 = array[start],
+                    y1 = array[start + 1],
+                    x2 = array[start + 2],
+                    y2 = array[start + 3]
+                )
+            }
+        RelativeReflectiveQuadToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_REFLECTIVE_QUAD_TO_ARGS) { array, start ->
+                PathNode.RelativeReflectiveQuadTo(dx = array[start], dy = array[start + 1])
+            }
+        ReflectiveQuadToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_REFLECTIVE_QUAD_TO_ARGS) { array, start ->
+                PathNode.ReflectiveQuadTo(x = array[start], y = array[start + 1])
+            }
+        RelativeArcToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_ARC_TO_ARGS) { array, start ->
+                PathNode.RelativeArcTo(
+                    horizontalEllipseRadius = array[start],
+                    verticalEllipseRadius = array[start + 1],
+                    theta = array[start + 2],
+                    isMoreThanHalf = array[start + 3].compareTo(0.0f) != 0,
+                    isPositiveArc = array[start + 4].compareTo(0.0f) != 0,
+                    arcStartDx = array[start + 5],
+                    arcStartDy = array[start + 6]
+                )
+            }
+        ArcToKey ->
+            pathNodesFromArgs(nodes, args, count, NUM_ARC_TO_ARGS) { array, start ->
+                PathNode.ArcTo(
+                    horizontalEllipseRadius = array[start],
+                    verticalEllipseRadius = array[start + 1],
+                    theta = array[start + 2],
+                    isMoreThanHalf = array[start + 3].compareTo(0.0f) != 0,
+                    isPositiveArc = array[start + 4].compareTo(0.0f) != 0,
+                    arcStartX = array[start + 5],
+                    arcStartY = array[start + 6]
+                )
+            }
+        else -> throw IllegalArgumentException("Unknown command for: $this")
     }
-
-    MoveToKey -> pathNodesFromArgs(args, NUM_MOVE_TO_ARGS) { array ->
-        PathNode.MoveTo(x = array[0], y = array[1])
-    }
-
-    RelativeLineToKey -> pathNodesFromArgs(args, NUM_LINE_TO_ARGS) { array ->
-        PathNode.RelativeLineTo(dx = array[0], dy = array[1])
-    }
-
-    LineToKey -> pathNodesFromArgs(args, NUM_LINE_TO_ARGS) { array ->
-        PathNode.LineTo(x = array[0], y = array[1])
-    }
-
-    RelativeHorizontalToKey -> pathNodesFromArgs(args, NUM_HORIZONTAL_TO_ARGS) { array ->
-        PathNode.RelativeHorizontalTo(dx = array[0])
-    }
-
-    HorizontalToKey -> pathNodesFromArgs(args, NUM_HORIZONTAL_TO_ARGS) { array ->
-        PathNode.HorizontalTo(x = array[0])
-    }
-
-    RelativeVerticalToKey -> pathNodesFromArgs(args, NUM_VERTICAL_TO_ARGS) { array ->
-        PathNode.RelativeVerticalTo(dy = array[0])
-    }
-
-    VerticalToKey -> pathNodesFromArgs(args, NUM_VERTICAL_TO_ARGS) { array ->
-        PathNode.VerticalTo(y = array[0])
-    }
-
-    RelativeCurveToKey -> pathNodesFromArgs(args, NUM_CURVE_TO_ARGS) { array ->
-        PathNode.RelativeCurveTo(
-            dx1 = array[0],
-            dy1 = array[1],
-            dx2 = array[2],
-            dy2 = array[3],
-            dx3 = array[4],
-            dy3 = array[5]
-        )
-    }
-
-    CurveToKey -> pathNodesFromArgs(args, NUM_CURVE_TO_ARGS) { array ->
-        PathNode.CurveTo(
-            x1 = array[0],
-            y1 = array[1],
-            x2 = array[2],
-            y2 = array[3],
-            x3 = array[4],
-            y3 = array[5]
-        )
-    }
-
-    RelativeReflectiveCurveToKey -> pathNodesFromArgs(args, NUM_REFLECTIVE_CURVE_TO_ARGS) { array ->
-        PathNode.RelativeReflectiveCurveTo(
-            dx1 = array[0],
-            dy1 = array[1],
-            dx2 = array[2],
-            dy2 = array[3]
-        )
-    }
-
-    ReflectiveCurveToKey -> pathNodesFromArgs(args, NUM_REFLECTIVE_CURVE_TO_ARGS) { array ->
-        PathNode.ReflectiveCurveTo(
-            x1 = array[0],
-            y1 = array[1],
-            x2 = array[2],
-            y2 = array[3]
-        )
-    }
-
-    RelativeQuadToKey -> pathNodesFromArgs(args, NUM_QUAD_TO_ARGS) { array ->
-        PathNode.RelativeQuadTo(
-            dx1 = array[0],
-            dy1 = array[1],
-            dx2 = array[2],
-            dy2 = array[3]
-        )
-    }
-
-    QuadToKey -> pathNodesFromArgs(args, NUM_QUAD_TO_ARGS) { array ->
-        PathNode.QuadTo(
-            x1 = array[0],
-            y1 = array[1],
-            x2 = array[2],
-            y2 = array[3]
-        )
-    }
-
-    RelativeReflectiveQuadToKey -> pathNodesFromArgs(args, NUM_REFLECTIVE_QUAD_TO_ARGS) { array ->
-        PathNode.RelativeReflectiveQuadTo(dx = array[0], dy = array[1])
-    }
-
-    ReflectiveQuadToKey -> pathNodesFromArgs(args, NUM_REFLECTIVE_QUAD_TO_ARGS) { array ->
-        PathNode.ReflectiveQuadTo(x = array[0], y = array[1])
-    }
-
-    RelativeArcToKey -> pathNodesFromArgs(args, NUM_ARC_TO_ARGS) { array ->
-        PathNode.RelativeArcTo(
-            horizontalEllipseRadius = array[0],
-            verticalEllipseRadius = array[1],
-            theta = array[2],
-            isMoreThanHalf = array[3].compareTo(0.0f) != 0,
-            isPositiveArc = array[4].compareTo(0.0f) != 0,
-            arcStartDx = array[5],
-            arcStartDy = array[6]
-        )
-    }
-
-    ArcToKey -> pathNodesFromArgs(args, NUM_ARC_TO_ARGS) { array ->
-        PathNode.ArcTo(
-            horizontalEllipseRadius = array[0],
-            verticalEllipseRadius = array[1],
-            theta = array[2],
-            isMoreThanHalf = array[3].compareTo(0.0f) != 0,
-            isPositiveArc = array[4].compareTo(0.0f) != 0,
-            arcStartX = array[5],
-            arcStartY = array[6]
-        )
-    }
-
-    else -> throw IllegalArgumentException("Unknown command for: $this")
 }
 
 private inline fun pathNodesFromArgs(
+    nodes: MutableList<PathNode>,
     args: FloatArray,
+    count: Int,
     numArgs: Int,
-    nodeFor: (subArray: FloatArray) -> PathNode
-): List<PathNode> {
-    return (0..args.size - numArgs step numArgs).map { index ->
-        val subArray = args.copyOfRange(index, index + numArgs)
-        val node = nodeFor(subArray)
-        when {
-            // According to the spec, if a MoveTo is followed by multiple pairs of coordinates,
-            // the subsequent pairs are treated as implicit corresponding LineTo commands.
-            node is PathNode.MoveTo && index > 0 -> PathNode.LineTo(subArray[0], subArray[1])
-            node is PathNode.RelativeMoveTo && index > 0 ->
-                PathNode.RelativeLineTo(subArray[0], subArray[1])
-            else -> node
+    crossinline nodeFor: (subArray: FloatArray, start: Int) -> PathNode
+) {
+    val end = count - numArgs
+    var index = 0
+    while (index <= end) {
+        nodes.add(nodeFor(args, index))
+        index += numArgs
+    }
+}
+
+// According to the spec, if a MoveTo is followed by multiple pairs of coordinates,
+// the subsequent pairs are treated as implicit corresponding LineTo commands.
+private fun pathMoveNodeFromArgs(nodes: MutableList<PathNode>, args: FloatArray, count: Int) {
+    val end = count - NUM_MOVE_TO_ARGS
+    if (end >= 0) {
+        nodes.add(PathNode.MoveTo(args[0], args[1]))
+        var index = NUM_MOVE_TO_ARGS
+        while (index <= end) {
+            nodes.add(PathNode.LineTo(args[index], args[index + 1]))
+            index += NUM_MOVE_TO_ARGS
         }
     }
 }
 
-/**
- * Constants used by [Char.toPathNodes] for creating [PathNode]s from parsed paths.
- */
+// According to the spec, if a RelativeMoveTo is followed by multiple pairs of coordinates,
+// the subsequent pairs are treated as implicit corresponding RelativeLineTo commands.
+private fun pathRelativeMoveNodeFromArgs(
+    nodes: MutableList<PathNode>,
+    args: FloatArray,
+    count: Int
+) {
+    val end = count - NUM_MOVE_TO_ARGS
+    if (end >= 0) {
+        nodes.add(PathNode.RelativeMoveTo(args[0], args[1]))
+        var index = NUM_MOVE_TO_ARGS
+        while (index <= end) {
+            nodes.add(PathNode.RelativeLineTo(args[index], args[index + 1]))
+            index += NUM_MOVE_TO_ARGS
+        }
+    }
+}
+
+/** Constants used by [Char.addPathNodes] for creating [PathNode]s from parsed paths. */
 private const val RelativeCloseKey = 'z'
 private const val CloseKey = 'Z'
 private const val RelativeMoveToKey = 'm'

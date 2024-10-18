@@ -16,12 +16,13 @@
 
 package androidx.camera.camera2.internal.concurrent;
 
+import static androidx.camera.camera2.internal.CameraIdUtil.isBackwardCompatible;
+
 import android.hardware.camera2.CameraCharacteristics;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.CameraAccessExceptionCompat;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
@@ -29,10 +30,12 @@ import androidx.camera.camera2.interop.Camera2CameraInfo;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.InitializationException;
 import androidx.camera.core.Logger;
 import androidx.camera.core.concurrent.CameraCoordinator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,36 +46,25 @@ import java.util.Set;
 /**
  * Implementation for {@link CameraCoordinator}.
  */
-@RequiresApi(21)
 public class Camera2CameraCoordinator implements CameraCoordinator {
 
     private static final String TAG = "Camera2CameraCoordinator";
 
     @NonNull private final CameraManagerCompat mCameraManager;
-    @NonNull private Map<String, String> mConcurrentCameraIdMap;
-    @NonNull private Set<Set<String>> mConcurrentCameraIds;
     @NonNull private final List<ConcurrentCameraModeListener> mConcurrentCameraModeListeners;
+    @NonNull private final Map<String, List<String>> mConcurrentCameraIdMap;
+    @NonNull private List<CameraInfo> mActiveConcurrentCameraInfos;
+    @NonNull private Set<Set<String>> mConcurrentCameraIds;
 
-    private boolean mIsConcurrentCameraModeOn;
+    @CameraOperatingMode private int mCameraOperatingMode = CAMERA_OPERATING_MODE_UNSPECIFIED;
 
     public Camera2CameraCoordinator(@NonNull CameraManagerCompat cameraManager) {
         mCameraManager = cameraManager;
         mConcurrentCameraIdMap = new HashMap<>();
         mConcurrentCameraIds = new HashSet<>();
         mConcurrentCameraModeListeners = new ArrayList<>();
-    }
-
-    @Override
-    public void init() {
-        mConcurrentCameraIds = retrieveConcurrentCameraIds(mCameraManager);
-        for (Set<String> concurrentCameraIdList: mConcurrentCameraIds) {
-            List<String> cameraIdList = new ArrayList<>(concurrentCameraIdList);
-
-            // TODO(b/268531569): enumerate concurrent camera ids and convert to a map for
-            //  paired camera id lookup.
-            mConcurrentCameraIdMap.put(cameraIdList.get(0), cameraIdList.get(1));
-            mConcurrentCameraIdMap.put(cameraIdList.get(1), cameraIdList.get(0));
-        }
+        mActiveConcurrentCameraInfos = new ArrayList<>();
+        retrieveConcurrentCameraIds();
     }
 
     @NonNull
@@ -89,28 +81,55 @@ public class Camera2CameraCoordinator implements CameraCoordinator {
         return concurrentCameraSelectorLists;
     }
 
+    @NonNull
+    @Override
+    public List<CameraInfo> getActiveConcurrentCameraInfos() {
+        return mActiveConcurrentCameraInfos;
+    }
+
+    @Override
+    public void setActiveConcurrentCameraInfos(@NonNull List<CameraInfo> cameraInfos) {
+        mActiveConcurrentCameraInfos = new ArrayList<>(cameraInfos);
+    }
+
+    @OptIn(markerClass = ExperimentalCamera2Interop.class)
     @Nullable
     @Override
     public String getPairedConcurrentCameraId(@NonNull String cameraId) {
-        if (mConcurrentCameraIdMap.containsKey(cameraId)) {
-            return mConcurrentCameraIdMap.get(cameraId);
+        if (!mConcurrentCameraIdMap.containsKey(cameraId)) {
+            return null;
+        }
+        for (String pairedCameraId : mConcurrentCameraIdMap.get(cameraId)) {
+            for (CameraInfo cameraInfo : mActiveConcurrentCameraInfos) {
+                if (pairedCameraId.equals(Camera2CameraInfo.from(cameraInfo).getCameraId())) {
+                    return pairedCameraId;
+                }
+            }
         }
         return null;
     }
 
+    @CameraOperatingMode
     @Override
-    public boolean isConcurrentCameraModeOn() {
-        return mIsConcurrentCameraModeOn;
+    public int getCameraOperatingMode() {
+        return mCameraOperatingMode;
     }
 
     @Override
-    public void setConcurrentCameraMode(boolean isConcurrentCameraModeOn) {
-        if (isConcurrentCameraModeOn != mIsConcurrentCameraModeOn) {
+    public void setCameraOperatingMode(@CameraOperatingMode int cameraOperatingMode) {
+        if (cameraOperatingMode != mCameraOperatingMode) {
             for (ConcurrentCameraModeListener listener : mConcurrentCameraModeListeners) {
-                listener.notifyConcurrentCameraModeUpdated(isConcurrentCameraModeOn);
+                listener.onCameraOperatingModeUpdated(
+                        mCameraOperatingMode,
+                        cameraOperatingMode);
             }
         }
-        mIsConcurrentCameraModeOn = isConcurrentCameraModeOn;
+        // Clear the cached active camera infos if concurrent mode is off.
+        if (mCameraOperatingMode == CAMERA_OPERATING_MODE_CONCURRENT
+                && cameraOperatingMode != CAMERA_OPERATING_MODE_CONCURRENT) {
+            mActiveConcurrentCameraInfos.clear();
+        }
+        mCameraOperatingMode = cameraOperatingMode;
     }
 
     @Override
@@ -123,16 +142,51 @@ public class Camera2CameraCoordinator implements CameraCoordinator {
         mConcurrentCameraModeListeners.remove(listener);
     }
 
-    @NonNull
-    private static Set<Set<String>> retrieveConcurrentCameraIds(
-            @NonNull CameraManagerCompat cameraManager) {
-        Set<Set<String>> map = new HashSet<>();
+    @Override
+    public void shutdown() {
+        mConcurrentCameraModeListeners.clear();
+        mConcurrentCameraIdMap.clear();
+        mActiveConcurrentCameraInfos.clear();
+        mConcurrentCameraIds.clear();
+        mCameraOperatingMode = CAMERA_OPERATING_MODE_UNSPECIFIED;
+    }
+
+    private void retrieveConcurrentCameraIds() {
+        Set<Set<String>> concurrentCameraIds = new HashSet<>();
         try {
-            map = cameraManager.getConcurrentCameraIds();
+            concurrentCameraIds = mCameraManager.getConcurrentCameraIds();
         } catch (CameraAccessExceptionCompat e) {
             Logger.e(TAG, "Failed to get concurrent camera ids");
         }
-        return map;
+
+        for (Set<String> concurrentCameraIdList: concurrentCameraIds) {
+            List<String> cameraIdList = new ArrayList<>(concurrentCameraIdList);
+
+            if (cameraIdList.size() >= 2) {
+                String cameraId1 = cameraIdList.get(0);
+                String cameraId2 = cameraIdList.get(1);
+                boolean isBackwardCompatible = false;
+                try {
+                    isBackwardCompatible = isBackwardCompatible(mCameraManager, cameraId1)
+                            && isBackwardCompatible(mCameraManager, cameraId2);
+                } catch (InitializationException e) {
+                    Logger.d(TAG, "Concurrent camera id pair: (" + cameraId1 + ", "
+                            + cameraId2 + ") is not backward compatible");
+                }
+                if (!isBackwardCompatible) {
+                    continue;
+                }
+                mConcurrentCameraIds.add(new HashSet<>(Arrays.asList(cameraId1, cameraId2)));
+                if (!mConcurrentCameraIdMap.containsKey(cameraId1)) {
+                    mConcurrentCameraIdMap.put(cameraId1, new ArrayList<>());
+                }
+                if (!mConcurrentCameraIdMap.containsKey(cameraId2)) {
+                    mConcurrentCameraIdMap.put(cameraId2, new ArrayList<>());
+                }
+                mConcurrentCameraIdMap.get(cameraId1).add(cameraIdList.get(1));
+                mConcurrentCameraIdMap.get(cameraId2).add(cameraIdList.get(0));
+            }
+        }
     }
 
     @OptIn(markerClass = ExperimentalCamera2Interop.class)

@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package androidx.wear.protolayout.expression.pipeline;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import androidx.wear.protolayout.expression.DynamicBuilders;
+import androidx.wear.protolayout.expression.proto.DynamicProto;
 import androidx.wear.protolayout.expression.proto.FixedProto.FixedInstant;
 
 import java.time.Instant;
@@ -24,12 +27,14 @@ import java.time.Instant;
 /** Dynamic data nodes which yield instants. */
 class InstantNodes {
     private InstantNodes() {}
+
     /** Dynamic instant node that has a fixed value. */
     static class FixedInstantNode implements DynamicDataSourceNode<Integer> {
         private final Instant mValue;
-        private final DynamicTypeValueReceiver<Instant> mDownstream;
+        private final DynamicTypeValueReceiverWithPreUpdate<Instant> mDownstream;
 
-        FixedInstantNode(FixedInstant protoNode, DynamicTypeValueReceiver<Instant> downstream) {
+        FixedInstantNode(
+                FixedInstant protoNode, DynamicTypeValueReceiverWithPreUpdate<Instant> downstream) {
             this.mValue = Instant.ofEpochSecond(protoNode.getEpochSeconds());
             this.mDownstream = downstream;
         }
@@ -48,22 +53,37 @@ class InstantNodes {
 
         @Override
         public void destroy() {}
+
+        @Override
+        public int getCost() {
+            return FIXED_NODE_COST;
+        }
     }
+
     /** Dynamic Instant node that gets value from the platform source. */
     static class PlatformTimeSourceNode implements DynamicDataSourceNode<Integer> {
         @Nullable private final EpochTimePlatformDataSource mEpochTimePlatformDataSource;
-        private final DynamicTypeValueReceiver<Instant> mDownstream;
+        private final DynamicTypeValueReceiverWithPreUpdate<Instant> mDownstream;
 
         PlatformTimeSourceNode(
                 @Nullable EpochTimePlatformDataSource epochTimePlatformDataSource,
-                DynamicTypeValueReceiver<Instant> downstream) {
+                DynamicTypeValueReceiverWithPreUpdate<Instant> downstream) {
             this.mEpochTimePlatformDataSource = epochTimePlatformDataSource;
             this.mDownstream = downstream;
         }
 
         @Override
         @UiThread
-        public void preInit() {}
+        public void preInit() {
+            if (mEpochTimePlatformDataSource != null) {
+                mEpochTimePlatformDataSource.preRegister();
+            } else {
+                // If we have epoch time, it will call onPreUpdate when needed. Otherwise, because
+                // the init() will invalidate the date in downstream, we should call onPreUpdate
+                // here.
+                mDownstream.onPreUpdate();
+            }
+        }
 
         @Override
         @UiThread
@@ -81,6 +101,27 @@ class InstantNodes {
             if (mEpochTimePlatformDataSource != null) {
                 mEpochTimePlatformDataSource.unregisterForData(mDownstream);
             }
+        }
+
+        @Override
+        public int getCost() {
+            return DEFAULT_NODE_COST;
+        }
+    }
+
+    /** Dynamic Instant node that gets value from the state. */
+    static class StateInstantSourceNode extends StateSourceNode<Instant> {
+
+        StateInstantSourceNode(
+                DataStore dataStore,
+                DynamicProto.StateInstantSource protoNode,
+                DynamicTypeValueReceiverWithPreUpdate<Instant> downstream) {
+            super(
+                    dataStore,
+                    StateSourceNode.<DynamicBuilders.DynamicInstant>createKey(
+                            protoNode.getSourceNamespace(), protoNode.getSourceKey()),
+                    se -> Instant.ofEpochSecond(se.getInstantVal().getEpochSeconds()),
+                    downstream);
         }
     }
 }

@@ -19,6 +19,7 @@ package androidx.compose.runtime.benchmark
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -40,11 +41,7 @@ class CompositionLocalBenchmark : ComposeBenchmarkBase() {
     @Ignore // Only used for overhead comparison, not to be tracked.
     fun compositionLocal_compose_depth_1_1() = runBlockingTestWithFrameClock {
         measureCompose {
-            CompositionLocalProvider(local provides 100) {
-                DepthOf(1) {
-                    local.current
-                }
-            }
+            CompositionLocalProvider(local provides 100) { DepthOf(1) { local.current } }
         }
     }
 
@@ -54,9 +51,7 @@ class CompositionLocalBenchmark : ComposeBenchmarkBase() {
     fun compositionLocal_compose_depth_1_10() = runBlockingTestWithFrameClock {
         measureCompose {
             CompositionLocalProvider(local provides 100) {
-                DepthOf(1) {
-                    repeat(10) { local.current }
-                }
+                DepthOf(1) { repeat(10) { local.current } }
             }
         }
     }
@@ -67,9 +62,7 @@ class CompositionLocalBenchmark : ComposeBenchmarkBase() {
     fun compositionLocal_compose_depth_1_100() = runBlockingTestWithFrameClock {
         measureCompose {
             CompositionLocalProvider(local provides 100) {
-                DepthOf(1) {
-                    repeat(100) { local.current }
-                }
+                DepthOf(1) { repeat(100) { local.current } }
             }
         }
     }
@@ -79,11 +72,7 @@ class CompositionLocalBenchmark : ComposeBenchmarkBase() {
     @Ignore // Only used for overhead comparison, not to be tracked.
     fun compositionLocal_compose_depth_100_1() = runBlockingTestWithFrameClock {
         measureCompose {
-            CompositionLocalProvider(local provides 100) {
-                DepthOf(100) {
-                    local.current
-                }
-            }
+            CompositionLocalProvider(local provides 100) { DepthOf(100) { local.current } }
         }
     }
 
@@ -93,9 +82,7 @@ class CompositionLocalBenchmark : ComposeBenchmarkBase() {
     fun compositionLocal_compose_depth_100_10() = runBlockingTestWithFrameClock {
         measureCompose {
             CompositionLocalProvider(local provides 100) {
-                DepthOf(100) {
-                    repeat(10) { local.current }
-                }
+                DepthOf(100) { repeat(10) { local.current } }
             }
         }
     }
@@ -106,16 +93,46 @@ class CompositionLocalBenchmark : ComposeBenchmarkBase() {
     fun compositionLocal_compose_depth_100_100() = runBlockingTestWithFrameClock {
         measureCompose {
             CompositionLocalProvider(local provides 100) {
-                DepthOf(100) {
-                    repeat(100) { local.current }
-                }
+                DepthOf(100) { repeat(100) { local.current } }
             }
         }
+    }
+
+    @UiThreadTest
+    @Test
+    @Ignore // Only used for overhead comparison, not to be tracked.
+    fun compositionLocal_compose_nested_providers_10() = runBlockingTestWithFrameClock {
+        val local = staticCompositionLocalOf { 0 }
+        measureCompose { NestedProviders(10) { local.current } }
+    }
+
+    @UiThreadTest
+    @Test
+    @Ignore // Only used for overhead comparison, not to be tracked.
+    fun compositionLocal_compose_nested_providers_100() = runBlockingTestWithFrameClock {
+        val local = staticCompositionLocalOf { 0 }
+        measureCompose { NestedProviders(100) { local.current } }
+    }
+
+    @UiThreadTest
+    @Test
+    @Ignore // Only used for overhead comparison, not to be tracked.
+    fun compositionLocal_compose_nested_providers_1000() = runBlockingTestWithFrameClock {
+        val local = staticCompositionLocalOf { 0 }
+        measureCompose { NestedProviders(1000) { local.current } }
     }
 }
 
 @Composable
 fun DepthOf(count: Int, content: @Composable () -> Unit) {
-    if (count > 0) DepthOf(count - 1, content)
-    else content()
+    if (count > 0) DepthOf(count - 1, content) else content()
+}
+
+@Composable
+fun NestedProviders(count: Int, content: @Composable () -> Unit) {
+    if (count > 0) {
+        CompositionLocalProvider(staticCompositionLocalOf { 0 } provides 0) {
+            NestedProviders(count = count - 1, content)
+        }
+    } else content()
 }

@@ -17,6 +17,10 @@ package androidx.appsearch.app;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
+import androidx.appsearch.annotation.CanIgnoreReturnValue;
+import androidx.appsearch.flags.FlaggedApi;
+import androidx.appsearch.flags.Flags;
 import androidx.collection.ArrayMap;
 import androidx.core.util.Preconditions;
 
@@ -42,12 +46,14 @@ import java.util.Map;
  * @see AppSearchSession#removeAsync
  */
 public final class AppSearchBatchResult<KeyType, ValueType> {
-    @NonNull private final Map<KeyType, ValueType> mSuccesses;
+    @NonNull private final Map<KeyType,
+            @androidx.appsearch.checker.nullness.qual.Nullable ValueType> mSuccesses;
     @NonNull private final Map<KeyType, AppSearchResult<ValueType>> mFailures;
     @NonNull private final Map<KeyType, AppSearchResult<ValueType>> mAll;
 
     AppSearchBatchResult(
-            @NonNull Map<KeyType, ValueType> successes,
+            @NonNull Map<KeyType, @androidx.appsearch.checker.nullness.qual.Nullable ValueType>
+                    successes,
             @NonNull Map<KeyType, AppSearchResult<ValueType>> failures,
             @NonNull Map<KeyType, AppSearchResult<ValueType>> all) {
         mSuccesses = Preconditions.checkNotNull(successes);
@@ -99,8 +105,9 @@ public final class AppSearchBatchResult<KeyType, ValueType> {
 
     /**
      * Asserts that this {@link AppSearchBatchResult} has no failures.
-     * @hide
+     * @exportToFramework:hide
      */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     public void checkSuccess() {
         if (!isSuccess()) {
             throw new IllegalStateException("AppSearchBatchResult has failures: " + this);
@@ -120,10 +127,23 @@ public final class AppSearchBatchResult<KeyType, ValueType> {
      * @param <ValueType> The type of the result objects for successful results.
      */
     public static final class Builder<KeyType, ValueType> {
-        private ArrayMap<KeyType, ValueType> mSuccesses = new ArrayMap<>();
+        private ArrayMap<KeyType, @androidx.appsearch.checker.nullness.qual.Nullable ValueType>
+                mSuccesses = new ArrayMap<>();
         private ArrayMap<KeyType, AppSearchResult<ValueType>> mFailures = new ArrayMap<>();
         private ArrayMap<KeyType, AppSearchResult<ValueType>> mAll = new ArrayMap<>();
         private boolean mBuilt = false;
+
+        /** Creates a new {@link Builder}. */
+        public Builder() {
+        }
+
+        /** Creates a new {@link Builder} from the given {@link AppSearchBatchResult}. */
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        public Builder(@NonNull AppSearchBatchResult<KeyType, ValueType> appSearchBatchResult) {
+            mSuccesses.putAll(appSearchBatchResult.mSuccesses);
+            mFailures.putAll(appSearchBatchResult.mFailures);
+            mAll.putAll(appSearchBatchResult.mAll);
+        }
 
         /**
          * Associates the {@code key} with the provided successful return value.
@@ -138,6 +158,7 @@ public final class AppSearchBatchResult<KeyType, ValueType> {
          * @param value An optional value to associate with the successful result of the operation
          *              being performed.
          */
+        @CanIgnoreReturnValue
         @SuppressWarnings("MissingGetterMatchingBuilder")  // See getSuccesses
         @NonNull
         public Builder<KeyType, ValueType> setSuccess(
@@ -161,6 +182,7 @@ public final class AppSearchBatchResult<KeyType, ValueType> {
          *                     {@link AppSearchResult#getResultCode}.
          * @param errorMessage An optional string describing the reason or nature of the failure.
          */
+        @CanIgnoreReturnValue
         @SuppressWarnings("MissingGetterMatchingBuilder")  // See getFailures
         @NonNull
         public Builder<KeyType, ValueType> setFailure(
@@ -181,6 +203,7 @@ public final class AppSearchBatchResult<KeyType, ValueType> {
          *               identifier from the input like an ID or name.
          * @param result The result to associate with the key.
          */
+        @CanIgnoreReturnValue
         @SuppressWarnings("MissingGetterMatchingBuilder")  // See getAll
         @NonNull
         public Builder<KeyType, ValueType> setResult(

@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.Publish
 
 plugins {
@@ -23,14 +29,11 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
+    implementation(project(":camera:camera-core"))
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled true
-    }
-
     lintOptions {
         enable 'CameraXQuirksClassDetector'
     }
@@ -39,7 +42,7 @@ android {
 }
 
 androidx {
-    name = "Jetpack Camera Extensions Example Library"
+    name = "Camera Extensions Example"
     publish = Publish.NONE
     inceptionYear = "2019"
     description = "Example extension implementation for the Jetpack Camera Library, a library providing a " +

@@ -23,26 +23,22 @@ import static java.util.Objects.requireNonNull;
 import android.annotation.SuppressLint;
 import android.os.RemoteException;
 
-import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.IOnDoneCallback;
 import androidx.car.app.OnDoneCallback;
 import androidx.car.app.annotations.CarProtocol;
-import androidx.car.app.annotations.ExperimentalCarApi;
-import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.annotations.KeepFields;
+import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.utils.RemoteUtils;
 
 /**
  * Implementation class for {@link TabCallbackDelegate}.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 @CarProtocol
-@ExperimentalCarApi
 @RequiresCarApi(6)
 @KeepFields
 public class TabCallbackDelegateImpl implements TabCallbackDelegate {
@@ -70,10 +66,11 @@ public class TabCallbackDelegateImpl implements TabCallbackDelegate {
     @NonNull
     // This listener relates to UI event and is expected to be triggered on the main thread.
     @SuppressLint("ExecutorRegistration")
-    static TabCallbackDelegate create(@NonNull TabTemplate.TabCallback callback) {
+    public static TabCallbackDelegate create(@NonNull TabTemplate.TabCallback callback) {
         return new TabCallbackDelegateImpl(callback);
     }
 
+    @CarProtocol
     @KeepFields // We need to keep these stub for Bundler serialization logic.
     private static class TabCallbackStub extends ITabCallback.Stub {
         private final TabTemplate.TabCallback mCallback;

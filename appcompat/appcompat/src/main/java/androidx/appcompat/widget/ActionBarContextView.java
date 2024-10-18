@@ -36,7 +36,6 @@ import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.core.view.ViewCompat;
 
 /**
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class ActionBarContextView extends AbsActionBarView {
@@ -68,7 +67,7 @@ public class ActionBarContextView extends AbsActionBarView {
 
         final TintTypedArray a = TintTypedArray.obtainStyledAttributes(context, attrs,
                 R.styleable.ActionMode, defStyle, 0);
-        ViewCompat.setBackground(this, a.getDrawable(R.styleable.ActionMode_background));
+        setBackground(a.getDrawable(R.styleable.ActionMode_background));
         mTitleStyleRes = a.getResourceId(
                 R.styleable.ActionMode_titleTextStyle, 0);
         mSubtitleStyleRes = a.getResourceId(
@@ -187,7 +186,7 @@ public class ActionBarContextView extends AbsActionBarView {
                 LayoutParams.MATCH_PARENT);
         menu.addMenuPresenter(mActionMenuPresenter, mPopupContext);
         mMenuView = (ActionMenuView) mActionMenuPresenter.getMenuView(this);
-        ViewCompat.setBackground(mMenuView, null);
+        mMenuView.setBackground(null);
         addView(mMenuView, layoutParams);
     }
 

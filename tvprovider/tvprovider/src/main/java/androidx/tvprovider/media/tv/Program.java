@@ -72,9 +72,9 @@ import androidx.tvprovider.media.tv.TvContractCompat.Programs.Genres.Genre;
  *         null, null);
  * </pre>
  */
+@SuppressWarnings("HiddenSuperclass")
 public final class Program extends BaseProgram implements Comparable<Program> {
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public static final String[] PROJECTION = getProjection();
@@ -265,6 +265,7 @@ public final class Program extends BaseProgram implements Comparable<Program> {
     /**
      * This Builder class simplifies the creation of a {@link Program} object.
      */
+    @SuppressWarnings("HiddenSuperclass")
     public static class Builder extends BaseProgram.Builder<Builder> {
 
         /**

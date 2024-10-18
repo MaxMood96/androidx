@@ -21,7 +21,6 @@ import android.os.Build;
 import android.os.Handler;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.camera2.internal.compat.params.SessionConfigurationCompat;
@@ -32,13 +31,11 @@ import java.util.concurrent.Executor;
 /**
  * Helper for accessing features in {@link CameraDevice} in a backwards compatible fashion.
  */
-@RequiresApi(21)
 public final class CameraDeviceCompat {
 
     /**
      * Standard camera operation mode.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY)
     public static final int SESSION_OPERATION_MODE_NORMAL =
@@ -46,7 +43,6 @@ public final class CameraDeviceCompat {
     /**
      * Constrained high-speed operation mode.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY)
     public static final int SESSION_OPERATION_MODE_CONSTRAINED_HIGH_SPEED =
@@ -137,7 +133,6 @@ public final class CameraDeviceCompat {
         CameraDevice unwrap();
     }
 
-    @RequiresApi(21)
     static final class StateCallbackExecutorWrapper extends CameraDevice.StateCallback {
 
         final CameraDevice.StateCallback mWrappedCallback;

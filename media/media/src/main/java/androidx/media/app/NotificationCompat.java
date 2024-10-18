@@ -16,9 +16,12 @@
 
 package androidx.media.app;
 
+import static android.Manifest.permission.MEDIA_CONTENT_CONTROL;
+
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.core.app.NotificationCompat.COLOR_DEFAULT;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.media.session.MediaSession;
@@ -30,10 +33,12 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.view.View;
 import android.widget.RemoteViews;
 
-import androidx.annotation.DoNotInline;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.RequiresPermission;
 import androidx.annotation.RestrictTo;
-import androidx.core.app.BundleCompat;
 import androidx.core.app.NotificationBuilderWithBuilderAccessor;
 import androidx.media.R;
 
@@ -110,7 +115,7 @@ public class NotificationCompat {
                         return MediaSessionCompat.Token.fromToken(tokenInner);
                     }
                 } else {
-                    IBinder tokenInner = BundleCompat.getBinder(extras,
+                    IBinder tokenInner = extras.getBinder(
                             androidx.core.app.NotificationCompat.EXTRA_MEDIA_SESSION);
                     if (tokenInner != null) {
                         Parcel p = Parcel.obtain();
@@ -133,6 +138,10 @@ public class NotificationCompat {
         MediaSessionCompat.Token mToken;
         boolean mShowCancelButton;
         PendingIntent mCancelButtonIntent;
+        CharSequence mDeviceName;
+        int mDeviceIcon;
+        PendingIntent mDeviceIntent;
+        boolean mShowRemotePlaybackInfo = false;
 
         public MediaStyle() {
         }
@@ -158,6 +167,36 @@ public class NotificationCompat {
          */
         public MediaStyle setMediaSession(MediaSessionCompat.Token token) {
             mToken = token;
+            return this;
+        }
+
+        /**
+         * For media notifications associated with playback on a remote device, provide device
+         * information that will replace the default values for the output switcher chip on the
+         * media control, as well as an intent to use when the output switcher chip is tapped,
+         * on devices where this is supported.
+         * <p>
+         * This method is intended for system applications to provide information and/or
+         * functionality that would otherwise be unavailable to the default output switcher because
+         * the media originated on a remote device.
+         * <p>
+         * Also note that this method is a no-op when running on Tiramisu or less.
+         *
+         * @param deviceName The name of the remote device to display.
+         * @param iconResource Icon resource, of size 12, representing the device.
+         * @param chipIntent PendingIntent to send when the output switcher is tapped. May be
+         *                   {@code null}, in which case the output switcher will be disabled.
+         *                   This intent should open an Activity or it will be ignored.
+         * @return MediaStyle
+         */
+        @RequiresPermission(MEDIA_CONTENT_CONTROL)
+        @NonNull
+        public MediaStyle setRemotePlaybackInfo(@NonNull CharSequence deviceName,
+                @DrawableRes int iconResource, @Nullable PendingIntent chipIntent) {
+            mDeviceName = deviceName;
+            mDeviceIcon = iconResource;
+            mDeviceIntent = chipIntent;
+            mShowRemotePlaybackInfo = true;
             return this;
         }
 
@@ -204,12 +243,17 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Override
         public void apply(NotificationBuilderWithBuilderAccessor builder) {
-            if (Build.VERSION.SDK_INT >= 21) {
+            if (Build.VERSION.SDK_INT >= 34) {
+                Api21Impl.setMediaStyle(builder.getBuilder(),
+                        Api21Impl.fillInMediaStyle(Api34Impl.setRemotePlaybackInfo(
+                                Api21Impl.createMediaStyle(), mDeviceName, mDeviceIcon,
+                                        mDeviceIntent, mShowRemotePlaybackInfo),
+                                mActionsToShowInCompact, mToken));
+            } else if (Build.VERSION.SDK_INT >= 21) {
                 Api21Impl.setMediaStyle(builder.getBuilder(),
                         Api21Impl.fillInMediaStyle(Api21Impl.createMediaStyle(),
                                 mActionsToShowInCompact, mToken));
@@ -219,7 +263,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Override
@@ -276,9 +319,8 @@ public class NotificationCompat {
             if (!tombstone) {
                 button.setOnClickPendingIntent(R.id.action0, action.getActionIntent());
             }
-            if (Build.VERSION.SDK_INT >= 15) {
-                Api15Impl.setContentDescription(button, R.id.action0, action.getTitle());
-            }
+            CharSequence contentDescription = action.getTitle();
+            button.setContentDescription(R.id.action0, contentDescription);
             return button;
         }
 
@@ -287,7 +329,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Override
@@ -372,12 +413,17 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Override
         public void apply(NotificationBuilderWithBuilderAccessor builder) {
-            if (Build.VERSION.SDK_INT >= 24) {
+            if (Build.VERSION.SDK_INT >= 34) {
+                Api21Impl.setMediaStyle(builder.getBuilder(), Api21Impl.fillInMediaStyle(
+                        Api34Impl.setRemotePlaybackInfo(
+                                Api24Impl.createDecoratedMediaCustomViewStyle(), mDeviceName,
+                                mDeviceIcon, mDeviceIntent, mShowRemotePlaybackInfo),
+                        mActionsToShowInCompact, mToken));
+            } else if (Build.VERSION.SDK_INT >= 24) {
                 Api21Impl.setMediaStyle(builder.getBuilder(),
                         Api21Impl.fillInMediaStyle(Api24Impl.createDecoratedMediaCustomViewStyle(),
                                 mActionsToShowInCompact, mToken));
@@ -387,7 +433,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Override
@@ -429,7 +474,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Override
@@ -461,7 +505,6 @@ public class NotificationCompat {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Override
@@ -494,32 +537,18 @@ public class NotificationCompat {
         }
     }
 
-    @RequiresApi(15)
-    private static class Api15Impl {
-        private Api15Impl() {}
-
-        @DoNotInline
-        static void setContentDescription(RemoteViews remoteViews, int viewId,
-                CharSequence contentDescription) {
-            remoteViews.setContentDescription(viewId, contentDescription);
-        }
-    }
-
     @RequiresApi(21)
     private static class Api21Impl {
         private Api21Impl() {}
 
-        @DoNotInline
         static void setMediaStyle(Notification.Builder builder, Notification.MediaStyle style) {
             builder.setStyle(style);
         }
 
-        @DoNotInline
         static Notification.MediaStyle createMediaStyle() {
             return new Notification.MediaStyle();
         }
 
-        @DoNotInline
         static Notification.MediaStyle fillInMediaStyle(Notification.MediaStyle style,
                 int[] actionsToShowInCompact, MediaSessionCompat.Token token) {
             if (actionsToShowInCompact != null) {
@@ -531,12 +560,10 @@ public class NotificationCompat {
             return style;
         }
 
-        @DoNotInline
         static void setShowActionsInCompactView(Notification.MediaStyle style, int... actions) {
             style.setShowActionsInCompactView(actions);
         }
 
-        @DoNotInline
         static void setMediaSession(Notification.MediaStyle style, MediaSession.Token token) {
             style.setMediaSession(token);
         }
@@ -546,9 +573,27 @@ public class NotificationCompat {
     private static class Api24Impl {
         private Api24Impl() {}
 
-        @DoNotInline
-        static Notification.DecoratedMediaCustomViewStyle createDecoratedMediaCustomViewStyle() {
+        static Notification.MediaStyle createDecoratedMediaCustomViewStyle() {
             return new Notification.DecoratedMediaCustomViewStyle();
+        }
+    }
+
+    @RequiresApi(34)
+    private static class Api34Impl {
+
+        private Api34Impl() {}
+
+        @SuppressLint({"MissingPermission"})
+        static Notification.MediaStyle setRemotePlaybackInfo(Notification.MediaStyle style,
+                @NonNull CharSequence deviceName, @DrawableRes int iconResource,
+                @Nullable PendingIntent chipIntent, Boolean showRemotePlaybackInfo) {
+            // Suppress @RequiresPermission(MEDIA_CONTENT_CONTROL) because the API is only used
+            // if showRemotePlaybackInfo is set to true. This only happens for callers to
+            // NotificationCompat#setRemotePlaybackInfo.
+            if (showRemotePlaybackInfo) {
+                style.setRemotePlaybackInfo(deviceName, iconResource, chipIntent);
+            }
+            return style;
         }
     }
 }

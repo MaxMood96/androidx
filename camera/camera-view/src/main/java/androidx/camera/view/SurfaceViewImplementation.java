@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import android.graphics.Bitmap;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Size;
 import android.view.PixelCopy;
 import android.view.Surface;
@@ -28,7 +29,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -43,14 +43,18 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Objects;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The SurfaceView implementation for {@link PreviewView}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class SurfaceViewImplementation extends PreviewViewImplementation {
 
     private static final String TAG = "SurfaceViewImpl";
+
+    // Wait for 100ms for a screenshot. It usually takes <10ms on Pixel 6a / OS 14.
+    private static final int SCREENSHOT_TIMEOUT_MILLIS = 100;
 
     // Synthetic Accessor
     @SuppressWarnings("WeakerAccess")
@@ -131,9 +135,16 @@ final class SurfaceViewImplementation extends PreviewViewImplementation {
             return null;
         }
 
+        Semaphore screenshotLock = new Semaphore(0);
+
         // Copy display contents of the surfaceView's surface into a Bitmap.
         final Bitmap bitmap = Bitmap.createBitmap(mSurfaceView.getWidth(), mSurfaceView.getHeight(),
                 Bitmap.Config.ARGB_8888);
+
+        HandlerThread backgroundThread = new HandlerThread("pixelCopyRequest Thread");
+        backgroundThread.start();
+        Handler backgroundHandler = new Handler(backgroundThread.getLooper());
+
         Api24Impl.pixelCopyRequest(mSurfaceView, bitmap, copyResult -> {
             if (copyResult == PixelCopy.SUCCESS) {
                 Logger.d(TAG, "PreviewView.SurfaceViewImplementation.getBitmap() succeeded");
@@ -141,8 +152,23 @@ final class SurfaceViewImplementation extends PreviewViewImplementation {
                 Logger.e(TAG, "PreviewView.SurfaceViewImplementation.getBitmap() failed with error "
                         + copyResult);
             }
-        }, mSurfaceView.getHandler());
-
+            screenshotLock.release();
+        }, backgroundHandler);
+        // Blocks the current thread until the screenshot is done or timed out.
+        try {
+            boolean success = screenshotLock.tryAcquire(1, SCREENSHOT_TIMEOUT_MILLIS,
+                    TimeUnit.MILLISECONDS);
+            if (!success) {
+                // Fail silently if we can't take the screenshot in time. It's unlikely to
+                // happen but when it happens, it's better to return a half rendered screenshot
+                // than nothing.
+                Logger.e(TAG, "Timed out while trying to acquire screenshot.");
+            }
+        } catch (InterruptedException e) {
+            Logger.e(TAG, "Interrupted while trying to acquire screenshot.", e);
+        } finally {
+            backgroundThread.quitSafely();
+        }
         return bitmap;
     }
 
@@ -152,7 +178,6 @@ final class SurfaceViewImplementation extends PreviewViewImplementation {
      * <p> SurfaceView creates Surface on its own before we can do anything. This class makes
      * sure only the Surface with correct size will be returned to Preview.
      */
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     class SurfaceRequestCallback implements SurfaceHolder.Callback {
 
         // Target Surface size. Only complete the SurfaceRequest when the size of the Surface
@@ -339,7 +364,6 @@ final class SurfaceViewImplementation extends PreviewViewImplementation {
         private Api24Impl() {
         }
 
-        @DoNotInline
         static void pixelCopyRequest(@NonNull SurfaceView source, @NonNull Bitmap dest,
                 @NonNull PixelCopy.OnPixelCopyFinishedListener listener, @NonNull Handler handler) {
             PixelCopy.request(source, dest, listener, handler);

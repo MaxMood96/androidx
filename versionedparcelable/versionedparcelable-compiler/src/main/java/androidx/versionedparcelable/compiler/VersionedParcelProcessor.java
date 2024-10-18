@@ -182,7 +182,7 @@ public class VersionedParcelProcessor extends AbstractProcessor {
             String jetifyAs = getValue(annotation, "jetifyAs", "");
             String factoryClass = getValue(annotation, "factory", "");
             parseDeprecated(takenIds, deprecatedIds);
-            checkClass(versionedParcelable.asType().toString(), versionedParcelable, takenIds);
+            checkClass(typeString(versionedParcelable.asType()), versionedParcelable, takenIds);
 
             ArrayList<Element> f = new ArrayList<>();
             TypeElement te = (TypeElement) mEnv.getTypeUtils().asElement(
@@ -220,7 +220,6 @@ public class VersionedParcelProcessor extends AbstractProcessor {
         TypeSpec.Builder genClass = TypeSpec
                 .classBuilder(versionedParcelable.getSimpleName() + GEN_SUFFIX)
                 .addOriginatingElement(versionedParcelable)
-                .addJavadoc("@hide\n")
                 .addAnnotation(restrictTo)
                 .addModifiers(Modifier.PUBLIC);
         if (jetifyAs == null || jetifyAs.length() == 0) {
@@ -286,7 +285,7 @@ public class VersionedParcelProcessor extends AbstractProcessor {
                         writeBuilder.beginControlFlow("if (!$T.equals($L, obj.$L))",
                                 Arrays.class, strip(defaultValue), e.getSimpleName());
                     } else {
-                        String v = "java.lang.String".equals(e.asType().toString()) ? defaultValue
+                        String v = "java.lang.String".equals(typeString(e.asType())) ? defaultValue
                                 : strip(defaultValue);
                         writeBuilder.beginControlFlow("if (!$L.equals(obj.$L))",
                                 v, e.getSimpleName());
@@ -318,7 +317,6 @@ public class VersionedParcelProcessor extends AbstractProcessor {
                 TypeSpec.Builder jetifyClass = TypeSpec
                         .classBuilder(jetifyAs.substring(index + 1, jetifyAs.length() - 1)
                                 + GEN_SUFFIX)
-                        .addJavadoc("@hide\n")
                         .addAnnotation(restrictTo)
                         .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                         // The empty package here is a hack to avoid an import,
@@ -356,6 +354,11 @@ public class VersionedParcelProcessor extends AbstractProcessor {
         return pkg;
     }
 
+    /** Returns a simple string version of the type, with no annotations. */
+    private String typeString(TypeMirror type) {
+        return TypeName.get(type).toString();
+    }
+
     private String getMethod(VariableElement e) {
         TypeMirror type = e.asType();
         String m = getMethod(type);
@@ -370,7 +373,7 @@ public class VersionedParcelProcessor extends AbstractProcessor {
                     .asElement(te.getSuperclass()) : null;
         }
         // Manual handling for generic arrays to go last.
-        if (type.toString().contains("[]")) {
+        if (typeString(type).contains("[]")) {
             return "Array";
         }
         error("Can't find type for " + e + " (type: " + type + ")");
@@ -378,11 +381,11 @@ public class VersionedParcelProcessor extends AbstractProcessor {
     }
 
     private boolean isArray(VariableElement e) {
-        return e.asType().toString().endsWith("[]");
+        return typeString(e.asType()).endsWith("[]");
     }
 
     private boolean isNative(VariableElement e) {
-        String type = e.asType().toString();
+        String type = typeString(e.asType());
         return "int".equals(type)
                 || "byte".equals(type)
                 || "char".equals(type)
@@ -393,8 +396,10 @@ public class VersionedParcelProcessor extends AbstractProcessor {
     }
 
     private String getMethod(TypeMirror typeMirror) {
+        // Get an annotation-free version of the type string through TypeName
+        String typeString = typeString(typeMirror);
         for (Pattern p: mMethodLookup.keySet()) {
-            if (p.matcher(typeMirror.toString()).find()) {
+            if (p.matcher(typeString).find()) {
                 return mMethodLookup.get(p);
             }
         }
@@ -423,7 +428,7 @@ public class VersionedParcelProcessor extends AbstractProcessor {
                 List<? extends AnnotationMirror> annotations = element.getAnnotationMirrors();
                 for (i = 0; i < annotations.size(); i++) {
                     AnnotationMirror annotation = annotations.get(i);
-                    if (annotation.getAnnotationType().toString().equals(PARCEL_FIELD)) {
+                    if (typeString(annotation.getAnnotationType()).equals(PARCEL_FIELD)) {
                         String valStr = getValue(annotation, "value", null);
                         if (valStr == null) {
                             return;
@@ -435,7 +440,7 @@ public class VersionedParcelProcessor extends AbstractProcessor {
                         takenIds.add(valStr);
                         break;
                     }
-                    if (annotation.getAnnotationType().toString().equals(NON_PARCEL_FIELD)) {
+                    if (typeString(annotation.getAnnotationType()).equals(NON_PARCEL_FIELD)) {
                         break;
                     }
                 }
@@ -466,7 +471,7 @@ public class VersionedParcelProcessor extends AbstractProcessor {
         List<? extends AnnotationMirror> annotations = e.getAnnotationMirrors();
         for (int i = 0; i < annotations.size(); i++) {
             AnnotationMirror annotation = annotations.get(i);
-            if (annotation.getAnnotationType().toString().equals(PARCEL_FIELD)) {
+            if (typeString(annotation.getAnnotationType()).equals(PARCEL_FIELD)) {
                 return annotation;
             }
         }

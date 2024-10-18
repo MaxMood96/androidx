@@ -31,14 +31,13 @@ import java.util.List;
 /**
  * Different implementations of {@link CameraCaptureSession.StateCallback}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class CameraCaptureSessionStateCallbacks {
     private CameraCaptureSessionStateCallbacks() {
     }
 
     /**
      * Returns a session state callback which does nothing.
-     **/
+     */
     @NonNull
     public static CameraCaptureSession.StateCallback createNoOpCallback() {
         return new NoOpSessionStateCallback();
@@ -98,7 +97,6 @@ public final class CameraCaptureSessionStateCallbacks {
         }
     }
 
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     static final class ComboSessionStateCallback
             extends CameraCaptureSession.StateCallback {
         private final List<CameraCaptureSession.StateCallback> mCallbacks = new ArrayList<>();

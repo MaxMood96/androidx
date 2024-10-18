@@ -16,11 +16,13 @@
 
 package androidx.camera.core.impl;
 
+import android.hardware.camera2.CameraMetadata;
 import android.util.Range;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.Nullable;
+import androidx.camera.core.DynamicRange;
 
 import com.google.auto.value.AutoValue;
 
@@ -30,7 +32,6 @@ import com.google.auto.value.AutoValue;
  * <p>The values communicated by this class specify what the camera is expecting to produce as a
  * frame stream, and can be useful for configuring the frame consumer.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @AutoValue
 public abstract class StreamSpec {
 
@@ -45,6 +46,13 @@ public abstract class StreamSpec {
     public abstract Size getResolution();
 
     /**
+     * Returns the {@link DynamicRange} for the stream associated with this stream specification.
+     * @return the dynamic range for the stream.
+     */
+    @NonNull
+    public abstract DynamicRange getDynamicRange();
+
+    /**
      * Returns the expected frame rate range for the stream associated with this stream
      * specification.
      * @return the expected frame rate range for the stream.
@@ -52,12 +60,27 @@ public abstract class StreamSpec {
     @NonNull
     public abstract Range<Integer> getExpectedFrameRateRange();
 
+    /**
+     * Returns the implementation options associated with this stream
+     * specification.
+     * @return the implementation options for the stream.
+     */
+    @Nullable
+    public abstract Config getImplementationOptions();
+
+    /**
+     * Returns the flag if zero-shutter lag needs to be disabled by user case combinations.
+     */
+    public abstract boolean getZslDisabled();
+
     /** Returns a build for a stream configuration that takes a required resolution. */
     @NonNull
     public static Builder builder(@NonNull Size resolution) {
         return new AutoValue_StreamSpec.Builder()
                 .setResolution(resolution)
-                .setExpectedFrameRateRange(FRAME_RATE_RANGE_UNSPECIFIED);
+                .setExpectedFrameRateRange(FRAME_RATE_RANGE_UNSPECIFIED)
+                .setDynamicRange(DynamicRange.SDR)
+                .setZslDisabled(false);
     }
 
     /** Returns a builder pre-populated with the current specification. */
@@ -76,6 +99,14 @@ public abstract class StreamSpec {
         public abstract Builder setResolution(@NonNull Size resolution);
 
         /**
+         * Sets the dynamic range.
+         *
+         * <p>If not set, the default dynamic range is {@link DynamicRange#SDR}.
+         */
+        @NonNull
+        public abstract Builder setDynamicRange(@NonNull DynamicRange dynamicRange);
+
+        /**
          * Sets the expected frame rate range.
          *
          * <p>If not set, the default expected frame rate range is
@@ -83,6 +114,21 @@ public abstract class StreamSpec {
          */
         @NonNull
         public abstract Builder setExpectedFrameRateRange(@NonNull Range<Integer> range);
+
+        /**
+         * Sets the implementation options.
+         *
+         * <p>If not set, the default expected frame rate range is
+         * {@link CameraMetadata#SCALER_AVAILABLE_STREAM_USE_CASES_DEFAULT}.
+         */
+        @NonNull
+        public abstract Builder setImplementationOptions(@NonNull Config config);
+
+        /**
+         * Sets the flag if zero-shutter lag needs to be disabled by user case combinations.
+         */
+        @NonNull
+        public abstract Builder setZslDisabled(boolean disabled);
 
         /** Builds the stream specification */
         @NonNull

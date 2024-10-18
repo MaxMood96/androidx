@@ -20,7 +20,6 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.graphics.Rect;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
@@ -171,7 +170,6 @@ public final class Insets {
     }
 
     /**
-     * @hide
      * @deprecated Use {@link #toCompatInsets(android.graphics.Insets)} instead.
      */
     @RequiresApi(api = 29)
@@ -208,7 +206,6 @@ public final class Insets {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static android.graphics.Insets of(int left, int top, int right, int bottom) {
             return android.graphics.Insets.of(left, top, right, bottom);
         }

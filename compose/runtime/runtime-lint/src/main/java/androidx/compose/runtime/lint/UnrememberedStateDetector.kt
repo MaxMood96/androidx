@@ -18,9 +18,8 @@
 
 package androidx.compose.runtime.lint
 
-import androidx.compose.lint.Names
-import androidx.compose.lint.isInPackageName
 import androidx.compose.lint.isNotRemembered
+import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
@@ -29,49 +28,57 @@ import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
-import com.intellij.psi.PsiMethod
-import org.jetbrains.uast.UCallExpression
 import java.util.EnumSet
+import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.UElement
 
 /**
- * [Detector] that checks `derivedStateOf`, `mutableStateOf`, `mutableStateListOf`,
- * and `mutableStateMapOf` calls to make sure that if they are called inside a Composable body,
- * they are `remember`ed.
+ * [Detector] that checks `derivedStateOf`, `mutableStateOf`, `mutableStateListOf`, and
+ * `mutableStateMapOf` calls to make sure that if they are called inside a Composable body, they are
+ * `remember`ed.
  */
 class UnrememberedStateDetector : Detector(), SourceCodeScanner {
-    override fun getApplicableMethodNames(): List<String> = listOf(
-        Names.Runtime.DerivedStateOf.shortName,
-        Names.Runtime.MutableStateOf.shortName,
-        Names.Runtime.MutableStateListOf.shortName,
-        Names.Runtime.MutableStateMapOf.shortName
-    )
+    override fun getApplicableUastTypes(): List<Class<out UElement>> {
+        return listOf(UCallExpression::class.java)
+    }
 
-    override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        if (!method.isInPackageName(Names.Runtime.PackageName)) return
-
-        if (node.isNotRemembered()) {
-            context.report(
-                UnrememberedState,
-                node,
-                context.getNameLocation(node),
-                "Creating a state object during composition without using `remember`"
-            )
+    override fun createUastHandler(context: JavaContext): UElementHandler {
+        return object : UElementHandler() {
+            override fun visitCallExpression(node: UCallExpression) {
+                if (node.isStateFactoryInvocation() && node.isNotRemembered()) {
+                    context.report(
+                        UnrememberedState,
+                        node,
+                        context.getNameLocation(node),
+                        "Creating a state object during composition without using `remember`"
+                    )
+                }
+            }
         }
     }
 
+    private fun UCallExpression.isStateFactoryInvocation(): Boolean =
+        resolve()?.annotations?.any { it.hasQualifiedName(FqStateFactoryAnnotationName) } ?: false
+
     companion object {
-        val UnrememberedState = Issue.create(
-            "UnrememberedMutableState", // Left as previous id for backwards compatibility
-            "Creating a state object during composition without using `remember`",
-            "State objects created during composition need to be `remember`ed, otherwise " +
-                "they will be recreated during recomposition, and lose their state. Either hoist " +
-                "the state to an object that is not created during composition, or wrap the " +
-                "state in a call to `remember`.",
-            Category.CORRECTNESS, 3, Severity.ERROR,
-            Implementation(
-                UnrememberedStateDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+        private const val FqStateFactoryAnnotationName =
+            "androidx.compose.runtime.snapshots.StateFactoryMarker"
+
+        val UnrememberedState =
+            Issue.create(
+                "UnrememberedMutableState", // Left as previous id for backwards compatibility
+                "Creating a state object during composition without using `remember`",
+                "State objects created during composition need to be `remember`ed, otherwise " +
+                    "they will be recreated during recomposition, and lose their state. Either hoist " +
+                    "the state to an object that is not created during composition, or wrap the " +
+                    "state in a call to `remember`.",
+                Category.CORRECTNESS,
+                3,
+                Severity.ERROR,
+                Implementation(
+                    UnrememberedStateDetector::class.java,
+                    EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+                )
             )
-        )
     }
 }

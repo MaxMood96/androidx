@@ -26,6 +26,7 @@ import androidx.annotation.AnimRes;
 import androidx.annotation.AnimatorRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntDef;
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
@@ -288,9 +289,26 @@ public abstract class FragmentTransaction {
         return this;
     }
 
-    FragmentTransaction add(@NonNull ViewGroup container, @NonNull Fragment fragment,
+    /**
+     * Add a fragment to the activity state.  This fragment may optionally
+     * also have its view (if {@link Fragment#onCreateView Fragment.onCreateView}
+     * returns non-null) into a container view of the activity.
+     *
+     * @param container The container this fragment is to be placed in. The id of the container
+     *                  should be non-zero and unique.
+     * @param fragment The fragment to be added.  This fragment must not already
+     * be added to the activity.
+     * @param tag Optional tag name for the fragment, to later retrieve the
+     * fragment with {@link FragmentManager#findFragmentByTag(String)
+     * FragmentManager.findFragmentByTag(String)}.
+     *
+     * @return Returns the same FragmentTransaction instance.
+     */
+    @NonNull
+    public final FragmentTransaction add(@NonNull ViewGroup container, @NonNull Fragment fragment,
             @Nullable String tag) {
         fragment.mContainer = container;
+        fragment.mInDynamicContainer = true;
         return add(container.getId(), fragment, tag);
     }
 
@@ -547,7 +565,6 @@ public abstract class FragmentTransaction {
      */
     public static final int TRANSIT_EXIT_MASK = 0x2000;
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @IntDef({TRANSIT_NONE, TRANSIT_FRAGMENT_OPEN, TRANSIT_FRAGMENT_CLOSE, TRANSIT_FRAGMENT_FADE,
             TRANSIT_FRAGMENT_MATCH_ACTIVITY_OPEN, TRANSIT_FRAGMENT_MATCH_ACTIVITY_CLOSE})
@@ -888,7 +905,17 @@ public abstract class FragmentTransaction {
      */
     @NonNull
     public FragmentTransaction runOnCommit(@NonNull Runnable runnable) {
-        disallowAddToBackStack();
+        return runOnCommitInternal(false, runnable);
+    }
+
+    @NonNull
+    FragmentTransaction runOnCommitInternal(
+            boolean allowAddToBackStack,
+            @NonNull Runnable runnable
+    ) {
+        if (!allowAddToBackStack) {
+            disallowAddToBackStack();
+        }
         if (mCommitRunnables == null) {
             mCommitRunnables = new ArrayList<>();
         }
@@ -953,6 +980,7 @@ public abstract class FragmentTransaction {
      * be restored from its state.  See {@link #commitAllowingStateLoss()} for
      * situations where it may be okay to lose the commit.</p>
      */
+    @MainThread
     public abstract void commitNow();
 
     /**
@@ -962,5 +990,6 @@ public abstract class FragmentTransaction {
      * this should only be used for cases where it is okay for the UI state
      * to change unexpectedly on the user.
      */
+    @MainThread
     public abstract void commitNowAllowingStateLoss();
 }

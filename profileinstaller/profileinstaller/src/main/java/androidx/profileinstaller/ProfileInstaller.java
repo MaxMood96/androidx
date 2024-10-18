@@ -21,7 +21,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
-import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.IntDef;
@@ -53,11 +52,13 @@ public class ProfileInstaller {
     // cannot construct
     private ProfileInstaller() {}
 
+    static final String PROFILE_SOURCE_LOCATION = "dexopt/baseline.prof";
+
     private static final String TAG = "ProfileInstaller";
 
-    private static final String PROFILE_BASE_DIR = "/data/misc/profiles/cur/0";
+    private static final String PROFILE_BASE_DIR = "/data/misc/profiles/cur/"
+            + UserInfo.getCurrentUserId();
     private static final String PROFILE_FILE = "primary.prof";
-    private static final String PROFILE_SOURCE_LOCATION = "dexopt/baseline.prof";
     private static final String PROFILE_META_LOCATION = "dexopt/baseline.profm";
     private static final String PROFILE_INSTALLER_SKIP_FILE_NAME =
             "profileinstaller_profileWrittenFor_lastUpdateTime.dat";
@@ -184,7 +185,6 @@ public class ProfileInstaller {
     };
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
@@ -230,7 +230,6 @@ public class ProfileInstaller {
     @DiagnosticCode public static final int DIAGNOSTIC_PROFILE_IS_COMPRESSED = 5;
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
@@ -352,7 +351,6 @@ public class ProfileInstaller {
     /**
      * Check if we've already installed a profile for this app installation.
      *
-     * @hide
      *
      * @param packageInfo used to lookup the last install time for this apk
      * @param appFilesDir directory to store a file to note prior installation
@@ -387,7 +385,6 @@ public class ProfileInstaller {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     static void noteProfileWrittenFor(@NonNull PackageInfo packageInfo, @NonNull File appFilesDir) {
@@ -400,7 +397,6 @@ public class ProfileInstaller {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     static boolean deleteProfileWrittenFor(@NonNull File appFilesDir) {
@@ -428,10 +424,6 @@ public class ProfileInstaller {
             @NonNull Executor executor,
             @NonNull DiagnosticsCallback diagnostics
     ) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-            result(executor, diagnostics, ProfileInstaller.RESULT_UNSUPPORTED_ART_VERSION, null);
-            return false;
-        }
         File curProfile = new File(new File(PROFILE_BASE_DIR, packageName), PROFILE_FILE);
 
         DeviceProfileWriter deviceProfileWriter = new DeviceProfileWriter(assets, executor,

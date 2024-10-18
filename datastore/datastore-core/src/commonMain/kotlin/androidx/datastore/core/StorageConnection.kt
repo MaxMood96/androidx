@@ -25,43 +25,37 @@ interface StorageConnection<T> : Closeable {
     /**
      * Creates a scope for reading to allow storage reads, and will try to obtain a read lock.
      *
-     * @param block The block of code that is performed within this scope.  Block will
-     * receive `locked` parameter which is true if the try lock succeeded.
-     *
+     * @param block The block of code that is performed within this scope. Block will receive
+     *   `locked` parameter which is true if the try lock succeeded.
      * @throws IOException when there is an unrecoverable exception in reading.
      */
-    suspend fun <R> readScope(
-        block: suspend ReadScope<T>.(locked: Boolean) -> R
-    ): R
+    suspend fun <R> readScope(block: suspend ReadScope<T>.(locked: Boolean) -> R): R
 
     /**
-     * Creates an write scope that guaranteed to only have one single writer, ensuring also
-     * that any reads within this scope have the most current data.
+     * Creates a write scope that guaranteed to only have one single writer, ensuring also that any
+     * reads within this scope have the most current data.
      *
      * @throws IOException when there is an unrecoverable exception in writing.
      */
     suspend fun writeScope(block: suspend WriteScope<T>.() -> Unit)
-}
-
-/**
- * The scope used for a read transaction.
- */
-interface ReadScope<T> : Closeable {
 
     /**
-     * Read the data <T> from the underlying storage.
+     * Provides a coordinator to guarantee data consistency across multiple threads and processes.
      */
+    val coordinator: InterProcessCoordinator
+}
+
+/** The scope used for a read transaction. */
+interface ReadScope<T> : Closeable {
+
+    /** Read the data <T> from the underlying storage. */
     suspend fun readData(): T
 }
 
-/**
- * The scope used for a write transaction.
- */
+/** The scope used for a write transaction. */
 interface WriteScope<T> : ReadScope<T> {
 
-    /**
-     * Writes the data <T> to the underlying storage.
-     */
+    /** Writes the data <T> to the underlying storage. */
     suspend fun writeData(value: T)
 }
 

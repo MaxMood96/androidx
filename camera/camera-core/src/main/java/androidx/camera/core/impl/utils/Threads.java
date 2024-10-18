@@ -16,12 +16,12 @@
 
 package androidx.camera.core.impl.utils;
 
+import static androidx.core.util.Preconditions.checkState;
+
 import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.core.util.Preconditions;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * Helpers for {@link Thread}s.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class Threads {
     private static final long TIMEOUT_RUN_ON_MAIN_MS = 30_000L; // milliseconds
 
@@ -53,7 +52,7 @@ public final class Threads {
      * @throws IllegalStateException If the caller is not running on the main thread,
      */
     public static void checkMainThread() {
-        Preconditions.checkState(isMainThread(), "Not in application's main thread");
+        checkState(isMainThread(), "Not in application's main thread");
     }
 
     /**
@@ -62,11 +61,24 @@ public final class Threads {
      * @throws IllegalStateException if the caller is running on the main thread.
      */
     public static void checkBackgroundThread() {
-        Preconditions.checkState(isBackgroundThread(), "In application's main thread");
+        checkState(isBackgroundThread(), "In application's main thread");
+    }
+    /**
+     * Executes the {@link Runnable} on main thread.
+     *
+     * <p>If the caller thread is already main thread, then runnable will be executed immediately.
+     * Otherwise, the runnable will be posted to main thread.
+     */
+    public static void runOnMain(@NonNull Runnable runnable) {
+        if (isMainThread()) {
+            runnable.run();
+            return;
+        }
+        checkState(getMainHandler().post(runnable), "Unable to post to main thread");
     }
 
     /**
-     * Executes the {@link Runnable} on main thread.
+     * Executes the {@link Runnable} on main thread and block until the Runnable is complete.
      *
      * <p>If the caller thread is already main thread, then runnable will be executed immediately.
      * Otherwise, the runnable will be posted to main thread and caller thread will be blocked until
@@ -95,7 +107,7 @@ public final class Threads {
                 latch.countDown();
             }
         });
-        Preconditions.checkState(postResult, "Unable to post to main thread");
+        checkState(postResult, "Unable to post to main thread");
         try {
             if (!latch.await(TIMEOUT_RUN_ON_MAIN_MS, TimeUnit.MILLISECONDS)) {
                 throw new IllegalStateException("Timeout to wait main thread execution");

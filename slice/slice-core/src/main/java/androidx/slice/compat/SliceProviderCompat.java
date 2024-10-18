@@ -42,7 +42,6 @@ import android.os.RemoteException;
 import android.os.StrictMode;
 import android.util.Log;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -64,10 +63,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * @hide
  */
 @RestrictTo(Scope.LIBRARY_GROUP)
-@RequiresApi(19)
+@Deprecated
 public class SliceProviderCompat {
     public static final String PERMS_PREFIX = "slice_perms_";
     private static final String TAG = "SliceProviderCompat";
@@ -729,7 +727,6 @@ public class SliceProviderCompat {
                 // This class is not instantiable.
             }
 
-            @DoNotInline
             static void close(ContentProviderClient contentProviderClient) {
                 contentProviderClient.close();
             }

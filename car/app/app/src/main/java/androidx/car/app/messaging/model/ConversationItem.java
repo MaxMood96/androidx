@@ -28,25 +28,30 @@ import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.annotations.RequiresCarApi;
+import androidx.car.app.model.Action;
 import androidx.car.app.model.CarIcon;
 import androidx.car.app.model.CarText;
 import androidx.car.app.model.Item;
+import androidx.car.app.model.constraints.ActionsConstraints;
 import androidx.car.app.utils.CollectionUtils;
+import androidx.core.app.Person;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/** Represents a conversation */
-@ExperimentalCarApi
+/** Represents a text-based conversation (e.g. IM/SMS messages). */
 @CarProtocol
 @KeepFields
-@RequiresCarApi(6)
+@RequiresCarApi(7)
 public class ConversationItem implements Item {
     @NonNull
     private final String mId;
     @NonNull
     private final CarText mTitle;
+    @NonNull
+    private final Person mSelf;
     @Nullable
     private final CarIcon mIcon;
     private final boolean mIsGroupConversation;
@@ -54,15 +59,21 @@ public class ConversationItem implements Item {
     private final List<CarMessage> mMessages;
     @NonNull
     private final ConversationCallbackDelegate mConversationCallbackDelegate;
+    @NonNull
+    private final List<Action> mActions;
+    private final boolean mIndexable;
 
     @Override
     public int hashCode() {
         return Objects.hash(
+                PersonsEqualityHelper.getPersonHashCode(getSelf()),
                 mId,
                 mTitle,
                 mIcon,
                 mIsGroupConversation,
-                mMessages
+                mMessages,
+                mActions,
+                mIndexable
         );
     }
 
@@ -80,26 +91,36 @@ public class ConversationItem implements Item {
                 Objects.equals(mId, otherConversationItem.mId)
                         && Objects.equals(mTitle, otherConversationItem.mTitle)
                         && Objects.equals(mIcon, otherConversationItem.mIcon)
+                        && PersonsEqualityHelper
+                        .arePersonsEqual(getSelf(), otherConversationItem.getSelf())
                         && mIsGroupConversation == otherConversationItem.mIsGroupConversation
                         && Objects.equals(mMessages, otherConversationItem.mMessages)
+                        && Objects.equals(mActions, otherConversationItem.mActions)
+                        && mIndexable == otherConversationItem.mIndexable
                 ;
     }
 
     ConversationItem(@NonNull Builder builder) {
         this.mId = requireNonNull(builder.mId);
         this.mTitle = requireNonNull(builder.mTitle);
+        this.mSelf = validateSender(builder.mSelf);
         this.mIcon = builder.mIcon;
         this.mIsGroupConversation = builder.mIsGroupConversation;
         this.mMessages = requireNonNull(CollectionUtils.unmodifiableCopy(builder.mMessages));
         checkState(!mMessages.isEmpty(), "Message list cannot be empty.");
-        this.mConversationCallbackDelegate = new ConversationCallbackDelegateImpl(
-                requireNonNull(builder.mConversationCallback));
+        for (CarMessage message : mMessages) {
+            checkState(message != null, "Message list cannot contain null messages");
+        }
+        this.mConversationCallbackDelegate = requireNonNull(builder.mConversationCallbackDelegate);
+        this.mActions = CollectionUtils.unmodifiableCopy(builder.mActions);
+        this.mIndexable = builder.mIndexable;
     }
 
     /** Default constructor for serialization. */
     private ConversationItem() {
         mId = "";
         mTitle = new CarText.Builder("").build();
+        mSelf = new Person.Builder().setName("").build();
         mIcon = null;
         mIsGroupConversation = false;
         mMessages = new ArrayList<>();
@@ -115,6 +136,8 @@ public class ConversationItem implements Item {
                         // Do nothing
                     }
                 });
+        mActions = Collections.emptyList();
+        mIndexable = true;
     }
 
     /**
@@ -131,6 +154,12 @@ public class ConversationItem implements Item {
     @NonNull
     public CarText getTitle() {
         return mTitle;
+    }
+
+    /** Returns a {@link Person} for the conversation */
+    @NonNull
+    public Person getSelf() {
+        return mSelf;
     }
 
     /** Returns a {@link CarIcon} for the conversation, or {@code null} if not set */
@@ -160,6 +189,39 @@ public class ConversationItem implements Item {
         return mConversationCallbackDelegate;
     }
 
+    /**
+     * Returns the list of additional actions.
+     *
+     * @see ConversationItem.Builder#addAction(Action)
+     */
+    @NonNull
+    public List<Action> getActions() {
+        return mActions;
+    }
+
+    /**
+     * Returns whether this item can be included in indexed lists.
+     *
+     * @see Builder#setIndexable(boolean)
+     */
+    @ExperimentalCarApi
+    public boolean isIndexable() {
+        return mIndexable;
+    }
+
+    /**
+     * Verifies that a given {@link Person} has the required fields to be a message sender. Returns
+     * the input {@link Person} if valid, or throws an exception if invalid.
+     *
+     * <p> See also {@link ConversationItem#getSelf()} and {@link CarMessage#getSender()}.
+     */
+    static Person validateSender(@Nullable Person person) {
+        requireNonNull(person);
+        requireNonNull(person.getName());
+        requireNonNull(person.getKey());
+        return person;
+    }
+
     /** A builder for {@link ConversationItem} */
     public static final class Builder {
         @Nullable
@@ -167,12 +229,16 @@ public class ConversationItem implements Item {
         @Nullable
         CarText mTitle;
         @Nullable
+        Person mSelf;
+        @Nullable
         CarIcon mIcon;
         boolean mIsGroupConversation;
         @Nullable
         List<CarMessage> mMessages;
         @Nullable
-        ConversationCallback mConversationCallback;
+        ConversationCallbackDelegate mConversationCallbackDelegate;
+        final List<Action> mActions;
+        boolean mIndexable = true;
 
         /**
          * Specifies a unique identifier for the conversation
@@ -205,6 +271,19 @@ public class ConversationItem implements Item {
         }
 
         /**
+         * Sets a {@link Person} for the conversation
+         *
+         * <p> The {@link Person} must specify a non-null
+         * {@link Person.Builder#setName(CharSequence)} and
+         * {@link Person.Builder#setKey(String)}.
+         */
+        @NonNull
+        public Builder setSelf(@NonNull Person self) {
+            mSelf = self;
+            return this;
+        }
+
+        /**
          * Specifies whether this conversation involves 3+ participants (a "group" conversation)
          *
          * <p> If unspecified, conversations are assumed to have exactly two participants (a "1:1"
@@ -220,7 +299,12 @@ public class ConversationItem implements Item {
             return this;
         }
 
-        /** Specifies a list of messages for the conversation */
+        /**
+         * Specifies a list of messages for the conversation
+         *
+         * <p> The messages should be sorted from oldest to newest and should not contain any null
+         * values.
+         */
         @NonNull
         public Builder setMessages(@NonNull List<CarMessage> messages) {
             mMessages = messages;
@@ -230,9 +314,52 @@ public class ConversationItem implements Item {
         /** Sets a {@link ConversationCallback} for the conversation */
         @SuppressLint({"MissingGetterMatchingBuilder", "ExecutorRegistration"})
         @NonNull
-        public Builder setConversationCallback(
-                @NonNull ConversationCallback conversationCallback) {
-            mConversationCallback = conversationCallback;
+        public Builder setConversationCallback(@NonNull ConversationCallback conversationCallback) {
+            mConversationCallbackDelegate =
+                    new ConversationCallbackDelegateImpl(requireNonNull(conversationCallback));
+            return this;
+        }
+
+        /**
+         * Adds an additional action for the conversation.
+         *
+         * @throws NullPointerException     if {@code action} is {@code null}
+         * @throws IllegalArgumentException if {@code action} contains unsupported Action types,
+         *                                  exceeds the maximum number of allowed actions (1) or
+         *                                  does not contain a valid {@link CarIcon}.
+         */
+        @NonNull
+        public Builder addAction(@NonNull Action action) {
+            List<Action> mActionsCopy = new ArrayList<>(mActions);
+            mActionsCopy.add(requireNonNull(action));
+            ActionsConstraints.ACTIONS_CONSTRAINTS_CONVERSATION_ITEM.validateOrThrow(mActionsCopy);
+            mActions.add(action);
+            return this;
+        }
+
+        /**
+         * Sets whether this item can be included in indexed lists. By default, this is set to
+         * {@code true}.
+         *
+         * <p>The host creates indexed lists to help users navigate through long lists more easily
+         * by sorting, filtering, or some other means.
+         *
+         * <p>For example, a messaging app may show conversations by last message received. If the
+         * app provides these conversations via the {@code SectionedItemTemplate} and enables
+         * {@code #isAlphabeticalIndexingAllowed}, the user will be able to jump to their
+         * conversations that start with a given letter they chose. The messaging app can choose
+         * to hide, for example, service messages from this filtered list by setting this {@code
+         * #setIndexable(false)}.
+         *
+         * <p>Individual items can be set to be included or excluded from filtered lists, but it's
+         * also possible to enable/disable the creation of filtered lists as a whole via the
+         * template's API (eg. {@code SectionedItemTemplate
+         * .Builder#setAlphabeticalIndexingAllowed(Boolean)}).
+         */
+        @ExperimentalCarApi
+        @NonNull
+        public Builder setIndexable(boolean indexable) {
+            mIndexable = indexable;
             return this;
         }
 
@@ -240,6 +367,67 @@ public class ConversationItem implements Item {
         @NonNull
         public ConversationItem build() {
             return new ConversationItem(this);
+        }
+
+        /** @deprecated Returns an empty {@link Builder} instance. */
+        @Deprecated
+        public Builder() {
+            mActions = new ArrayList<>();
+        }
+
+        /**
+         * Creates a {@link Builder} instance with the provided required params.
+         *
+         * @param id Specifies a unique identifier for the conversation
+         *
+         * <p> IDs may be used for a variety of purposes, including...
+         * <ul>
+         *     <li> Distinguishing new {@link ConversationItem}s from updated
+         *     {@link ConversationItem}s in the UI, when data is refreshed
+         *     <li> Identifying {@link ConversationItem}s in "mark as read" / "reply" callbacks
+         * </ul>
+         *
+         * @param title Title of the conversation
+         * @param self {@link Person} for the conversation
+         *
+         * <p> The {@link Person} must specify a non-null
+         * {@link Person.Builder#setName(CharSequence)} and
+         * {@link Person.Builder#setKey(String)}.
+         *
+         * @param messages Specifies a list of messages for the conversation
+         *
+         * <p> The messages should be sorted from oldest to newest and should not contain any null
+         * values.
+         *
+         * @param conversationCallback {@link ConversationCallback} for the conversation
+         */
+        @SuppressLint("ExecutorRegistration")
+        public Builder(
+                @NonNull String id,
+                @NonNull CarText title,
+                @NonNull Person self,
+                @NonNull List<CarMessage> messages,
+                @NonNull ConversationCallback conversationCallback) {
+            mId = id;
+            mTitle = title;
+            mSelf = self;
+            mMessages = messages;
+            mConversationCallbackDelegate =
+                    new ConversationCallbackDelegateImpl(requireNonNull(conversationCallback));
+            mActions = new ArrayList<>();
+
+        }
+
+        /** Returns a builder from the given {@link ConversationItem}. */
+        public Builder(@NonNull ConversationItem other) {
+            this.mId = other.getId();
+            this.mTitle = other.getTitle();
+            this.mSelf = other.getSelf();
+            this.mIcon = other.getIcon();
+            this.mIsGroupConversation = other.isGroupConversation();
+            this.mConversationCallbackDelegate = other.getConversationCallbackDelegate();
+            this.mMessages = other.getMessages();
+            this.mActions = new ArrayList<>(other.getActions());
         }
     }
 }

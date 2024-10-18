@@ -19,11 +19,9 @@ package androidx.core.os;
 import android.os.Build;
 import android.os.LocaleList;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.core.text.ICUCompat;
@@ -246,10 +244,9 @@ public final class LocaleListCompat {
      * @return True if they match, false otherwise.
      */
     @RequiresApi(21)
-    @OptIn(markerClass = BuildCompat.PrereleaseSdkCheck.class)
     public static boolean matchesLanguageAndScript(@NonNull Locale supported,
             @NonNull Locale desired) {
-        if (BuildCompat.isAtLeastT()) {
+        if (Build.VERSION.SDK_INT >= 33) {
             return LocaleList.matchesLanguageAndScript(supported, desired);
         } else if (Build.VERSION.SDK_INT >= 21) {
             return Api21Impl.matchesLanguageAndScript(supported, desired);
@@ -265,7 +262,6 @@ public final class LocaleListCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean matchesLanguageAndScript(@NonNull Locale supported,
                 @NonNull Locale desired) {
             if (supported.equals(desired)) {
@@ -308,7 +304,6 @@ public final class LocaleListCompat {
             return false;
         }
 
-        @DoNotInline
         static Locale forLanguageTag(String languageTag) {
             return Locale.forLanguageTag(languageTag);
         }
@@ -336,17 +331,14 @@ public final class LocaleListCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static LocaleList createLocaleList(Locale... list) {
             return new LocaleList(list);
         }
 
-        @DoNotInline
         static LocaleList getAdjustedDefault() {
             return LocaleList.getAdjustedDefault();
         }
 
-        @DoNotInline
         static LocaleList getDefault() {
             return LocaleList.getDefault();
         }

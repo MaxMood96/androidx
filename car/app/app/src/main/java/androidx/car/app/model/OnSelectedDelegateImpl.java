@@ -28,6 +28,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.IOnDoneCallback;
 import androidx.car.app.OnDoneCallback;
+import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.model.ItemList.OnSelectedListener;
 import androidx.car.app.utils.RemoteUtils;
@@ -35,9 +36,9 @@ import androidx.car.app.utils.RemoteUtils;
 /**
  * Implementation class for {@link OnSelectedDelegate}.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
+@CarProtocol
 @KeepFields
 public class OnSelectedDelegateImpl implements OnSelectedDelegate {
     @Nullable
@@ -65,10 +66,11 @@ public class OnSelectedDelegateImpl implements OnSelectedDelegate {
     @NonNull
     // This listener relates to UI event and is expected to be triggered on the main thread.
     @SuppressLint("ExecutorRegistration")
-    static OnSelectedDelegate create(@NonNull OnSelectedListener listener) {
+    public static OnSelectedDelegate create(@NonNull OnSelectedListener listener) {
         return new OnSelectedDelegateImpl(listener);
     }
 
+    @CarProtocol
     @KeepFields // We need to keep these stub for Bundler serialization logic.
     private static class OnSelectedListenerStub extends IOnSelectedListener.Stub {
         private final OnSelectedListener mListener;

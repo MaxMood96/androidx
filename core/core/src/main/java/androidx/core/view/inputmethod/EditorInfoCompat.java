@@ -34,12 +34,14 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
+import androidx.core.os.BuildCompat;
 import androidx.core.util.Preconditions;
 
 import java.lang.annotation.Retention;
@@ -103,6 +105,9 @@ public final class EditorInfoCompat {
     private static final String CONTENT_SELECTION_END_KEY =
             "androidx.core.view.inputmethod.EditorInfoCompat.CONTENT_SELECTION_END";
 
+    @VisibleForTesting
+    static final String STYLUS_HANDWRITING_ENABLED_KEY =
+            "androidx.core.view.inputmethod.EditorInfoCompat.STYLUS_HANDWRITING_ENABLED";
 
     @Retention(SOURCE)
     @IntDef({Protocol.Unknown, Protocol.PlatformApi, Protocol.SupportLib, Protocol.AndroidX_1_0_0,
@@ -196,6 +201,43 @@ public final class EditorInfoCompat {
     }
 
     /**
+     * Set {@code true} if the editor has {@link InputMethodManager#startStylusHandwriting stylus
+     * handwriting} enabled.
+     * {@code false} by default, editor must set it {@code true} to indicate that it supports
+     * stylus handwriting.
+     * @param editorInfo the editor with which we set handwriting enabled.
+     * @param enabled {@code true} if stylus handwriting is enabled.
+     * @see View#setAutoHandwritingEnabled(boolean)
+     */
+    public static void setStylusHandwritingEnabled(@NonNull EditorInfo editorInfo,
+            boolean enabled) {
+        if (BuildCompat.isAtLeastV()) {
+            Api35Impl.setStylusHandwritingEnabled(editorInfo, enabled);
+        }
+        if (editorInfo.extras == null) {
+            editorInfo.extras = new Bundle();
+        }
+        editorInfo.extras.putBoolean(STYLUS_HANDWRITING_ENABLED_KEY, enabled);
+    }
+
+    /**
+     * Returns {@code true} when an editor has stylus handwriting enabled. {@code false} by default.
+     * @param editorInfo the editor from which we get stylus handwriting enabled.
+     * @see #setStylusHandwritingEnabled(EditorInfo, boolean)
+     * @see InputMethodManager#isStylusHandwritingAvailable()
+     */
+    public static boolean isStylusHandwritingEnabled(@NonNull EditorInfo editorInfo) {
+        if (editorInfo.extras != null
+                && editorInfo.extras.containsKey(STYLUS_HANDWRITING_ENABLED_KEY)) {
+            return editorInfo.extras.getBoolean(STYLUS_HANDWRITING_ENABLED_KEY);
+        }
+        if (BuildCompat.isAtLeastV()) {
+            return Api35Impl.isStylusHandwritingEnabled(editorInfo);
+        }
+        return false;
+    }
+
+    /**
      * Editors may use this method to provide initial input text to IMEs. As the surrounding text
      * could be used to provide various input assistance, we recommend editors to provide the
      * complete initial input text in its {@link View#onCreateInputConnection(EditorInfo)} callback.
@@ -207,6 +249,7 @@ public final class EditorInfoCompat {
      * for IMEs to provide many modern features right after the connection setup. We recommend
      * calling this method in your implementation.
      *
+     * @param editorInfo the editor with which to set the text.
      * @param sourceText The complete input text.
      */
     public static void setInitialSurroundingText(@NonNull EditorInfo editorInfo,
@@ -227,6 +270,7 @@ public final class EditorInfoCompat {
      * try to include the selected text within {@code subText} to give the system best flexibility
      * to choose where and how to trim {@code subText} when necessary.
      *
+     * @param editorInfo the editor with which to set the text.
      * @param subText The input text. When it was trimmed, {@code subTextStart} must be provided
      *                correctly.
      * @param subTextStart  The position that the input text got trimmed. For example, when the
@@ -344,6 +388,7 @@ public final class EditorInfoCompat {
      * Get <var>n</var> characters of text before the current cursor position. May be {@code null}
      * when the protocol is not supported.
      *
+     * @param editorInfo the editor with which to get the text.
      * @param length The expected length of the text.
      * @param flags Supplies additional options controlling how the text is returned. May be
      * either 0 or {@link InputConnection#GET_TEXT_WITH_STYLES}.
@@ -381,6 +426,7 @@ public final class EditorInfoCompat {
      * Gets the selected text, if any. May be {@code null} when no text is selected or the selected
      * text is way too long.
      *
+     * @param editorInfo the editor with which to get the text.
      * @param flags Supplies additional options controlling how the text is returned. May be
      * either 0 or {@link InputConnection#GET_TEXT_WITH_STYLES}.
      * @return the text that is currently selected, if any. It could be an empty string when there
@@ -425,6 +471,7 @@ public final class EditorInfoCompat {
      * Get <var>n</var> characters of text after the current cursor position. May be {@code null}
      * when the protocol is not supported.
      *
+     * @param editorInfo the editor with which to get the text.
      * @param length The expected length of the text.
      * @param flags Supplies additional options controlling how the text is returned. May be
      * either 0 or {@link InputConnection#GET_TEXT_WITH_STYLES}.
@@ -548,6 +595,19 @@ public final class EditorInfoCompat {
         static CharSequence getInitialTextAfterCursor(@NonNull EditorInfo editorInfo, int length,
                 int flags) {
             return editorInfo.getInitialTextAfterCursor(length, flags);
+        }
+    }
+
+    @RequiresApi(35)
+    private static class Api35Impl {
+        private Api35Impl() {}
+
+        static void setStylusHandwritingEnabled(@NonNull EditorInfo editorInfo, boolean enabled) {
+            editorInfo.setStylusHandwritingEnabled(enabled);
+        }
+
+        static boolean isStylusHandwritingEnabled(@NonNull EditorInfo editorInfo) {
+            return editorInfo.isStylusHandwritingEnabled();
         }
     }
 }

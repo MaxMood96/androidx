@@ -16,56 +16,47 @@
 
 package androidx.benchmark.benchmark
 
+import androidx.benchmark.ExperimentalBenchmarkConfigApi
+import androidx.benchmark.MicrobenchmarkConfig
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.tracing.Trace
 import androidx.tracing.trace
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@OptIn(ExperimentalBenchmarkConfigApi::class)
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class PerfettoOverheadBenchmark {
-    private val targetPackage =
-        InstrumentationRegistry.getInstrumentation().targetContext.packageName
 
-    @get:Rule
-    val benchmarkRule = BenchmarkRule(packages = listOf(targetPackage))
+    @get:Rule val benchmarkRule = BenchmarkRule(MicrobenchmarkConfig(traceAppTagEnabled = true))
 
-    /**
-     * Empty baseline, no tracing. Expect similar results to [TrivialJavaBenchmark.nothing].
-     */
-    @Test
-    fun empty() = benchmarkRule.measureRepeated {}
+    /** Empty baseline, no tracing. Expect similar results to [TrivialJavaBenchmark.nothing]. */
+    @Test fun empty() = benchmarkRule.measureRepeated {}
 
     /**
      * The trace section within runWithTimingDisabled, even though not measured, can impact the
      * results of a small benchmark significantly.
      */
     @Test
-    fun runWithTimingDisabled() = benchmarkRule.measureRepeated {
-        runWithTimingDisabled { /* nothing*/ }
-    }
+    fun runWithTimingDisabled() =
+        benchmarkRule.measureRepeated { runWithTimingDisabled { /* nothing */ } }
 
     /**
      * Trace section adds ~5us (depending on many factors) in this ideal case, but will be
      * significantly worse in a real benchmark, as there's more computation to interfere with.
      */
     @Test
-    fun traceBeginEnd() = benchmarkRule.measureRepeated {
-        Trace.beginSection("foo")
-        Trace.endSection()
-    }
+    fun traceBeginEnd() =
+        benchmarkRule.measureRepeated {
+            Trace.beginSection("foo")
+            Trace.endSection()
+        }
 
-    /**
-     * Dupe of [traceBeginEnd], just using [trace].
-     */
-    @Test
-    fun traceBlock() = benchmarkRule.measureRepeated {
-        trace("foo") { /* nothing */ }
-    }
+    /** Dupe of [traceBeginEnd], just using [trace]. */
+    @Test fun traceBlock() = benchmarkRule.measureRepeated { trace("foo") { /* nothing */ } }
 }

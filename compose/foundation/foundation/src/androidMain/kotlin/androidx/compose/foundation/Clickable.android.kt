@@ -19,27 +19,23 @@ package androidx.compose.foundation
 import android.view.KeyEvent.KEYCODE_DPAD_CENTER
 import android.view.KeyEvent.KEYCODE_ENTER
 import android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+import android.view.KeyEvent.KEYCODE_SPACE
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
 import androidx.compose.ui.input.key.KeyEventType.Companion.KeyUp
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.requireView
 
-@Composable
-internal actual fun isComposeRootInScrollableContainer(): () -> Boolean {
-    val view = LocalView.current
-    return {
-        view.isInScrollableViewGroup()
-    }
+internal actual fun DelegatableNode.isComposeRootInScrollableContainer(): Boolean {
+    return requireView().isInScrollableViewGroup()
 }
 
-// Copied from View#isInScrollingContainer() which is @hide
 private fun View.isInScrollableViewGroup(): Boolean {
     var p = parent
     while (p != null && p is ViewGroup) {
@@ -68,7 +64,11 @@ internal actual val KeyEvent.isClick: Boolean
     get() = type == KeyUp && isEnter
 
 private val KeyEvent.isEnter: Boolean
-    get() = when (key.nativeKeyCode) {
-        KEYCODE_DPAD_CENTER, KEYCODE_ENTER, KEYCODE_NUMPAD_ENTER -> true
-        else -> false
-    }
+    get() =
+        when (key.nativeKeyCode) {
+            KEYCODE_DPAD_CENTER,
+            KEYCODE_ENTER,
+            KEYCODE_NUMPAD_ENTER,
+            KEYCODE_SPACE -> true
+            else -> false
+        }

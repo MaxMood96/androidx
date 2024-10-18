@@ -30,7 +30,9 @@
         android:usesCleartextTraffic="true"
         tools:ignore="UnusedAttribute">
         <!-- Top-level Activity -->
-        <activity android:name=".MainActivity">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -43,12 +45,14 @@
             android:exported="true" />
         <activity
             android:name=".SmallInterstitialActivity"
+            android:theme="@style/AppDayNightTheme"
             android:exported="true" />
         <activity
             android:name=".MediumInterstitialActivity"
             android:exported="true" />
         <activity
-            android:name=".LoudInterstitialActivity"
+            android:name=".FullPageInterstitialActivity"
+            android:theme="@style/AppDayNightTheme"
             android:exported="true" />
         <activity
             android:name=".GiantInterstitialActivity"
@@ -131,6 +135,10 @@
             android:process=":dataDirectorySuffixActivity"
             android:exported="true" />
         <activity
+            android:name=".DirectoryBasePathsActivity"
+            android:process=":directoryBasePathActivity"
+            android:exported="true" />
+        <activity
             android:name=".RequestedWithHeaderActivity"
             android:exported="true" />
         <activity android:name=".CookieManagerActivity"
@@ -138,7 +146,22 @@
         <activity
             android:name=".ImageDragActivity"
             android:exported="false" />
-
+        <activity
+            android:name=".UserAgentMetadataActivity"
+            android:exported="true" />
+        <activity
+            android:name=".MultiProfileTestActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MuteAudioActivity"
+            android:exported="true" />
+        <activity
+            android:name=".RestrictedContentActivity"
+            android:exported="true" />
+        <activity
+            android:name=".TinyInterstitialActivity"
+            android:theme="@style/AppDayNightTheme"
+            android:exported="true" />
         <provider
             android:authorities="com.example.androidx.webkit.DropDataProvider"
             android:name="androidx.webkit.DropDataContentProvider"

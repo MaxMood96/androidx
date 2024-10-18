@@ -25,6 +25,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.CarContext;
 import androidx.car.app.HostDispatcher;
+import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.hardware.climate.AutomotiveCarClimate;
 import androidx.car.app.hardware.climate.CarClimate;
@@ -39,6 +40,7 @@ import androidx.car.app.hardware.info.CarSensors;
  * and actions.
  */
 @ExperimentalCarApi
+@CarProtocol
 public final class AutomotiveCarHardwareManager implements CarHardwareManager {
 
     private final AutomotiveCarInfo mCarInfo;
@@ -53,7 +55,6 @@ public final class AutomotiveCarHardwareManager implements CarHardwareManager {
         mCarClimate = new AutomotiveCarClimate(mPropertyManager);
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP)
     public AutomotiveCarHardwareManager(@NonNull CarContext context,
             @NonNull HostDispatcher dispatcher) {

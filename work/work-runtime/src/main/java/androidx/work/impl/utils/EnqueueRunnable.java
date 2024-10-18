@@ -25,9 +25,9 @@ import static androidx.work.WorkInfo.State.ENQUEUED;
 import static androidx.work.WorkInfo.State.FAILED;
 import static androidx.work.WorkInfo.State.RUNNING;
 import static androidx.work.WorkInfo.State.SUCCEEDED;
-import static androidx.work.impl.utils.EnqueueUtilsKt.wrapInConstraintTrackingWorkerIfNeeded;
+import static androidx.work.impl.utils.EnqueueUtilsKt.checkContentUriTriggerWorkerLimits;
+import static androidx.work.impl.utils.EnqueueUtilsKt.wrapWorkSpecIfNeeded;
 
-import android.content.Context;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
@@ -35,15 +35,12 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.Logger;
-import androidx.work.Operation;
 import androidx.work.WorkInfo;
 import androidx.work.WorkRequest;
-import androidx.work.impl.OperationImpl;
 import androidx.work.impl.Schedulers;
 import androidx.work.impl.WorkContinuationImpl;
 import androidx.work.impl.WorkDatabase;
 import androidx.work.impl.WorkManagerImpl;
-import androidx.work.impl.background.systemalarm.RescheduleReceiver;
 import androidx.work.impl.model.Dependency;
 import androidx.work.impl.model.DependencyDao;
 import androidx.work.impl.model.WorkName;
@@ -57,55 +54,27 @@ import java.util.Set;
 
 /**
  * Manages the enqueuing of a {@link WorkContinuationImpl}.
- *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public class EnqueueRunnable implements Runnable {
+public class EnqueueRunnable {
+
+    private EnqueueRunnable() {
+    }
 
     private static final String TAG = Logger.tagWithPrefix("EnqueueRunnable");
 
-    private final WorkContinuationImpl mWorkContinuation;
-    private final OperationImpl mOperation;
-
-    public EnqueueRunnable(@NonNull WorkContinuationImpl workContinuation) {
-        this(workContinuation, new OperationImpl());
-    }
-
-    public EnqueueRunnable(
-            @NonNull WorkContinuationImpl workContinuation,
-            @NonNull OperationImpl result) {
-        mWorkContinuation = workContinuation;
-        mOperation = result;
-    }
-
-    @Override
-    public void run() {
-        try {
-            if (mWorkContinuation.hasCycles()) {
-                throw new IllegalStateException(
-                        "WorkContinuation has cycles (" + mWorkContinuation + ")");
-            }
-            boolean needsScheduling = addToDatabase();
-            if (needsScheduling) {
-                // Enable RescheduleReceiver, only when there are Worker's that need scheduling.
-                final Context context =
-                        mWorkContinuation.getWorkManagerImpl().getApplicationContext();
-                PackageManagerHelper.setComponentEnabled(context, RescheduleReceiver.class, true);
-                scheduleWorkInBackground();
-            }
-            mOperation.markState(Operation.SUCCESS);
-        } catch (Throwable exception) {
-            mOperation.markState(new Operation.State.FAILURE(exception));
-        }
-    }
-
     /**
-     * @return The {@link Operation} that encapsulates the state of the {@link EnqueueRunnable}.
+     * Enqueues the given workContinuation.
      */
-    @NonNull
-    public Operation getOperation() {
-        return mOperation;
+    public static void enqueue(@NonNull WorkContinuationImpl workContinuation) {
+        if (workContinuation.hasCycles()) {
+            throw new IllegalStateException(
+                    "WorkContinuation has cycles (" + workContinuation + ")");
+        }
+        boolean needsScheduling = addToDatabase(workContinuation);
+        if (needsScheduling) {
+            scheduleWorkInBackground(workContinuation);
+        }
     }
 
     /**
@@ -113,12 +82,15 @@ public class EnqueueRunnable implements Runnable {
      * Schedules work on the background scheduler, if transaction is successful.
      */
     @VisibleForTesting
-    public boolean addToDatabase() {
-        WorkManagerImpl workManagerImpl = mWorkContinuation.getWorkManagerImpl();
+    @SuppressWarnings("deprecation")
+    public static boolean addToDatabase(@NonNull WorkContinuationImpl workContinuation) {
+        WorkManagerImpl workManagerImpl = workContinuation.getWorkManagerImpl();
         WorkDatabase workDatabase = workManagerImpl.getWorkDatabase();
         workDatabase.beginTransaction();
         try {
-            boolean needsScheduling = processContinuation(mWorkContinuation);
+            checkContentUriTriggerWorkerLimits(workDatabase,
+                    workManagerImpl.getConfiguration(), workContinuation);
+            boolean needsScheduling = processContinuation(workContinuation);
             workDatabase.setTransactionSuccessful();
             return needsScheduling;
         } finally {
@@ -130,8 +102,8 @@ public class EnqueueRunnable implements Runnable {
      * Schedules work on the background scheduler.
      */
     @VisibleForTesting
-    public void scheduleWorkInBackground() {
-        WorkManagerImpl workManager = mWorkContinuation.getWorkManagerImpl();
+    public static void scheduleWorkInBackground(@NonNull WorkContinuationImpl workContinuation) {
+        WorkManagerImpl workManager = workContinuation.getWorkManagerImpl();
         Schedulers.schedule(
                 workManager.getConfiguration(),
                 workManager.getWorkDatabase(),
@@ -186,7 +158,7 @@ public class EnqueueRunnable implements Runnable {
 
         boolean needsScheduling = false;
 
-        long currentTimeMillis = System.currentTimeMillis();
+        long currentTimeMillis = workManagerImpl.getConfiguration().getClock().currentTimeMillis();
         WorkDatabase workDatabase = workManagerImpl.getWorkDatabase();
 
         boolean hasPrerequisite = (prerequisiteIds != null && prerequisiteIds.length > 0);
@@ -274,7 +246,7 @@ public class EnqueueRunnable implements Runnable {
                     // the current transaction.  We want it to happen separately to avoid race
                     // conditions (see ag/4502245, which tries to avoid work trying to run before
                     // it's actually been committed to the database).
-                    CancelWorkRunnable.forName(name, workManagerImpl, false).run();
+                    CancelWorkRunnable.forNameInline(name, workManagerImpl);
                     // Because we cancelled some work but didn't allow rescheduling inside
                     // CancelWorkRunnable, we need to make sure we do schedule work at the end of
                     // this runnable.
@@ -313,7 +285,7 @@ public class EnqueueRunnable implements Runnable {
             }
 
             workDatabase.workSpecDao().insertWorkSpec(
-                    wrapInConstraintTrackingWorkerIfNeeded(
+                    wrapWorkSpecIfNeeded(
                             workManagerImpl.getSchedulers(),
                             workSpec
                     )

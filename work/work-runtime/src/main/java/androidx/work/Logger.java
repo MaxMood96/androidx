@@ -26,7 +26,6 @@ import androidx.annotation.RestrictTo;
  * accessible and has only one default implementation, {@link LogcatLogger}, that writes to logcat
  * when the logging request is of a certain verbosity or higher.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public abstract class Logger {
@@ -44,7 +43,11 @@ public abstract class Logger {
      */
     public static void setLogger(@NonNull Logger logger) {
         synchronized (sLock) {
-            sLogger = logger;
+            // Don't override the logger if one has been defined already.
+            // The application might have overridden the logger using the @Restricted API.
+            if (sLogger == null) {
+                sLogger = logger;
+            }
         }
     }
 

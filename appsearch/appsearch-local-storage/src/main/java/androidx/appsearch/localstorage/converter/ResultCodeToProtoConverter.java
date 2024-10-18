@@ -26,7 +26,7 @@ import com.google.android.icing.proto.StatusProto;
 
 /**
  * Translates an {@link StatusProto.Code} into a {@link AppSearchResult.ResultCode}
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class ResultCodeToProtoConverter {
@@ -35,7 +35,7 @@ public final class ResultCodeToProtoConverter {
     private ResultCodeToProtoConverter() {}
 
     /** Converts an {@link StatusProto.Code} into a {@link AppSearchResult.ResultCode}. */
-    public static @AppSearchResult.ResultCode int toResultCode(
+    @AppSearchResult.ResultCode public static int toResultCode(
             @NonNull StatusProto.Code statusCode) {
         switch (statusCode) {
             case OK:
@@ -50,6 +50,8 @@ public final class ResultCodeToProtoConverter {
                 return AppSearchResult.RESULT_NOT_FOUND;
             case INVALID_ARGUMENT:
                 return AppSearchResult.RESULT_INVALID_ARGUMENT;
+            case ALREADY_EXISTS:
+                return AppSearchResult.RESULT_ALREADY_EXISTS;
             default:
                 // Some unknown/unsupported error
                 Log.e(TAG, "Cannot convert IcingSearchEngine status code: "

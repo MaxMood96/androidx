@@ -19,7 +19,6 @@ package androidx.camera.video;
 import android.util.Range;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.core.AspectRatio;
@@ -30,10 +29,8 @@ import java.util.Arrays;
 
 /**
  * Video specification that is options to config video encoding.
- * @hide
  */
 @SuppressWarnings("NullableProblems") // Nullable problem in AutoValue generated class
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @RestrictTo(Scope.LIBRARY)
 @AutoValue
 public abstract class VideoSpec {
@@ -107,7 +104,6 @@ public abstract class VideoSpec {
 
     /**
      * The builder of the {@link VideoSpec}.
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY)
     @SuppressWarnings("StaticFinalBuilder")

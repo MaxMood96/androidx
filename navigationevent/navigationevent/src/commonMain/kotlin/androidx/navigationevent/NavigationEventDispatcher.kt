@@ -336,7 +336,7 @@ private constructor(
         checkInvariants()
 
         inputHandlers += inputHandler
-        inputHandler.onAttach(dispatcher = this)
+        inputHandler.doAttach(dispatcher = this)
     }
 
     /**
@@ -353,7 +353,7 @@ private constructor(
         checkInvariants()
 
         inputHandlers -= inputHandler
-        inputHandler.onDetach()
+        inputHandler.doDetach()
     }
 
     /**
@@ -484,7 +484,7 @@ private constructor(
             // This gives them a chance to clean up their own state, severing the lifecycle link
             // and preventing them from interacting with a disposed object.
             for (inputHandler in currentDispatcher.inputHandlers) {
-                inputHandler.onDetach()
+                inputHandler.doDetach()
             }
             inputHandlers.clear()
 

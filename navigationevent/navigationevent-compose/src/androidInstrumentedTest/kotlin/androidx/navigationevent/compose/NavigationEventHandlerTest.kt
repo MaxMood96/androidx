@@ -47,7 +47,8 @@ internal class NavigationEventHandlerTest {
 
     private val owner = TestNavigationEventDispatcherOwner()
     private val dispatcher = owner.navigationEventDispatcher
-    private val inputHandler = DirectNavigationEventInputHandler(dispatcher)
+    private val inputHandler =
+        DirectNavigationEventInputHandler().also { dispatcher.addInputHandler(it) }
 
     @Test
     fun navigationEventHandler_whenOnStartDispatched_invokesHandler() {

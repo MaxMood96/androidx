@@ -118,8 +118,8 @@ public fun PdfObject.toAospPdfPageObject(): PdfPageObject {
             val pagePathObject =
                 PdfPagePathObject(path).apply {
                     strokeWidth = brushWidth
-                    strokeColor = brushColor
-                    renderMode = PdfPagePathObject.RENDER_MODE_STROKE
+                    fillColor = brushColor
+                    renderMode = PdfPagePathObject.RENDER_MODE_FILL
                 }
             pagePathObject
         }
@@ -180,7 +180,8 @@ internal fun List<PathInput>.getPathFromPathInputs(): Path {
  * @return A list of [PathInput] constructed from the path object. Returns an empty list if the path
  *   is empty.
  */
-internal fun Path.getPathInputsFromPath(): List<PathInput> {
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+public fun Path.getPathInputsFromPath(): List<PathInput> {
     val pathInputs = mutableListOf<PathInput>()
     val approx: FloatArray = this.approximate(ACCEPTABLE_TOLERANCE_IN_PATH)
 

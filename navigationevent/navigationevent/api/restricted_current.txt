@@ -2,7 +2,7 @@
 package androidx.navigationevent {
 
   public final class DirectNavigationEventInputHandler extends androidx.navigationevent.NavigationEventInputHandler {
-    ctor public DirectNavigationEventInputHandler(androidx.navigationevent.NavigationEventDispatcher dispatcher);
+    ctor public DirectNavigationEventInputHandler();
     method @MainThread public void handleOnCancelled();
     method @MainThread public void handleOnCompleted();
     method @MainThread public void handleOnProgressed(androidx.navigationevent.NavigationEvent event);
@@ -78,11 +78,13 @@ package androidx.navigationevent {
   }
 
   public abstract class NavigationEventInputHandler {
-    ctor public NavigationEventInputHandler(androidx.navigationevent.NavigationEventDispatcher dispatcher);
+    ctor public NavigationEventInputHandler();
     method @MainThread protected final void dispatchOnCancelled();
     method @MainThread protected final void dispatchOnCompleted();
     method @MainThread protected final void dispatchOnProgressed(androidx.navigationevent.NavigationEvent event);
     method @MainThread protected final void dispatchOnStarted(androidx.navigationevent.NavigationEvent event);
+    method @EmptySuper @MainThread protected void onAttach(androidx.navigationevent.NavigationEventDispatcher dispatcher);
+    method @EmptySuper @MainThread protected void onDetach();
     method @MainThread protected void onHasEnabledCallbacksChanged(boolean hasEnabledCallbacks);
   }
 
@@ -122,7 +124,7 @@ package androidx.navigationevent {
   }
 
   @RequiresApi(33) public final class OnBackInvokedInputHandler extends androidx.navigationevent.NavigationEventInputHandler {
-    ctor public OnBackInvokedInputHandler(androidx.navigationevent.NavigationEventDispatcher dispatcher, android.window.OnBackInvokedDispatcher onBackInvokedDispatcher);
+    ctor public OnBackInvokedInputHandler(android.window.OnBackInvokedDispatcher onBackInvokedDispatcher);
   }
 
   public final class ViewTreeNavigationEventDispatcherOwner_androidKt {

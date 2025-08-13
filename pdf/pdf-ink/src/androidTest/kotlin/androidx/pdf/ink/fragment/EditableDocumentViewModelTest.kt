@@ -19,8 +19,9 @@ package androidx.pdf.ink.fragment
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.net.Uri
-import android.util.SparseArray
 import androidx.lifecycle.SavedStateHandle
+import androidx.pdf.FakeEditablePdfDocument
+import androidx.pdf.annotation.EditablePdfDocument
 import androidx.pdf.annotation.models.PathPdfObject
 import androidx.pdf.annotation.models.PdfAnnotation
 import androidx.pdf.annotation.models.PdfAnnotationData
@@ -44,17 +45,24 @@ class EditableDocumentViewModelTest {
     private lateinit var annotationsViewModel: EditableDocumentViewModel
     private lateinit var savedStateHandle: SavedStateHandle
 
+    private var defaultDocumentUri: Uri? = null
+    private var editablePdfDocument: EditablePdfDocument? = null
+
     @Before
     fun setup() {
+        defaultDocumentUri = Uri.fromFile(File("test1.pdf"))
+        editablePdfDocument = FakeEditablePdfDocument(uri = requireNotNull(defaultDocumentUri))
         savedStateHandle = SavedStateHandle()
         annotationsViewModel = EditableDocumentViewModel(savedStateHandle)
+
+        annotationsViewModel.editablePdfDocument = requireNotNull(editablePdfDocument)
     }
 
     @Test
-    fun addAnnotations_updatesDraftState_forSingleAnnotation() = runTest {
+    fun addDraftAnnotation_updatesDraftState_forSingleAnnotation() = runTest {
         val annotation = createAnnotation(pageNum = 0)
 
-        annotationsViewModel.addAnnotations(annotation)
+        annotationsViewModel.addDraftAnnotation(annotation)
         val firstPageEdits: List<PdfAnnotationData>? =
             annotationsViewModel.annotationsDisplayStateFlow.value.draftState.edits[0]
 
@@ -66,12 +74,12 @@ class EditableDocumentViewModelTest {
     }
 
     @Test
-    fun addAnnotations_updatesDraftState_forMultipleAnnotationsOnSamePage() = runTest {
+    fun addAnnotations_updatesDraftState_forMultipleDraftAnnotationOnSamePage() = runTest {
         val annotation1 = createAnnotation(pageNum = 0, bounds = RectF(0f, 0f, 50f, 50f))
         val annotation2 = createAnnotation(pageNum = 0, bounds = RectF(50f, 50f, 100f, 100f))
 
-        annotationsViewModel.addAnnotations(annotation1)
-        annotationsViewModel.addAnnotations(annotation2)
+        annotationsViewModel.addDraftAnnotation(annotation1)
+        annotationsViewModel.addDraftAnnotation(annotation2)
 
         val firstPageEdits: List<PdfAnnotationData>? =
             annotationsViewModel.annotationsDisplayStateFlow.value.draftState.edits[0]
@@ -83,12 +91,12 @@ class EditableDocumentViewModelTest {
     }
 
     @Test
-    fun addAnnotations_updatesDraftState_forMultipleAnnotationsOnDifferentPages() = runTest {
+    fun addAnnotations_updatesDraftState_forMultipleDraftAnnotationOnDifferentPages() = runTest {
         val annotationPage0 = createAnnotation(pageNum = 0)
         val annotationPage1 = createAnnotation(pageNum = 1)
 
-        annotationsViewModel.addAnnotations(annotationPage0)
-        annotationsViewModel.addAnnotations(annotationPage1)
+        annotationsViewModel.addDraftAnnotation(annotationPage0)
+        annotationsViewModel.addDraftAnnotation(annotationPage1)
 
         val firstPageEdits: List<PdfAnnotationData>? =
             annotationsViewModel.annotationsDisplayStateFlow.value.draftState.edits[0]
@@ -108,7 +116,7 @@ class EditableDocumentViewModelTest {
         val matrixPage0 = Matrix().apply { setScale(1f, 1f) }
         val matrixPage1 = Matrix().apply { setTranslate(10f, 10f) }
         val newMatrices =
-            SparseArray<Matrix>().apply {
+            HashMap<Int, Matrix>().apply {
                 put(0, matrixPage0)
                 put(1, matrixPage1)
             }
@@ -116,16 +124,16 @@ class EditableDocumentViewModelTest {
         annotationsViewModel.updateTransformationMatrices(newMatrices)
         val emittedState = annotationsViewModel.annotationsDisplayStateFlow.first()
 
-        assertThat(emittedState.transformationMatrices.size()).isEqualTo(2)
+        assertThat(emittedState.transformationMatrices.size).isEqualTo(2)
         assertThat(emittedState.transformationMatrices.get(0)).isEqualTo(matrixPage0)
         assertThat(emittedState.transformationMatrices.get(1)).isEqualTo(matrixPage1)
     }
 
     @Test
-    fun maybeInitDraftState_resetsState_whenDocumentUriChanges() = runTest {
+    fun maybeInitialiseForDocument_resetsState_whenDocumentUriChanges() = runTest {
         val initialAnnotation = createAnnotation(pageNum = 0)
-        annotationsViewModel.addAnnotations(initialAnnotation)
-        annotationsViewModel.setEditModeEnabled(true)
+        annotationsViewModel.addDraftAnnotation(initialAnnotation)
+        annotationsViewModel.isEditModeEnabled = true
 
         val initialDocUri = Uri.fromFile(File("test1.pdf"))
         savedStateHandle[EditableDocumentViewModel.DOCUMENT_URI_KEY] = initialDocUri
@@ -136,7 +144,7 @@ class EditableDocumentViewModelTest {
 
         // Change document URI
         val newDocUri = Uri.fromFile(File("test2.pdf"))
-        annotationsViewModel.maybeInitDraftState(newDocUri)
+        annotationsViewModel.editablePdfDocument = FakeEditablePdfDocument(uri = newDocUri)
 
         // Verify state reset
         assertThat(annotationsViewModel.isEditModeEnabledFlow.first()).isFalse()
@@ -147,18 +155,18 @@ class EditableDocumentViewModelTest {
     }
 
     @Test
-    fun maybeInitDraftState_doesNotResetState_whenDocumentUriIsTheSame() = runTest {
+    fun maybeInitialiseForDocument_doesNotResetState_whenDocumentUriIsTheSame() = runTest {
         val docUri = Uri.fromFile(File("test.pdf"))
         savedStateHandle[EditableDocumentViewModel.DOCUMENT_URI_KEY] = docUri
 
+        annotationsViewModel.editablePdfDocument = FakeEditablePdfDocument(uri = docUri)
+
         val initialAnnotation = createAnnotation(pageNum = 0)
-        annotationsViewModel.addAnnotations(initialAnnotation)
-        annotationsViewModel.setEditModeEnabled(true)
+        annotationsViewModel.addDraftAnnotation(initialAnnotation)
+        annotationsViewModel.isEditModeEnabled = true
 
         val initialEdits = annotationsViewModel.annotationsDisplayStateFlow.value.draftState.edits
         val initialEditMode = annotationsViewModel.isEditModeEnabledFlow.first()
-
-        annotationsViewModel.maybeInitDraftState(docUri) // Same documentUri
 
         assertThat(annotationsViewModel.isEditModeEnabledFlow.first()).isEqualTo(initialEditMode)
         assertThat(annotationsViewModel.annotationsDisplayStateFlow.value.draftState.edits)

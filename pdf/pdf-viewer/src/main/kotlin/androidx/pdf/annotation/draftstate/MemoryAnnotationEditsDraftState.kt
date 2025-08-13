@@ -16,7 +16,6 @@
 
 package androidx.pdf.annotation.draftstate
 
-import android.os.ParcelFileDescriptor
 import android.util.SparseArray
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
@@ -24,24 +23,16 @@ import androidx.core.util.forEach
 import androidx.pdf.annotation.models.EditId
 import androidx.pdf.annotation.models.PdfAnnotation
 import androidx.pdf.annotation.models.PdfAnnotationData
+import java.util.Collections
 import java.util.UUID
-import kotlin.collections.isNotEmpty
-import kotlin.collections.toMap
 
 /**
  * A simple implementation of [AnnotationEditsDraftState] that stores annotation edits in memory
  * using a [SparseArray]. This class provides methods to add, remove, update, and retrieve edits.
- *
- * The [ParcelFileDescriptor] provided in the constructor is intended to be used by the user to save
- * the draft state to a file when necessary.
- *
- * @param pfd The [ParcelFileDescriptor] for saving the draft state.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
-public class SimpleAnnotationEditsDraftState(
-    pfd: ParcelFileDescriptor,
-    private val editState: SparseArray<MutableMap<EditId, PdfAnnotationData>> = SparseArray(),
-) : AnnotationEditsDraftState(pfd) {
+public open class MemoryAnnotationEditsDraftState() : AnnotationEditsDraftState {
+    private val editState: SparseArray<MutableMap<EditId, PdfAnnotationData>> = SparseArray()
 
     /**
      * Retrieves a list of saved annotations for a given page number.
@@ -64,10 +55,12 @@ public class SimpleAnnotationEditsDraftState(
     override fun addEdit(annotation: PdfAnnotation): EditId {
         val pageNum = annotation.pageNum
 
-        val pageEdits = editState.get(pageNum) ?: mutableMapOf()
+        val pageEdits =
+            editState.get(pageNum)
+                ?: Collections.synchronizedMap(HashMap<EditId, PdfAnnotationData>())
 
         // creates a new editId for the given page number
-        val editId = getNewEditId(pageNum)
+        val editId = createEditIdForPage(pageNum)
         pageEdits[editId] = PdfAnnotationData(editId, annotation)
         editState.put(pageNum, pageEdits)
 
@@ -145,7 +138,7 @@ public class SimpleAnnotationEditsDraftState(
      * @param pageNum The page number for which to generate the new ID.
      * @return A new, unique [EditId].
      */
-    private fun getNewEditId(pageNum: Int): EditId {
+    private fun createEditIdForPage(pageNum: Int): EditId {
         return EditId(pageNum, UUID.randomUUID().toString())
     }
 }

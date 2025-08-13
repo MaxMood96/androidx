@@ -20,8 +20,11 @@ import android.os.ParcelFileDescriptor
 import androidx.annotation.RestrictTo
 import androidx.pdf.PdfDocument
 import androidx.pdf.annotation.models.AnnotationResult
+import androidx.pdf.annotation.models.EditId
+import androidx.pdf.annotation.models.EditsResult
 import androidx.pdf.annotation.models.PdfAnnotation
 import androidx.pdf.annotation.models.PdfAnnotationData
+import androidx.pdf.annotation.models.PdfEdit
 
 /** Represents a PDF document that allows for editing of annotations. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -52,4 +55,30 @@ public abstract class EditablePdfDocument : PdfDocument {
      * @return An [AnnotationResult] indicating the success or failure of the operation.
      */
     public abstract suspend fun applyEdits(sourcePfd: ParcelFileDescriptor): AnnotationResult
+
+    /**
+     * Creates a new PdfEdit onto the PdfDocument.
+     *
+     * @param edit The [PdfEdit] to be added.
+     * @return An [EditId] that uniquely identifies this edit operation.
+     */
+    public abstract fun addEdit(edit: PdfEdit): EditId
+
+    /**
+     * Removes an existing PdfEdit from the PdfDocument.
+     *
+     * @param editId The [EditId] of the PdfEdit to be removed.
+     */
+    public abstract fun removeEdit(editId: EditId)
+
+    /**
+     * Updates an existing PdfEdit in the PdfDocument.
+     *
+     * @param editId The [EditId] of the edit to be updated.
+     * @param edit The [PdfEdit] to be updated.
+     */
+    public abstract fun updateEdit(editId: EditId, edit: PdfEdit)
+
+    /** Commits all PdfEdits to the PDF document. */
+    public abstract fun commitEdits(): EditsResult
 }

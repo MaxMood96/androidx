@@ -62,7 +62,9 @@ constructor(context: Context, @StyleRes themeResId: Int = 0) :
     // Input from for `ComponentDialog.onBackPressed()`, which can get called when API < 33 or
     // when `android:enableOnBackInvokedCallback` is `false`.
     private val onBackPressedInputHandler: DirectNavigationEventInputHandler by lazy {
-        DirectNavigationEventInputHandler(navigationEventDispatcher)
+        val inputHandler = DirectNavigationEventInputHandler()
+        navigationEventDispatcher.addInputHandler(inputHandler)
+        inputHandler
     }
 
     override fun onSaveInstanceState(): Bundle {

@@ -58,7 +58,7 @@ class PathPdfObjectConverterTest {
         val pathPdfObject = randomizePathPdfObject(pathLength = 1)
         val expectedStrokeColor = 0
         val expectedStrokeWidth = 0f
-        val expectedRenderMode = PdfPagePathObject.RENDER_MODE_STROKE
+        val expectedRenderMode = PdfPagePathObject.RENDER_MODE_FILL
 
         val result = converter.convert(pathPdfObject)
 

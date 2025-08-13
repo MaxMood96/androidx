@@ -136,7 +136,8 @@ class NavDisplayPredictiveBackTest {
         composeTestRule.setContent {
             navEventDispatcher =
                 LocalNavigationEventDispatcherOwner.current!!.navigationEventDispatcher
-            inputHandler = DirectNavigationEventInputHandler(navEventDispatcher)
+            inputHandler = DirectNavigationEventInputHandler()
+            navEventDispatcher.addInputHandler(inputHandler)
             backStack = remember { mutableStateListOf(first) }
             NavDisplay(
                 backStack = backStack,

@@ -573,7 +573,9 @@ class OnBackPressedHandlerTest {
         val callback = CountingOnBackPressedCallback()
         dispatcher.addCallback(callback)
 
-        DirectNavigationEventInputHandler(dispatcher.eventDispatcher).handleOnCompleted()
+        val inputHandler = DirectNavigationEventInputHandler()
+        dispatcher.eventDispatcher.addInputHandler(inputHandler)
+        inputHandler.handleOnCompleted()
 
         assertWithMessage("Count should be incremented after dispatchOnCompleted")
             .that(callback.count)

@@ -244,7 +244,9 @@ open class ComponentActivity() :
     // Input from `ComponentActivity.onBackPressed()`, which can get called when API < 33 or
     // when `android:enableOnBackInvokedCallback` is `false`.
     private val onBackPressedInputHandler: DirectNavigationEventInputHandler by lazy {
-        DirectNavigationEventInputHandler(navigationEventDispatcher)
+        val inputHandler = DirectNavigationEventInputHandler()
+        navigationEventDispatcher.addInputHandler(inputHandler)
+        inputHandler
     }
 
     /**

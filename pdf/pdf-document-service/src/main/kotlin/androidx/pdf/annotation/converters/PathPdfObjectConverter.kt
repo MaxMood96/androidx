@@ -31,8 +31,8 @@ internal class PathPdfObjectConverter : Converter<PathPdfObject, PdfPagePathObje
         val path = from.inputs.getPathFromPathInputs()
         return PdfPagePathObject(path).apply {
             strokeWidth = from.brushWidth
-            strokeColor = from.brushColor
-            renderMode = PdfPagePathObject.RENDER_MODE_STROKE
+            fillColor = from.brushColor
+            renderMode = PdfPagePathObject.RENDER_MODE_FILL
         }
     }
 }

@@ -18,13 +18,8 @@ package androidx.navigationevent
 
 import androidx.annotation.MainThread
 
-/**
- * An input handler that can send events to a [NavigationEventDispatcher].
- *
- * @param dispatcher The [NavigationEventDispatcher] to send events to.
- */
-public class DirectNavigationEventInputHandler(dispatcher: NavigationEventDispatcher) :
-    NavigationEventInputHandler(dispatcher) {
+/** An input handler that can send events to a [NavigationEventDispatcher]. */
+public class DirectNavigationEventInputHandler() : NavigationEventInputHandler() {
     @MainThread
     public fun handleOnStarted(event: NavigationEvent) {
         dispatchOnStarted(event)

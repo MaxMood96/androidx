@@ -82,7 +82,9 @@ class OnBackPressedDispatcher(
     }
 
     private val manualDispatchInputHandler by lazy {
-        DirectNavigationEventInputHandler(eventDispatcher)
+        val inputHandler = DirectNavigationEventInputHandler()
+        eventDispatcher.addInputHandler(inputHandler)
+        inputHandler
     }
 
     @JvmOverloads
@@ -95,7 +97,8 @@ class OnBackPressedDispatcher(
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun setOnBackInvokedDispatcher(invoker: OnBackInvokedDispatcher) {
-        OnBackInvokedInputHandler(eventDispatcher, invoker)
+        val inputHandler = OnBackInvokedInputHandler(invoker)
+        eventDispatcher.addInputHandler(inputHandler)
     }
 
     /**

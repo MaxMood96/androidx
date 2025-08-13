@@ -23,4 +23,4 @@ package androidx.credentials.providerevents.transfer
  *     * [Fido Credential Exchange Protocol
  *       format](https://fidoalliance.org/specs/cx/cxp-v1.0-wd-20240522.html)
  */
-public class CredentialTransferCapabilitiesRequest(public val requestJson: String?)
+public class CredentialTransferCapabilitiesRequest(public val requestJson: String)

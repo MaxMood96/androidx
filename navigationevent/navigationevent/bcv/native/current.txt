@@ -31,17 +31,19 @@ abstract class <#A: androidx.navigationevent/NavigationEventInfo> androidx.navig
 }
 
 abstract class androidx.navigationevent/NavigationEventInputHandler { // androidx.navigationevent/NavigationEventInputHandler|null[0]
-    constructor <init>(androidx.navigationevent/NavigationEventDispatcher) // androidx.navigationevent/NavigationEventInputHandler.<init>|<init>(androidx.navigationevent.NavigationEventDispatcher){}[0]
+    constructor <init>() // androidx.navigationevent/NavigationEventInputHandler.<init>|<init>(){}[0]
 
     final fun dispatchOnCancelled() // androidx.navigationevent/NavigationEventInputHandler.dispatchOnCancelled|dispatchOnCancelled(){}[0]
     final fun dispatchOnCompleted() // androidx.navigationevent/NavigationEventInputHandler.dispatchOnCompleted|dispatchOnCompleted(){}[0]
     final fun dispatchOnProgressed(androidx.navigationevent/NavigationEvent) // androidx.navigationevent/NavigationEventInputHandler.dispatchOnProgressed|dispatchOnProgressed(androidx.navigationevent.NavigationEvent){}[0]
     final fun dispatchOnStarted(androidx.navigationevent/NavigationEvent) // androidx.navigationevent/NavigationEventInputHandler.dispatchOnStarted|dispatchOnStarted(androidx.navigationevent.NavigationEvent){}[0]
+    open fun onAttach(androidx.navigationevent/NavigationEventDispatcher) // androidx.navigationevent/NavigationEventInputHandler.onAttach|onAttach(androidx.navigationevent.NavigationEventDispatcher){}[0]
+    open fun onDetach() // androidx.navigationevent/NavigationEventInputHandler.onDetach|onDetach(){}[0]
     open fun onHasEnabledCallbacksChanged(kotlin/Boolean) // androidx.navigationevent/NavigationEventInputHandler.onHasEnabledCallbacksChanged|onHasEnabledCallbacksChanged(kotlin.Boolean){}[0]
 }
 
 final class androidx.navigationevent/DirectNavigationEventInputHandler : androidx.navigationevent/NavigationEventInputHandler { // androidx.navigationevent/DirectNavigationEventInputHandler|null[0]
-    constructor <init>(androidx.navigationevent/NavigationEventDispatcher) // androidx.navigationevent/DirectNavigationEventInputHandler.<init>|<init>(androidx.navigationevent.NavigationEventDispatcher){}[0]
+    constructor <init>() // androidx.navigationevent/DirectNavigationEventInputHandler.<init>|<init>(){}[0]
 
     final fun handleOnCancelled() // androidx.navigationevent/DirectNavigationEventInputHandler.handleOnCancelled|handleOnCancelled(){}[0]
     final fun handleOnCompleted() // androidx.navigationevent/DirectNavigationEventInputHandler.handleOnCompleted|handleOnCompleted(){}[0]

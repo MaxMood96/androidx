@@ -36,8 +36,11 @@ import androidx.pdf.PdfDocument.DocumentClosedException
 import androidx.pdf.PdfDocument.PdfPageContent
 import androidx.pdf.annotation.EditablePdfDocument
 import androidx.pdf.annotation.models.AnnotationResult
+import androidx.pdf.annotation.models.EditId
+import androidx.pdf.annotation.models.EditsResult
 import androidx.pdf.annotation.models.PdfAnnotation
 import androidx.pdf.annotation.models.PdfAnnotationData
+import androidx.pdf.annotation.models.PdfEdit
 import androidx.pdf.annotation.processor.PdfAnnotationsProcessor
 import androidx.pdf.content.PageMatchBounds
 import androidx.pdf.content.PageSelection
@@ -404,6 +407,24 @@ public class SandboxedPdfDocument(
         }
 
         return AnnotationResult(listOf(), listOf())
+    }
+
+    override fun addEdit(edit: PdfEdit): EditId {
+        // TODO: b/437827008 - Implementation of managing PdfEdits in EditablePdfDocument
+        return EditId(0, "")
+    }
+
+    override fun removeEdit(editId: EditId) {
+        // TODO: b/437827008 - Implementation of managing PdfEdits in EditablePdfDocument
+    }
+
+    override fun updateEdit(editId: EditId, edit: PdfEdit) {
+        // TODO: b/437827008 - Implementation of managing PdfEdits in EditablePdfDocument
+    }
+
+    override fun commitEdits(): EditsResult {
+        // TODO: b/437827008 - Implementation of managing PdfEdits in EditablePdfDocument
+        return EditsResult(listOf(), listOf())
     }
 
     private companion object {

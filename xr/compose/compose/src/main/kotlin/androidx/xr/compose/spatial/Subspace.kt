@@ -214,7 +214,7 @@ private fun ApplicationSubspace(
         ) {
             it.dispose()
             subspaceRoot.dispose()
-            if (!context.requireActivity().isDestroyed) {
+            if (!context.requireActivity().isFinishing) {
                 session.scene.mainPanelEntity.setEnabled(true)
             }
         }

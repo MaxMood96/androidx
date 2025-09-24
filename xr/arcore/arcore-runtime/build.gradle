@@ -19,14 +19,23 @@ import androidx.build.SoftwareType
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
+    api(libs.kotlinStdlib)
+    api(libs.kotlinCoroutinesCore)
+    api(project(":xr:runtime:runtime"))
 
+    implementation("androidx.annotation:annotation:1.8.1")
+    implementation("androidx.activity:activity-ktx:1.8.0")
 }
 
 android {
     namespace = "androidx.xr.arcore.runtime"
+    defaultConfig {
+        consumerProguardFiles 'proguard-rules.pro'
+    }
 }
 
 androidx {

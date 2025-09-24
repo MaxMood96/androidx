@@ -33,9 +33,9 @@ import androidx.xr.runtime.math.Pose;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
-import androidx.xr.scenecore.internal.Entity;
-import androidx.xr.scenecore.internal.InputEventListener;
-import androidx.xr.scenecore.internal.InteractableComponent;
+import androidx.xr.scenecore.runtime.Entity;
+import androidx.xr.scenecore.runtime.InputEventListener;
+import androidx.xr.scenecore.runtime.InteractableComponent;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
 
 import com.android.extensions.xr.XrExtensions;

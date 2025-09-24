@@ -21,16 +21,16 @@ import android.view.Surface;
 import androidx.xr.scenecore.impl.impress.ImpressApi;
 import androidx.xr.scenecore.impl.impress.ImpressNode;
 import androidx.xr.scenecore.impl.impress.Texture;
-import androidx.xr.scenecore.internal.Dimensions;
-import androidx.xr.scenecore.internal.SurfaceEntity;
-import androidx.xr.scenecore.internal.SurfaceEntity.ColorRange;
-import androidx.xr.scenecore.internal.SurfaceEntity.ColorSpace;
-import androidx.xr.scenecore.internal.SurfaceEntity.ColorTransfer;
-import androidx.xr.scenecore.internal.SurfaceEntity.StereoMode;
-import androidx.xr.scenecore.internal.SurfaceEntity.SuperSampling;
-import androidx.xr.scenecore.internal.SurfaceEntity.SurfaceProtection;
-import androidx.xr.scenecore.internal.SurfaceFeature;
-import androidx.xr.scenecore.internal.TextureResource;
+import androidx.xr.scenecore.runtime.Dimensions;
+import androidx.xr.scenecore.runtime.SurfaceEntity;
+import androidx.xr.scenecore.runtime.SurfaceEntity.ColorRange;
+import androidx.xr.scenecore.runtime.SurfaceEntity.ColorSpace;
+import androidx.xr.scenecore.runtime.SurfaceEntity.ColorTransfer;
+import androidx.xr.scenecore.runtime.SurfaceEntity.StereoMode;
+import androidx.xr.scenecore.runtime.SurfaceEntity.SuperSampling;
+import androidx.xr.scenecore.runtime.SurfaceEntity.SurfaceProtection;
+import androidx.xr.scenecore.runtime.SurfaceFeature;
+import androidx.xr.scenecore.runtime.TextureResource;
 
 import com.android.extensions.xr.XrExtensions;
 

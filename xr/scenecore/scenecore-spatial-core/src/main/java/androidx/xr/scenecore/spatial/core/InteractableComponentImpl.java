@@ -18,9 +18,9 @@ package androidx.xr.scenecore.spatial.core;
 
 import android.util.Log;
 
-import androidx.xr.scenecore.internal.Entity;
-import androidx.xr.scenecore.internal.InputEventListener;
-import androidx.xr.scenecore.internal.InteractableComponent;
+import androidx.xr.scenecore.runtime.Entity;
+import androidx.xr.scenecore.runtime.InputEventListener;
+import androidx.xr.scenecore.runtime.InteractableComponent;
 
 import org.jspecify.annotations.NonNull;
 

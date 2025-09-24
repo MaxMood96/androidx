@@ -20,10 +20,10 @@ import android.app.Activity
 import androidx.kruth.assertThat
 import androidx.xr.runtime.math.FloatSize2d
 import androidx.xr.runtime.math.Pose
-import androidx.xr.scenecore.internal.Dimensions
-import androidx.xr.scenecore.internal.RenderingRuntime
-import androidx.xr.scenecore.internal.SceneRuntime
-import androidx.xr.scenecore.internal.SurfaceEntity
+import androidx.xr.scenecore.runtime.Dimensions
+import androidx.xr.scenecore.runtime.RenderingRuntime
+import androidx.xr.scenecore.runtime.SceneRuntime
+import androidx.xr.scenecore.runtime.SurfaceEntity
 import com.google.common.truth.Truth
 import org.junit.After
 import org.junit.Before

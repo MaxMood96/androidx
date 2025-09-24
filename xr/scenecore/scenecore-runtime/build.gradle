@@ -27,9 +27,19 @@ import androidx.build.SoftwareType
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
+    api(libs.jspecify)
+    api(libs.kotlinStdlib)
+    api(project(":xr:arcore:arcore"))
+    api(project(":xr:runtime:runtime"))
+
+    implementation("androidx.annotation:annotation:1.8.1")
+    implementation(libs.androidx.core)
+    implementation("androidx.concurrent:concurrent-futures:1.0.0")
+    implementation("com.google.errorprone:error_prone_annotations:2.30.0")
 }
 
 android {

@@ -34,11 +34,11 @@ import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.impress.FakeImpressApiImpl;
 import androidx.xr.scenecore.impl.impress.ImpressApi;
-import androidx.xr.scenecore.internal.CameraViewActivityPose;
-import androidx.xr.scenecore.internal.Dimensions;
-import androidx.xr.scenecore.internal.PixelDimensions;
-import androidx.xr.scenecore.internal.SurfaceEntity;
-import androidx.xr.scenecore.internal.SurfaceEntity.Shape;
+import androidx.xr.scenecore.runtime.CameraViewActivityPose;
+import androidx.xr.scenecore.runtime.Dimensions;
+import androidx.xr.scenecore.runtime.PixelDimensions;
+import androidx.xr.scenecore.runtime.SurfaceEntity;
+import androidx.xr.scenecore.runtime.SurfaceEntity.Shape;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.node.Node;

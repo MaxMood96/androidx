@@ -16,7 +16,7 @@
 
 package androidx.xr.scenecore.spatial.core;
 
-import static androidx.xr.scenecore.internal.SpatialEnvironment.NO_PASSTHROUGH_OPACITY_PREFERENCE;
+import static androidx.xr.scenecore.runtime.SpatialEnvironment.NO_PASSTHROUGH_OPACITY_PREFERENCE;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
@@ -29,9 +29,9 @@ import static org.mockito.Mockito.verify;
 import android.app.Activity;
 
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
-import androidx.xr.scenecore.internal.ExrImageResource;
-import androidx.xr.scenecore.internal.GltfModelResource;
-import androidx.xr.scenecore.internal.SpatialEnvironment.SpatialEnvironmentPreference;
+import androidx.xr.scenecore.runtime.ExrImageResource;
+import androidx.xr.scenecore.runtime.GltfModelResource;
+import androidx.xr.scenecore.runtime.SpatialEnvironment.SpatialEnvironmentPreference;
 
 import com.android.extensions.xr.ShadowXrExtensions;
 import com.android.extensions.xr.XrExtensions;

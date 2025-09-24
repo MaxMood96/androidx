@@ -28,8 +28,8 @@ import android.app.Activity;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
-import androidx.xr.scenecore.internal.Dimensions;
-import androidx.xr.scenecore.internal.PixelDimensions;
+import androidx.xr.scenecore.runtime.Dimensions;
+import androidx.xr.scenecore.runtime.PixelDimensions;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
 
 import com.android.extensions.xr.ShadowXrExtensions;

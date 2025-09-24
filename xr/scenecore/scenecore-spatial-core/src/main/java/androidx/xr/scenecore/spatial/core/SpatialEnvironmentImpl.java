@@ -19,9 +19,9 @@ package androidx.xr.scenecore.spatial.core;
 import android.app.Activity;
 
 import androidx.annotation.VisibleForTesting;
-import androidx.xr.scenecore.internal.SpatialEnvironment;
-import androidx.xr.scenecore.internal.SpatialEnvironmentExt;
-import androidx.xr.scenecore.internal.SpatialEnvironmentFeature;
+import androidx.xr.scenecore.runtime.SpatialEnvironment;
+import androidx.xr.scenecore.runtime.SpatialEnvironmentExt;
+import androidx.xr.scenecore.runtime.SpatialEnvironmentFeature;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.environment.EnvironmentVisibilityState;

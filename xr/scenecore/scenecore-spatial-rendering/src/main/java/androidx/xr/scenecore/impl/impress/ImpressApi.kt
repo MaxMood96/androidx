@@ -19,8 +19,8 @@ package androidx.xr.scenecore.impl.impress
 import android.view.Surface
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
-import androidx.xr.scenecore.internal.KhronosPbrMaterialSpec
-import androidx.xr.scenecore.internal.TextureSampler
+import androidx.xr.scenecore.runtime.KhronosPbrMaterialSpec
+import androidx.xr.scenecore.runtime.TextureSampler
 import com.google.ar.imp.view.View
 import com.google.common.util.concurrent.ListenableFuture
 

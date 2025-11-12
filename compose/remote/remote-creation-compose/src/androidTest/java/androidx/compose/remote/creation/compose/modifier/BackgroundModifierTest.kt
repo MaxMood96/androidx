@@ -23,8 +23,8 @@ import androidx.compose.remote.creation.compose.capture.shaders.horizontalGradie
 import androidx.compose.remote.creation.compose.capture.shaders.radialGradient
 import androidx.compose.remote.creation.compose.capture.shaders.sweepGradient
 import androidx.compose.remote.creation.compose.capture.shaders.verticalGradient
-import androidx.compose.remote.creation.compose.layout.Alignment
-import androidx.compose.remote.creation.compose.layout.Arrangement
+import androidx.compose.remote.creation.compose.layout.RemoteAlignment
+import androidx.compose.remote.creation.compose.layout.RemoteArrangement
 import androidx.compose.remote.creation.compose.layout.RemoteBox
 import androidx.compose.remote.creation.compose.layout.RemoteComposable
 import androidx.compose.remote.creation.compose.layout.RemoteText
@@ -144,14 +144,14 @@ class BackgroundModifierTest {
     private fun DemoBox(title: String, content: @RemoteComposable @Composable () -> Unit) {
         RemoteBox(
             modifier = RemoteModifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = RemoteAlignment.CenterHorizontally,
+            verticalArrangement = RemoteArrangement.Center,
         ) {
             content()
             RemoteBox(
                 modifier = RemoteModifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Bottom,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Bottom,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 RemoteText(title, color = RemoteColor(Color.White), fontSize = 8.sp)
             }

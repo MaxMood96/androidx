@@ -84,8 +84,8 @@ public fun CaptureAsBitmap(
         @Suppress("COMPOSE_APPLIER_CALL_MISMATCH") // b/446706254
         RemoteBox(
             modifier = RemoteModifier.width(bitmapWidth).height(bitmapHeight),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = RemoteAlignment.CenterHorizontally,
+            verticalArrangement = RemoteArrangement.Center,
         ) {
             Image(
                 modifier = androidx.compose.ui.Modifier,

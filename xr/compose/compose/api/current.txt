@@ -544,6 +544,13 @@ package androidx.xr.compose.subspace.layout {
     method public static androidx.xr.compose.subspace.layout.SubspaceModifier layout(androidx.xr.compose.subspace.layout.SubspaceModifier, kotlin.jvm.functions.Function3<? super androidx.xr.compose.subspace.layout.SubspaceMeasureScope,? super androidx.xr.compose.subspace.layout.SubspaceMeasurable,? super androidx.xr.compose.unit.VolumeConstraints,? extends androidx.xr.compose.subspace.layout.SubspaceMeasureResult> measure);
   }
 
+  public final class LookAtUserKt {
+    method public static androidx.xr.compose.subspace.layout.SubspaceModifier billboard(androidx.xr.compose.subspace.layout.SubspaceModifier, optional boolean enabled);
+    method @BytecodeOnly public static androidx.xr.compose.subspace.layout.SubspaceModifier! billboard$default(androidx.xr.compose.subspace.layout.SubspaceModifier!, boolean, int, Object!);
+    method public static androidx.xr.compose.subspace.layout.SubspaceModifier lookAtUser(androidx.xr.compose.subspace.layout.SubspaceModifier, optional boolean enabled, optional androidx.xr.runtime.math.Vector3 up);
+    method @BytecodeOnly public static androidx.xr.compose.subspace.layout.SubspaceModifier! lookAtUser$default(androidx.xr.compose.subspace.layout.SubspaceModifier!, boolean, androidx.xr.runtime.math.Vector3!, int, Object!);
+  }
+
   public final class OffsetKt {
     method @KotlinOnly public static androidx.xr.compose.subspace.layout.SubspaceModifier offset(androidx.xr.compose.subspace.layout.SubspaceModifier, optional androidx.compose.ui.unit.Dp x, optional androidx.compose.ui.unit.Dp y, optional androidx.compose.ui.unit.Dp z);
     method @BytecodeOnly public static androidx.xr.compose.subspace.layout.SubspaceModifier offset-qQh39rQ(androidx.xr.compose.subspace.layout.SubspaceModifier, float, float, float);
@@ -1089,11 +1096,13 @@ package androidx.xr.compose.subspace.layout {
 
   public abstract static class SubspaceModifier.Node implements androidx.xr.compose.subspace.layout.DelegatableSubspaceNode {
     ctor public SubspaceModifier.Node();
+    method @InaccessibleFromKotlin public final kotlinx.coroutines.CoroutineScope getCoroutineScope();
     method @InaccessibleFromKotlin public androidx.xr.compose.subspace.layout.SubspaceModifier.Node getNode();
     method @InaccessibleFromKotlin public boolean getShouldAutoInvalidate();
     method @InaccessibleFromKotlin public final boolean isAttached();
     method public void onAttach();
     method public void onDetach();
+    property public final kotlinx.coroutines.CoroutineScope coroutineScope;
     property public final boolean isAttached;
     property public androidx.xr.compose.subspace.layout.SubspaceModifier.Node node;
     property public boolean shouldAutoInvalidate;

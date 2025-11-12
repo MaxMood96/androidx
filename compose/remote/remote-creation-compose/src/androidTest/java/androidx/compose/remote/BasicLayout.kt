@@ -31,9 +31,9 @@ import androidx.compose.remote.creation.compose.capture.scale
 import androidx.compose.remote.creation.compose.capture.shaders.RemoteBrush
 import androidx.compose.remote.creation.compose.capture.shaders.radialGradient
 import androidx.compose.remote.creation.compose.capture.translate
-import androidx.compose.remote.creation.compose.layout.Alignment
-import androidx.compose.remote.creation.compose.layout.Arrangement
 import androidx.compose.remote.creation.compose.layout.CaptureAsBitmap
+import androidx.compose.remote.creation.compose.layout.RemoteAlignment
+import androidx.compose.remote.creation.compose.layout.RemoteArrangement
 import androidx.compose.remote.creation.compose.layout.RemoteBox
 import androidx.compose.remote.creation.compose.layout.RemoteCanvas
 import androidx.compose.remote.creation.compose.layout.RemoteColumn
@@ -379,8 +379,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
         testLayout(result) {
             RemoteColumn(
                 modifier = RemoteModifier.fillMaxSize().background(Color.Yellow),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 RemoteCanvas(
                     modifier =
@@ -425,8 +425,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
         testLayout(result) {
             RemoteColumn(
                 modifier = RemoteModifier.fillMaxSize().background(Color.Yellow),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 RemoteCanvas(
                     modifier =
@@ -566,15 +566,15 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
                         .background(Color.Red)
                         .padding(20.dp)
                         .background(Color.Cyan),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 val text = rememberRemoteString("test") { "Bonjour le monde!" }
                 val white = RemoteColor(Color.White)
 
                 RemoteRow(
                     modifier = RemoteModifier.background(Color.LightGray),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = RemoteAlignment.CenterVertically,
                 ) {
                     RemoteText(text = "Hello World")
                     RemoteText(
@@ -662,8 +662,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
                         .background(Color.Red)
                         .padding(20.dp)
                         .background(Color.Cyan),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 val text = rememberRemoteString("plop") { "Bonjour Le Monde!" }
                 val white = RemoteColor(Color.White)
@@ -751,8 +751,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
         testLayout(result) {
             RemoteColumn(
                 modifier = RemoteModifier.fillMaxSize().background(Color.Yellow),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 RemoteBox(
                     modifier = RemoteModifier.size(100.dp).clickable(HostAction("my_host_action"))
@@ -781,8 +781,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
         testLayout(result) {
             RemoteColumn(
                 modifier = RemoteModifier.fillMaxSize().background(Color.Yellow),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 val param = rememberRemoteIntValue { 128 }
                 RemoteBox(
@@ -823,8 +823,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
         testLayout(result) {
             RemoteColumn(
                 modifier = RemoteModifier.fillMaxSize().background(Color.Yellow),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 val checked = rememberRemoteIntValue { 0 }
                 val (off, on) = createIds
@@ -880,8 +880,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
         testLayout(result) {
             RemoteColumn(
                 modifier = RemoteModifier.fillMaxSize().background(Color.Yellow),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 val checked = rememberRemoteIntValue { 1 }
                 val (off, on) = createIds
@@ -942,8 +942,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
         testLayout(result) {
             RemoteColumn(
                 modifier = RemoteModifier.fillMaxSize().background(Color.Yellow),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 val checked = rememberRemoteIntValue { 1 }
                 val (off, on) = createIds
@@ -1111,8 +1111,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
                 modifier =
                     RemoteModifier.fillMaxSize()
                         .background(RemoteBrush.radialGradient(colors = colors)),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
             ) {
                 val green = RemoteColor(Color.Green)
                 RemoteText("Green", color = green, fontSize = 30.sp)
@@ -1173,8 +1173,8 @@ ROOT [-2:-1] = [0.0, 0.0, 825.0, 825.0] VISIBLE
                 modifier =
                     RemoteModifier.fillMaxSize()
                         .background(RemoteBrush.radialGradient(colors = colors)),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = RemoteAlignment.CenterHorizontally,
+                verticalArrangement = RemoteArrangement.Center,
             ) {
                 RemoteRow(modifier = RemoteModifier.background(Color.Blue)) {
                     RemoteIconVector(
@@ -1300,8 +1300,8 @@ list:
         testLayoutAndPaint(layoutResult, paintResult) {
             RemoteRow(
                 modifier = RemoteModifier.background(Color.Yellow),
-                horizontalArrangement = Arrangement.CenterHorizontally,
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = RemoteArrangement.CenterHorizontally,
+                verticalAlignment = RemoteAlignment.CenterVertically,
             ) {
                 RemoteBox(
                     modifier =
@@ -1321,8 +1321,8 @@ list:
                             .background(Color.Blue)
                             .padding(8.dp)
                             .background(Color.Magenta),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = RemoteAlignment.CenterHorizontally,
+                    verticalArrangement = RemoteArrangement.Center,
                 ) {
                     RemoteText("XYZ")
                 }

@@ -24,8 +24,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.remote.creation.compose.capture.RememberRemoteDocumentInline
-import androidx.compose.remote.creation.compose.layout.Alignment
-import androidx.compose.remote.creation.compose.layout.Arrangement
+import androidx.compose.remote.creation.compose.layout.RemoteAlignment
+import androidx.compose.remote.creation.compose.layout.RemoteArrangement
 import androidx.compose.remote.creation.compose.layout.RemoteBox
 import androidx.compose.remote.creation.compose.layout.RemoteComposable
 import androidx.compose.remote.creation.compose.layout.RemoteText
@@ -97,8 +97,8 @@ fun Main(modifier: Modifier = Modifier) {
 fun Greeting(modifier: RemoteModifier = RemoteModifier) {
     RemoteBox(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = RemoteAlignment.CenterHorizontally,
+        verticalArrangement = RemoteArrangement.Center,
     ) {
         RemoteText(text = "Hello world!")
     }
